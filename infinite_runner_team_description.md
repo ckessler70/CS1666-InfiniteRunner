@@ -56,10 +56,10 @@ The second advanced topic concerns the physics which will apply to both player a
 * Demonstrable backend progress towards implementation of a physics engine.
 
 ## Final Goals
-* XX%: Basic game implementation such as start and end states, player movement, and accumulation of score.
-* XX%: Procedural generation of terrain, obstacles, and coins such that gameplay may last as long as player skill allows.
-* XX%: Physics engine with gravity, momentum, friction, and rigid body collisions such that gameplay may last as long as player skill allows.
-* XX%: Menus, UI, and controls which allow players to easily interact with the game.
+* 20%: Basic game implementation such as start and end states, player movement, and accumulation of score.
+* 25%: Procedural generation of terrain, obstacles, and coins such that gameplay may last as long as player skill allows.
+* 25%: Physics engine with gravity, momentum, friction, and rigid body collisions such that gameplay may last as long as player skill allows.
+* 5%: Menus, UI, and controls which allow players to easily interact with the game.
 
 ## Stretch Goals
 * Power-Ups: Randomly generated, temporary modifications to the player or environment activated via a collectible.
