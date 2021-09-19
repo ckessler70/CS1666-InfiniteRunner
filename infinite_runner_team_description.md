@@ -36,8 +36,8 @@ Advanced Topic Subteam 2: Physics Engine
 		* GitHub Username: HERE
 
 	* Michael Daley
-		* Pitt ID: HERE
-		* GitHub Username: HERE
+		* Pitt ID: mdd63
+		* GitHub Username: mdaley6
 
 ## Game Description
 "Gallagher's Odyssey" will be a Pitt themed infinite sidescroller. Players will attempt to travel as far as possible across the randomly generated landscape using physics based gameplay mechanics. There will be a single level which scales difficulty according to the distance traveled. The primary gameplay will be jumping and flipping while the player slides across the ground and flies through the air, such that the player may utilize the landscape to preserve or increase momentum. Additionally, a number of obstacles will be generated as part of the landscape which the player must avoid.
