@@ -63,9 +63,9 @@ The second advanced topic concerns the physics which will apply to both player a
 
 ## Stretch Goals
 * Power-Ups: Randomly generated, temporary modifications to the player or environment activated via a collectible.
-		1) **Score Booster** that doubles all points accumulated during its effect
-		2) **Balloons** that weaken the force of gravity on the player
+	* 1) **Score Booster** that doubles all points accumulated during its effect
+	* 2) **Balloons** that weaken the force of gravity on the player
 
 * Advanced Terrain: Additional terrain types with their own advanced physics, generated alongside other terrain types.
-		1) **Bouncy terrain** that reverses an objects' direction with some added speed
-		2) **Deep Water** that simulates buoyancy
+	* 1) **Bouncy terrain** that reverses an objects' direction with some added speed
+	* 2) **Deep Water** that simulates buoyancy
