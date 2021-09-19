@@ -18,8 +18,8 @@ Advanced Topic Subteam 1: Procedural Generation
 		* GitHub Username: HERE
 
 	* Benjamin Ungar
-		* Pitt ID: HERE
-		* GitHub Username: HERE
+		* Pitt ID: bhu4
+		* GitHub Username: Bungarooo
 
 Advanced Topic Subteam 2: Physics Engine
 
