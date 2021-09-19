@@ -24,8 +24,8 @@ Advanced Topic Subteam 1: Procedural Generation
 Advanced Topic Subteam 2: Physics Engine
 
 	* Dominic Karras
-		* Pitt ID: HERE
-		* GitHub Username: HERE
+		* Pitt ID: 4197266
+		* GitHub Username: dak198
 
 	* Mateen Kasim
 		* Pitt ID: HERE
@@ -48,7 +48,7 @@ Advanced Topic Subteam 2: Physics Engine
 The first advanced topic concerns 2D terrain generation.
 
 ### Physics Engine
-The second advanced topic concerns the physics which will apply to both player and environment.
+The second advanced topic concerns the physics which will apply to both player and environment. The physics engine will implement a basic, rigid-body simulation of mass, acceleration, and collision for the player as well as other objects in the level. These entities will be able to freely move and rotate in response to collisions, gravity, and friction. Different objects will have different shapes, mass, and rotational inertia and will thus behave differently from each other. In implementing the buoyancy stretch goal, objects will also be assigned densities, which will govern how well they float atop water terrain.
 
 ## Midterm Goals
 * A simple "base game" without the advanced topics implemented. Movement, collision, static obstacles, and collectible coins will be demonstrated within a testing environment.
@@ -63,9 +63,9 @@ The second advanced topic concerns the physics which will apply to both player a
 
 ## Stretch Goals
 * Power-Ups: Randomly generated, temporary modifications to the player or environment activated via a collectible.
-		1) Description.
-		2) Description.
+		1) **Score Booster** that doubles all points accumulated during its effect
+		2) **Balloons** that weaken the force of gravity on the player
 
 * Advanced Terrain: Additional terrain types with their own advanced physics, generated alongside other terrain types.
-		1) Description.
-		2) Description.
+		1) **Bouncy terrain** that reverses an objects' direction with some added speed
+		2) **Deep Water** that simulates buoyancy
