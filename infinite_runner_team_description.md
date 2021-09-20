@@ -45,7 +45,7 @@ Advanced Topic Subteam 2: Physics Engine
 ## Advanced Topic Descriptions
 
 ### Procedural Generation
-The first advanced topic concerns 2D terrain generation.
+The first advanced topic concerns 2D terrain generation, with hills and obstacles of various size as the primary features. Each time a new section of terrain is generated there will be a chance to produce a large obstacle instead of a hill. Small obstacles will be added to hills after they are created. All obstacles will be drawn from a pool of predefined options. Hills will be created with Bezier curves using Perlin noise to generate control points. Distance traveled will be used as input for hill generation and obstacle density in order to increase complexity and difficulty as the length of a run increases. 
 
 ### Physics Engine
 The second advanced topic concerns the physics which will apply to both player and environment. The physics engine will implement a basic, rigid-body simulation of mass, acceleration, and collision for the player as well as other objects in the level. These entities will be able to freely move and rotate in response to collisions, gravity, and friction. Different objects will have different shapes, mass, and rotational inertia and will thus behave differently from each other. In implementing the buoyancy stretch goal, objects will also be assigned densities, which will govern how well they float atop water terrain.
