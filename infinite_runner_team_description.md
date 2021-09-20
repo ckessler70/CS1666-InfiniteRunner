@@ -14,8 +14,8 @@ Advanced Topic Subteam 1: Procedural Generation
 		* GitHub Username: DaneHalle
 
 	* Andrew Wiesen
-		* Pitt ID: HERE
-		* GitHub Username: HERE
+		* Pitt ID: amw267
+		* GitHub Username: drewwiesen155
 
 	* Benjamin Ungar
 		* Pitt ID: bhu4
