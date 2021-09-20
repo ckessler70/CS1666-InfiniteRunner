@@ -32,8 +32,8 @@ Advanced Topic Subteam 2: Physics Engine
 		* GitHub Username: mateenkasim
 
 	* Elliot Snitzer
-		* Pitt ID: HERE
-		* GitHub Username: HERE
+		* Pitt ID: efs24
+		* GitHub Username: elliotsnitzer
 
 	* Michael Daley
 		* Pitt ID: mdd63
