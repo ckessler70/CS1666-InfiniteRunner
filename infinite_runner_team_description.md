@@ -24,7 +24,7 @@ Advanced Topic Subteam 1: Procedural Generation
 Advanced Topic Subteam 2: Physics Engine
 
 	* Dominic Karras
-		* Pitt ID: 4197266
+		* Pitt ID: dak198
 		* GitHub Username: dak198
 
 	* Mateen Kasim
