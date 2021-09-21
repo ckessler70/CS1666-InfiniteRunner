@@ -55,7 +55,7 @@ The second advanced topic concerns the physics which will apply to both player a
 *  - Player Movement (jumping & flipping)
 *  - Game-ending collisions
 *  - Static obstacles
-*  - Collectible coins.
+*  - Collectible coins
 * Demonstrable backend progress towards implementation of procedural terrain generation.
 * Demonstrable backend progress towards implementation of a physics engine.
 
