@@ -51,12 +51,16 @@ The first advanced topic concerns 2D terrain generation, with hills and obstacle
 The second advanced topic concerns the physics which will apply to both player and environment. The physics engine will implement a basic, rigid-body simulation of mass, acceleration, and collision for the player as well as other objects in the level. These entities will be able to freely move and rotate in response to collisions, gravity, and friction. Different objects will have different shapes, mass, and rotational inertia and will thus behave differently from each other. In implementing the buoyancy stretch goal, objects will also be assigned densities, which will govern how well they float atop water terrain.
 
 ## Midterm Goals
-* A simple "base game" without the advanced topics implemented. Movement, game-ending collision, static obstacles, and collectible coins will be demonstrated within a testing environment.
+* A simple "base game" will be demonstrated without the advanced topics implemented, including: 
+*  - Player Movement (jumping & flipping)
+*  - Game-ending collisions
+*  - Static obstacles
+*  - Collectible coins.
 * Demonstrable backend progress towards implementation of procedural terrain generation.
 * Demonstrable backend progress towards implementation of a physics engine.
 
 ## Final Goals
-* 20%: Basic game implementation such as start and end states, player movement, and accumulation of score.
+* 20%: Basic game implementation such as start and end states, player movement (jumping and fliping capabilities), and accumulation of score.
 * 25%: Procedural generation of terrain, obstacles, and coins such that gameplay may last as long as player skill allows.
 * 25%: Physics engine with gravity, momentum, friction, and rigid body collisions such that gameplay may last as long as player skill allows.
 * 5%: Menus, UI, and controls which allow players to easily interact with the game.
