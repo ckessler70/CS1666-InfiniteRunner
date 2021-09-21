@@ -52,10 +52,10 @@ The second advanced topic concerns the physics which will apply to both player a
 
 ## Midterm Goals
 * A simple "base game" will be demonstrated without the advanced topics implemented, including: 
-* 	Player Movement (jumping & flipping)
-* 	Game-ending collisions
-* 	Static obstacles
-* 	Collectible coins
+	- Player Movement (jumping & flipping)
+	- Game-ending collisions
+	- Static obstacles
+	- Collectible coins
 * Demonstrable backend progress towards implementation of procedural terrain generation.
 * Demonstrable backend progress towards implementation of a physics engine.
 
