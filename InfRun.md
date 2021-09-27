@@ -1,11 +1,11 @@
 # CS1666 InfRun Management weeks
 
 1. 9/15 - 9/21
-	* Manager: NAME
+	* Manager: Caleb Kessler
 	* Goals:
 		1. Get project description and goals approved
 1. 9/29 - 10/5
-	* Manager: NAME
+	* Manager: Dominic Karras
 	* Goals:
 		1. Create team credits sequence for the game
 1. 10/6 - 10/19
