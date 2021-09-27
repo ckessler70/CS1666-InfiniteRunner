@@ -29,7 +29,7 @@
 		1. GOALHERE
 		...
 1. 11/10 - 11/16
-	* Manager: NAME
+	* Manager: Ben Ungar
 	* Goals:
 		1. GOALHERE
 		...
