@@ -9,7 +9,7 @@
 	* Goals:
 		1. Create team credits sequence for the game
 1. 10/6 - 10/19
-	* Manager: NAME
+	* Manager: Dane Halle
 	* Goals:
 		1. GOALHERE
 		...
