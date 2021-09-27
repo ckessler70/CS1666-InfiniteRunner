@@ -24,7 +24,7 @@
 		1. GOALHERE
 		...
 1. 11/3 - 11/9
-	* Manager: NAME
+	* Manager: Michael Daley
 	* Goals:
 		1. GOALHERE
 		...
