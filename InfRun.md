@@ -14,7 +14,7 @@
 		1. GOALHERE
 		...
 1. 10/20 - 10/26
-	* Manager: NAME
+	* Manager: Mateen Kasim
 	* Goals:
 		1. GOALHERE
 		...
