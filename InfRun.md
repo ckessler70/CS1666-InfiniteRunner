@@ -39,7 +39,7 @@
 		1. GOALHERE
 		...
 1. 12/1 - 12/7
-	* Manager: NAME
+	* Manager: Drew Wiesen
 	* Goals:
 		1. GOALHERE
 		...
