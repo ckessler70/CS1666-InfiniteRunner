@@ -9,7 +9,7 @@
 	* Goals:
 		1. Create team credits sequence for the game
 1. 10/6 - 10/19
-	* Manager: NAME
+	* Manager: Dane Halle
 	* Goals:
 		1. GOALHERE
 		...
@@ -19,7 +19,7 @@
 		1. GOALHERE
 		...
 1. 10/27 - 11/2
-	* Manager: NAME
+	* Manager: Elliot Snitzer
 	* Goals:
 		1. GOALHERE
 		...
@@ -29,7 +29,7 @@
 		1. GOALHERE
 		...
 1. 11/10 - 11/16
-	* Manager: NAME
+	* Manager: Ben Ungar
 	* Goals:
 		1. GOALHERE
 		...
@@ -39,7 +39,7 @@
 		1. GOALHERE
 		...
 1. 12/1 - 12/7
-	* Manager: NAME
+	* Manager: Drew Wiesen
 	* Goals:
 		1. GOALHERE
 		...
