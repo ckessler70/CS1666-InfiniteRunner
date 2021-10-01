@@ -1,8 +1,8 @@
 [package]
 name = "inf_runner"
 version = "0.1.0"
-authors = ["Caleb Kessler <cdk46@pitt.edu>", "Dane Halle <dmh148@pitt.edu>", "Andrew Wiesen <amw267@pitt.edu>", "Benjamin Ungar <bhu5@pitt.edu>", "Dominic Karras <dak198@pitt.edu>", "Mateen Kasim <mak420@pitt.edu>", "Elliot Snitzer <efs24@pitt.edu>", "Michael Daley <mdd63@pitt.edu>"]
 edition = "2021"
+authors = ["Caleb Kessler <cdk46@pitt.edu>", "Dane Halle <dmh148@pitt.edu>", "Andrew Wiesen <amw267@pitt.edu>", "Benjamin Ungar <bhu5@pitt.edu>", "Dominic Karras <dak198@pitt.edu>", "Mateen Kasim <mak420@pitt.edu>", "Elliot Snitzer <efs24@pitt.edu>", "Michael Daley <mdd63@pitt.edu>"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
