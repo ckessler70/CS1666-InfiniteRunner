@@ -12,6 +12,8 @@ Install SDL2 fully on your machine
     5. Run `brew install sdl2_ttf` 
     6. Add the following to your `~/.bash_profile`: `export LIBRARY_PATH="$LIBRARY_PATH:/usr/local/lib"`
     7. Run `source ~/.bash_profile`
+    8. Run `rustup default nightly`
+    9. Run `rustup update`
 2. **Windows (assuming Rust installed through `rustup`)**
     1. Run `rustup default nightly`
     2. Run `rustup update`
