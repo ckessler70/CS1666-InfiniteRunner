@@ -43,7 +43,7 @@ impl SDLCore {
     }
 }
 
-pub trait Demo {
+pub trait Game {
     fn init() -> Result<Self, String>
     where
         Self: Sized;
@@ -53,7 +53,7 @@ pub trait Demo {
 pub fn runner<F, D>(desc: &str, initter: F)
 where
     F: Fn() -> Result<D, String>,
-    D: Demo,
+    D: Game,
 {
     println!("\nRunning {}:", desc);
     print!("\tInitting...");

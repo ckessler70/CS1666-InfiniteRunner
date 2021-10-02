@@ -7,13 +7,12 @@ use sdl2::rect::Rect;
 // use sdl2::render::BlendMode;
 use sdl2::render::TextureQuery;
 
-use inf_runner::Demo;
+use inf_runner::Game;
 use inf_runner::SDLCore;
 
 const TITLE: &str = "Credit scene - Dane Halle";
-const CAM_W: u32 = 640;
-const CAM_H: u32 = 480;
-// No timeout needed!
+const CAM_W: u32 = 1920;
+const CAM_H: u32 = 1080;
 
 pub struct Credits {
     core: SDLCore,
@@ -25,7 +24,7 @@ macro_rules! rect(
     )
 );
 
-impl Demo for Credits {
+impl Game for Credits {
     fn init() -> Result<Self, String> {
         let core = SDLCore::init(TITLE, true, CAM_W, CAM_H)?;
         Ok(Credits { core })
@@ -39,12 +38,8 @@ impl Demo for Credits {
                     _ => {}
                 }
             }
-
-            // Draw (or re-draw) SDL03 demo
-            self.credit_demo()?;
+            self.credit_demo_text()?;
         }
-
-        // Out of game loop, return Ok
         Ok(())
     }
 }
@@ -71,7 +66,7 @@ fn get_centered_rect(rect_width: u32, rect_height: u32, cons_width: u32, cons_he
 }
 
 impl Credits {
-    fn credit_demo(&mut self) -> Result<(), String> {
+    fn credit_demo_text(&mut self) -> Result<(), String> {
         let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
 
         let mut font = ttf_context.load_font("./assets/DroidSansMono.ttf", 128)?;
