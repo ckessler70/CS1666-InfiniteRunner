@@ -33,4 +33,4 @@ Install SDL2 fully on your machine
 ## Building and Running 
 
 1. `cargo build`
-2. `cargo run ...`
+2. `cargo run --example ...`
