@@ -11,8 +11,8 @@ use inf_runner::Game;
 use inf_runner::SDLCore;
 
 const TITLE: &str = "Credit scene - Dane Halle";
-const CAM_W: u32 = 1920;
-const CAM_H: u32 = 1080;
+const CAM_W: u32 = 1280;
+const CAM_H: u32 = 720;
 
 pub struct Credits {
     core: SDLCore,
