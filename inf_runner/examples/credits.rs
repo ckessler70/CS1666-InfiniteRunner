@@ -31,6 +31,8 @@ impl Game for Credits {
     }
 
     fn run(&mut self) -> Result<(), String> {
+        let mut count = CAM_H;
+
         'gameloop: loop {
             for event in self.core.event_pump.poll_iter() {
                 match event {
@@ -38,35 +40,19 @@ impl Game for Credits {
                     _ => {}
                 }
             }
-            self.credit_demo_text()?;
+            count = self.credit_demo_text(&count)?;
+            if count == 0 {
+                count = CAM_H;
+            } else {
+                continue;
+            }
         }
         Ok(())
     }
 }
 
-fn get_centered_rect(rect_width: u32, rect_height: u32, cons_width: u32, cons_height: u32) -> Rect {
-    let wr = rect_width as f32 / cons_width as f32;
-    let hr = rect_height as f32 / cons_height as f32;
-
-    let (w, h) = if wr > 1f32 || hr > 1f32 {
-        if wr > hr {
-            let h = (rect_height as f32 / wr) as i32;
-            (cons_width as i32, h)
-        } else {
-            let w = (rect_width as f32 / hr) as i32;
-            (w, cons_height as i32)
-        }
-    } else {
-        (rect_width as i32, rect_height as i32)
-    };
-
-    let cx = (CAM_W as i32 - w) / 2;
-    let cy = (CAM_H as i32 - h) / 2;
-    rect!(cx, cy, w, h)
-}
-
 impl Credits {
-    fn credit_demo_text(&mut self) -> Result<(), String> {
+    fn credit_demo_text(&mut self, mut count: &u32) -> Result<(u32), String> {
         let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
 
         let mut font = ttf_context.load_font("./assets/DroidSansMono.ttf", 128)?;
@@ -82,6 +68,8 @@ impl Credits {
             .create_texture_from_surface(&surface)
             .map_err(|e| e.to_string())?;
 
+        let mut m_count = count - 1;
+
         self.core
             .wincan
             .set_draw_color(Color::RGBA(3, 252, 206, 255));
@@ -90,12 +78,30 @@ impl Credits {
         let TextureQuery { width, height, .. } = texture.query();
 
         let padding = 64;
-        let target = get_centered_rect(width, height, CAM_W - padding, CAM_H - padding);
 
-        self.core.wincan.copy(&texture, None, Some(target))?;
+        let wr = width as f32 / (CAM_W - padding) as f32;
+        let hr = height as f32 / (CAM_H - padding) as f32;
+
+        let (w, h) = if wr > 1f32 || hr > 1f32 {
+            if wr > hr {
+                let h = (height as f32 / wr) as i32;
+                ((CAM_W - padding) as i32, h)
+            } else {
+                let w = (width as f32 / hr) as i32;
+                (w, (CAM_H - padding) as i32)
+            }
+        } else {
+            (width as i32, height as i32)
+        };
+
+        let cx = (CAM_W as i32 - w) / 2;
+
+        self.core
+            .wincan
+            .copy(&texture, None, Some(rect!(cx, m_count, w, h)));
         self.core.wincan.present();
 
-        Ok(())
+        Ok((m_count))
     }
 }
 
