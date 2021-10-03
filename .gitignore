@@ -2,4 +2,5 @@
 Cargo.lock
 */target/
 */*.DS_Store
-
+*/*keycodes.txt
+*/*temp_asset_paths.md

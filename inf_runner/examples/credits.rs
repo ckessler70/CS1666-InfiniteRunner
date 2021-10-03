@@ -92,7 +92,7 @@ impl Game for Credits {
             .render("Elliot Snitzer")
             .blended(Color::RGBA(119, 3, 252, 255))
             .map_err(|e| e.to_string())?;
-        let texture_Mateen = texture_creator
+        let texture_mateen = texture_creator
             .create_texture_from_surface(&surface)
             .map_err(|e| e.to_string())?;
 
@@ -110,7 +110,7 @@ impl Game for Credits {
             texture_andrew,
             texture_benjamin,
             texture_dominic,
-            texture_Mateen,
+            texture_mateen,
             texture_elliot,
             texture_michael,
         ];
