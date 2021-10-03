@@ -1,10 +1,10 @@
 extern crate inf_runner;
 
 use sdl2::event::Event;
+use sdl2::image::LoadTexture;
 use sdl2::pixels::Color;
-// use sdl2::rect::Point;
 use sdl2::rect::Rect;
-// use sdl2::render::BlendMode;
+use sdl2::render::Texture;
 use sdl2::render::TextureQuery;
 
 use inf_runner::Game;
@@ -24,6 +24,46 @@ macro_rules! rect(
     )
 );
 
+struct Headshot<'a> {
+    pos: Rect,
+    src: Rect,
+    texture: Texture<'a>,
+}
+
+impl<'a> Headshot<'a> {
+    fn new(pos: Rect, texture: Texture<'a>) -> Headshot {
+        let src = rect!(0, 0, 400, 400);
+        Headshot { pos, src, texture }
+    }
+
+    fn x(&self) -> i32 {
+        self.pos.x()
+    }
+
+    fn y(&self) -> i32 {
+        self.pos.y()
+    }
+
+    fn update_pos(&mut self, vel: (i32, i32), x_bounds: (i32, i32), y_bounds: (i32, i32)) {
+        self.pos
+            .set_x((self.pos.x() + vel.0).clamp(x_bounds.0, x_bounds.1));
+        self.pos
+            .set_y((self.pos.y() + vel.1).clamp(y_bounds.0, y_bounds.1));
+    }
+
+    fn src(&self) -> Rect {
+        self.src
+    }
+
+    fn texture(&self) -> &Texture {
+        &self.texture
+    }
+}
+
+fn print_type_of<T>(_: &T) {
+    println!("{}", std::any::type_name::<T>())
+}
+
 impl Game for Credits {
     fn init() -> Result<Self, String> {
         let core = SDLCore::init(TITLE, true, CAM_W, CAM_H)?;
@@ -41,78 +81,129 @@ impl Game for Credits {
         let texture_creator = self.core.wincan.texture_creator();
 
         let surface = font
-            .render("Dane Halle - Debug Guru")
-            .blended(Color::RGBA(119, 3, 252, 255))
-            .map_err(|e| e.to_string())?;
-        let texture_michael = texture_creator
-            .create_texture_from_surface(&surface)
-            .map_err(|e| e.to_string())?;
-
-        let surface = font
             .render("Caleb Kessler")
-            .blended(Color::RGBA(119, 3, 252, 255))
-            .map_err(|e| e.to_string())?;
-        let texture_dane = texture_creator
-            .create_texture_from_surface(&surface)
-            .map_err(|e| e.to_string())?;
-
-        let surface = font
-            .render("Andrew Wiesen")
             .blended(Color::RGBA(119, 3, 252, 255))
             .map_err(|e| e.to_string())?;
         let texture_caleb = texture_creator
             .create_texture_from_surface(&surface)
             .map_err(|e| e.to_string())?;
 
+        let caleb_hs = Headshot::new(
+            rect!((CAM_W / 2 - 400 / 2), 0, 400, 400),
+            texture_creator.load_texture("assets/dane_hs.jpg")?,
+        );
+
         let surface = font
-            .render("Benjamin Ungar")
+            .render("Dane Halle")
+            .blended(Color::RGBA(119, 3, 252, 255))
+            .map_err(|e| e.to_string())?;
+        let texture_dane = texture_creator
+            .create_texture_from_surface(&surface)
+            .map_err(|e| e.to_string())?;
+
+        let dane_hs = Headshot::new(
+            rect!((CAM_W / 2 - 400 / 2), 0, 400, 400),
+            texture_creator.load_texture("assets/dane_hs.jpg")?,
+        );
+
+        let surface = font
+            .render("Andrew Wiesen")
             .blended(Color::RGBA(119, 3, 252, 255))
             .map_err(|e| e.to_string())?;
         let texture_andrew = texture_creator
             .create_texture_from_surface(&surface)
             .map_err(|e| e.to_string())?;
 
+        let andrew_hs = Headshot::new(
+            rect!((CAM_W / 2 - 400 / 2), 0, 400, 400),
+            texture_creator.load_texture("assets/dane_hs.jpg")?,
+        );
+
         let surface = font
-            .render("Dominic Karras")
+            .render("Benjamin Ungar")
             .blended(Color::RGBA(119, 3, 252, 255))
             .map_err(|e| e.to_string())?;
         let texture_benjamin = texture_creator
             .create_texture_from_surface(&surface)
             .map_err(|e| e.to_string())?;
 
+        let benjamin_hs = Headshot::new(
+            rect!((CAM_W / 2 - 400 / 2), 0, 400, 400),
+            texture_creator.load_texture("assets/dane_hs.jpg")?,
+        );
+
         let surface = font
-            .render("Mateen Kasim")
+            .render("Dominic Karras")
             .blended(Color::RGBA(119, 3, 252, 255))
             .map_err(|e| e.to_string())?;
         let texture_dominic = texture_creator
             .create_texture_from_surface(&surface)
             .map_err(|e| e.to_string())?;
 
+        let dominic_hs = Headshot::new(
+            rect!((CAM_W / 2 - 400 / 2), 0, 400, 400),
+            texture_creator.load_texture("assets/dane_hs.jpg")?,
+        );
+
         let surface = font
-            .render("Elliot Snitzer")
+            .render("Mateen Kasim")
             .blended(Color::RGBA(119, 3, 252, 255))
             .map_err(|e| e.to_string())?;
         let texture_mateen = texture_creator
             .create_texture_from_surface(&surface)
             .map_err(|e| e.to_string())?;
 
+        let mateen_hs = Headshot::new(
+            rect!((CAM_W / 2 - 400 / 2), 0, 400, 400),
+            texture_creator.load_texture("assets/dane_hs.jpg")?,
+        );
+
         let surface = font
-            .render("Michael Daley")
+            .render("Elliot Snitzer")
             .blended(Color::RGBA(119, 3, 252, 255))
             .map_err(|e| e.to_string())?;
         let texture_elliot = texture_creator
             .create_texture_from_surface(&surface)
             .map_err(|e| e.to_string())?;
 
+        let elliot_hs = Headshot::new(
+            rect!((CAM_W / 2 - 400 / 2), 0, 400, 400),
+            texture_creator.load_texture("assets/dane_hs.jpg")?,
+        );
+
+        let surface = font
+            .render("Michael Daley")
+            .blended(Color::RGBA(119, 3, 252, 255))
+            .map_err(|e| e.to_string())?;
+        let texture_michael = texture_creator
+            .create_texture_from_surface(&surface)
+            .map_err(|e| e.to_string())?;
+
+        let michael_hs = Headshot::new(
+            rect!((CAM_W / 2 - 400 / 2), 0, 400, 400),
+            texture_creator.load_texture("assets/dane_hs.jpg")?,
+        );
+
         let team = [
-            texture_dane,
             texture_caleb,
+            texture_dane,
             texture_andrew,
             texture_benjamin,
             texture_dominic,
             texture_mateen,
             texture_elliot,
             texture_michael,
+        ];
+
+        let hs = [
+            caleb_hs,
+            dane_hs,
+            andrew_hs,
+            benjamin_hs,
+            dominic_hs,
+            mateen_hs,
+            elliot_hs,
+            michael_hs,
         ];
 
         let mut index = 0;
@@ -124,7 +215,7 @@ impl Game for Credits {
                     _ => {}
                 }
             }
-            count = self.credit_demo_text(&count, &team[index])?;
+            count = self.credit_demo_text(&count, &team[index], &200, &hs[index])?;
             if count == 0 {
                 count = CAM_H;
                 index += 1;
@@ -144,9 +235,13 @@ impl Credits {
         &mut self,
         count: &u32,
         texture: &sdl2::render::Texture,
+        padding: &u32,
+        image: &Headshot,
     ) -> Result<u32, String> {
         let m_count = count - 1;
+        let m_padding = padding;
 
+        // Background wipe
         self.core
             .wincan
             .set_draw_color(Color::RGBA(3, 252, 206, 255));
@@ -173,9 +268,21 @@ impl Credits {
 
         let cx = (CAM_W as i32 - w) / 2;
 
+        // Print out the name
         self.core
             .wincan
             .copy(&texture, None, Some(rect!(cx, m_count, w, h)));
+
+        // Image drawing
+        if m_count + m_padding <= CAM_H {
+            self.core.wincan.copy(
+                image.texture(),
+                image.src(),
+                rect!(image.x(), m_count + m_padding, 400, 400),
+            )?;
+        }
+
+        // Only one present needed per frame
         self.core.wincan.present();
 
         Ok(m_count)
