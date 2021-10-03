@@ -40,17 +40,6 @@ impl<'a> Headshot<'a> {
         self.pos.x()
     }
 
-    fn y(&self) -> i32 {
-        self.pos.y()
-    }
-
-    fn update_pos(&mut self, vel: (i32, i32), x_bounds: (i32, i32), y_bounds: (i32, i32)) {
-        self.pos
-            .set_x((self.pos.x() + vel.0).clamp(x_bounds.0, x_bounds.1));
-        self.pos
-            .set_y((self.pos.y() + vel.1).clamp(y_bounds.0, y_bounds.1));
-    }
-
     fn src(&self) -> Rect {
         self.src
     }
@@ -58,10 +47,6 @@ impl<'a> Headshot<'a> {
     fn texture(&self) -> &Texture {
         &self.texture
     }
-}
-
-fn print_type_of<T>(_: &T) {
-    println!("{}", std::any::type_name::<T>())
 }
 
 impl Game for Credits {
@@ -90,7 +75,7 @@ impl Game for Credits {
 
         let caleb_hs = Headshot::new(
             rect!((CAM_W / 2 - 400 / 2), 0, 400, 400),
-            texture_creator.load_texture("assets/dane_hs.jpg")?,
+            texture_creator.load_texture("assets/caleb_hs.jpg")?,
         );
 
         let surface = font
@@ -215,8 +200,18 @@ impl Game for Credits {
                     _ => {}
                 }
             }
-            count = self.credit_demo_text(&count, &team[index], &200, &hs[index])?;
-            if count == 0 {
+            let mut i = 0;
+            while i < 120 {
+                i += 1;
+                if count == 1 {
+                    count += 1;
+                    count = self.credit_demo_text(&count, &team[index], &200, &hs[index])?;
+                } else {
+                    count = self.credit_demo_text(&count, &team[index], &200, &hs[index])?;
+                    break;
+                }
+            }
+            if i == 120 {
                 count = CAM_H;
                 index += 1;
                 if index == team.len() {
@@ -239,6 +234,7 @@ impl Credits {
         image: &Headshot,
     ) -> Result<u32, String> {
         let m_count = count - 1;
+        //Removal of this and changing instances to just `padding` causes it to break for some reason
         let m_padding = padding;
 
         // Background wipe
@@ -271,7 +267,7 @@ impl Credits {
         // Print out the name
         self.core
             .wincan
-            .copy(&texture, None, Some(rect!(cx, m_count, w, h)));
+            .copy(&texture, None, Some(rect!(cx, m_count, w, h)))?;
 
         // Image drawing
         if m_count + m_padding <= CAM_H {
