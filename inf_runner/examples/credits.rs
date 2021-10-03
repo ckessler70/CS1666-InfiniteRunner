@@ -33,26 +33,6 @@ impl Game for Credits {
     fn run(&mut self) -> Result<(), String> {
         let mut count = CAM_H;
 
-        'gameloop: loop {
-            for event in self.core.event_pump.poll_iter() {
-                match event {
-                    Event::Quit { .. } => break 'gameloop,
-                    _ => {}
-                }
-            }
-            count = self.credit_demo_text(&count)?;
-            if count == 0 {
-                count = CAM_H;
-            } else {
-                continue;
-            }
-        }
-        Ok(())
-    }
-}
-
-impl Credits {
-    fn credit_demo_text(&mut self, mut count: &u32) -> Result<(u32), String> {
         let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
 
         let mut font = ttf_context.load_font("./assets/DroidSansMono.ttf", 128)?;
@@ -64,11 +44,108 @@ impl Credits {
             .render("Dane Halle - Debug Guru")
             .blended(Color::RGBA(119, 3, 252, 255))
             .map_err(|e| e.to_string())?;
-        let texture = texture_creator
+        let texture_michael = texture_creator
             .create_texture_from_surface(&surface)
             .map_err(|e| e.to_string())?;
 
-        let mut m_count = count - 1;
+        let surface = font
+            .render("Caleb Kessler")
+            .blended(Color::RGBA(119, 3, 252, 255))
+            .map_err(|e| e.to_string())?;
+        let texture_dane = texture_creator
+            .create_texture_from_surface(&surface)
+            .map_err(|e| e.to_string())?;
+
+        let surface = font
+            .render("Andrew Wiesen")
+            .blended(Color::RGBA(119, 3, 252, 255))
+            .map_err(|e| e.to_string())?;
+        let texture_caleb = texture_creator
+            .create_texture_from_surface(&surface)
+            .map_err(|e| e.to_string())?;
+
+        let surface = font
+            .render("Benjamin Ungar")
+            .blended(Color::RGBA(119, 3, 252, 255))
+            .map_err(|e| e.to_string())?;
+        let texture_andrew = texture_creator
+            .create_texture_from_surface(&surface)
+            .map_err(|e| e.to_string())?;
+
+        let surface = font
+            .render("Dominic Karras")
+            .blended(Color::RGBA(119, 3, 252, 255))
+            .map_err(|e| e.to_string())?;
+        let texture_benjamin = texture_creator
+            .create_texture_from_surface(&surface)
+            .map_err(|e| e.to_string())?;
+
+        let surface = font
+            .render("Mateen Kasim")
+            .blended(Color::RGBA(119, 3, 252, 255))
+            .map_err(|e| e.to_string())?;
+        let texture_dominic = texture_creator
+            .create_texture_from_surface(&surface)
+            .map_err(|e| e.to_string())?;
+
+        let surface = font
+            .render("Elliot Snitzer")
+            .blended(Color::RGBA(119, 3, 252, 255))
+            .map_err(|e| e.to_string())?;
+        let texture_Mateen = texture_creator
+            .create_texture_from_surface(&surface)
+            .map_err(|e| e.to_string())?;
+
+        let surface = font
+            .render("Michael Daley")
+            .blended(Color::RGBA(119, 3, 252, 255))
+            .map_err(|e| e.to_string())?;
+        let texture_elliot = texture_creator
+            .create_texture_from_surface(&surface)
+            .map_err(|e| e.to_string())?;
+
+        let team = [
+            texture_dane,
+            texture_caleb,
+            texture_andrew,
+            texture_benjamin,
+            texture_dominic,
+            texture_Mateen,
+            texture_elliot,
+            texture_michael,
+        ];
+
+        let mut index = 0;
+
+        'gameloop: loop {
+            for event in self.core.event_pump.poll_iter() {
+                match event {
+                    Event::Quit { .. } => break 'gameloop,
+                    _ => {}
+                }
+            }
+            count = self.credit_demo_text(&count, &team[index])?;
+            if count == 0 {
+                count = CAM_H;
+                index += 1;
+                if index == team.len() {
+                    index = 0;
+                }
+            } else {
+                continue;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl Credits {
+    fn credit_demo_text(
+        &mut self,
+        count: &u32,
+        texture: &sdl2::render::Texture,
+    ) -> Result<u32, String> {
+        let m_count = count - 1;
 
         self.core
             .wincan
@@ -101,7 +178,7 @@ impl Credits {
             .copy(&texture, None, Some(rect!(cx, m_count, w, h)));
         self.core.wincan.present();
 
-        Ok((m_count))
+        Ok(m_count)
     }
 }
 
