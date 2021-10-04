@@ -13,6 +13,7 @@ use inf_runner::SDLCore;
 const TITLE: &str = "Credit scene - Dane Halle";
 const CAM_W: u32 = 1280;
 const CAM_H: u32 = 720;
+const MOVE_PER_FRAME: u32 = 1;
 
 pub struct Credits {
     core: SDLCore,
@@ -47,6 +48,10 @@ impl<'a> Headshot<'a> {
     fn texture(&self) -> &Texture {
         &self.texture
     }
+}
+
+fn print_type_of<T>(_: &T) {
+    println!("{}", std::any::type_name::<T>())
 }
 
 impl Game for Credits {
@@ -203,8 +208,8 @@ impl Game for Credits {
             let mut i = 0;
             while i < 120 {
                 i += 1;
-                if count == 1 {
-                    count += 1;
+                if count <= MOVE_PER_FRAME + 1 {
+                    count = MOVE_PER_FRAME + 1;
                     count = self.credit_demo_text(&count, &team[index], &200, &hs[index])?;
                 } else {
                     count = self.credit_demo_text(&count, &team[index], &200, &hs[index])?;
@@ -233,7 +238,7 @@ impl Credits {
         padding: &u32,
         image: &Headshot,
     ) -> Result<u32, String> {
-        let m_count = count - 1;
+        let m_count = count - MOVE_PER_FRAME;
         //Removal of this and changing instances to just `padding` causes it to break for some reason
         let m_padding = padding;
 
