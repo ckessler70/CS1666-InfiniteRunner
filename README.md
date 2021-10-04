@@ -28,5 +28,7 @@ Install SDL2 fully on your machine
 
 ## Building and Running 
 
+Within inf_runner folder:
 1. `cargo build`
-2. `cargo run --example ...`
+2. `cargo run`
+3. Play to your heart's content

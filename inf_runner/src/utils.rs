@@ -1,3 +1,5 @@
+// File for simple helper functions/macros that may be used in many places
+
 #[macro_export]
 macro_rules! rect(
     ($x:expr, $y:expr, $w:expr, $h:expr) => (

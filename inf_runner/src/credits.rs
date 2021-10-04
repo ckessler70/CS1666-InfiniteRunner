@@ -11,7 +11,7 @@ use sdl2::render::TextureQuery;
 
 const CAM_W: u32 = 1280;
 const CAM_H: u32 = 720;
-const MOVE_PER_FRAME: u32 = 1;
+const MOVE_PER_FRAME: u32 = 2;
 
 pub struct Credits;
 
