@@ -158,7 +158,7 @@ impl Game for Credits {
 
         let michael_hs = Headshot::new(
             rect!((CAM_W / 2 - 400 / 2), 0, 400, 400),
-            texture_creator.load_texture("assets/michael_hs.png")?,
+            texture_creator.load_texture("assets/michael_hs.jpg")?,
         );
 
         let team = [
