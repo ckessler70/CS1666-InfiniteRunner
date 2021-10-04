@@ -11,7 +11,7 @@ use sdl2::render::TextureQuery;
 
 const CAM_W: u32 = 1280;
 const CAM_H: u32 = 720;
-const MOVE_PER_FRAME: u32 = 2;
+const MOVE_PER_FRAME: u32 = 10;
 
 pub struct Credits;
 
@@ -158,7 +158,7 @@ impl Game for Credits {
 
         let michael_hs = Headshot::new(
             rect!((CAM_W / 2 - 400 / 2), 0, 400, 400),
-            texture_creator.load_texture("assets/dane_hs.jpg")?,
+            texture_creator.load_texture("assets/michael_hs.png")?,
         );
 
         let team = [
