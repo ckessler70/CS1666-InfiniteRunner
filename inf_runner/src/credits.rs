@@ -1,5 +1,3 @@
-extern crate inf_runner;
-
 use sdl2::event::Event;
 use sdl2::image::LoadTexture;
 use sdl2::pixels::Color;
@@ -10,14 +8,11 @@ use sdl2::render::TextureQuery;
 use inf_runner::Game;
 use inf_runner::SDLCore;
 
-const TITLE: &str = "Credit scene - Dane Halle";
 const CAM_W: u32 = 1280;
 const CAM_H: u32 = 720;
 const MOVE_PER_FRAME: u32 = 1;
 
-pub struct Credits {
-    core: SDLCore,
-}
+pub struct Credits;
 
 macro_rules! rect(
     ($x:expr, $y:expr, $w:expr, $h:expr) => (
@@ -50,17 +45,16 @@ impl<'a> Headshot<'a> {
     }
 }
 
-fn print_type_of<T>(_: &T) {
-    println!("{}", std::any::type_name::<T>())
-}
+// fn print_type_of<T>(_: &T) {
+//     println!("{}", std::any::type_name::<T>())
+// }
 
 impl Game for Credits {
     fn init() -> Result<Self, String> {
-        let core = SDLCore::init(TITLE, true, CAM_W, CAM_H)?;
-        Ok(Credits { core })
+        Ok(Credits {})
     }
 
-    fn run(&mut self) -> Result<(), String> {
+    fn run(&mut self, core: &mut SDLCore) -> Result<(), String> {
         let mut count = CAM_H;
 
         let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
@@ -68,7 +62,7 @@ impl Game for Credits {
         let mut font = ttf_context.load_font("./assets/DroidSansMono.ttf", 128)?;
         font.set_style(sdl2::ttf::FontStyle::BOLD);
 
-        let texture_creator = self.core.wincan.texture_creator();
+        let texture_creator = core.wincan.texture_creator();
 
         let surface = font
             .render("Caleb Kessler")
@@ -145,7 +139,7 @@ impl Game for Credits {
 
         let mateen_hs = Headshot::new(
             rect!((CAM_W / 2 - 400 / 2), 0, 400, 400),
-            texture_creator.load_texture("assets/dane_hs.jpg")?,
+            texture_creator.load_texture("assets/mateen_hs.jpg")?,
         );
 
         let surface = font
@@ -199,7 +193,7 @@ impl Game for Credits {
         let mut index = 0;
 
         'gameloop: loop {
-            for event in self.core.event_pump.poll_iter() {
+            for event in core.event_pump.poll_iter() {
                 match event {
                     Event::Quit { .. } => break 'gameloop,
                     _ => {}
@@ -210,9 +204,9 @@ impl Game for Credits {
                 i += 1;
                 if count <= MOVE_PER_FRAME + 1 {
                     count = MOVE_PER_FRAME + 1;
-                    count = self.credit_demo_text(&count, &team[index], &200, &hs[index])?;
+                    count = self.credit_demo_text(core, &count, &team[index], &200, &hs[index])?;
                 } else {
-                    count = self.credit_demo_text(&count, &team[index], &200, &hs[index])?;
+                    count = self.credit_demo_text(core, &count, &team[index], &200, &hs[index])?;
                     break;
                 }
             }
@@ -233,6 +227,7 @@ impl Game for Credits {
 impl Credits {
     fn credit_demo_text(
         &mut self,
+        core: &mut SDLCore,
         count: &u32,
         texture: &sdl2::render::Texture,
         padding: &u32,
@@ -243,10 +238,8 @@ impl Credits {
         let m_padding = padding;
 
         // Background wipe
-        self.core
-            .wincan
-            .set_draw_color(Color::RGBA(3, 252, 206, 255));
-        self.core.wincan.clear();
+        core.wincan.set_draw_color(Color::RGBA(3, 252, 206, 255));
+        core.wincan.clear();
 
         let TextureQuery { width, height, .. } = texture.query();
 
@@ -270,13 +263,12 @@ impl Credits {
         let cx = (CAM_W as i32 - w) / 2;
 
         // Print out the name
-        self.core
-            .wincan
+        core.wincan
             .copy(&texture, None, Some(rect!(cx, m_count, w, h)))?;
 
         // Image drawing
         if m_count + m_padding <= CAM_H {
-            self.core.wincan.copy(
+            core.wincan.copy(
                 image.texture(),
                 image.src(),
                 rect!(image.x(), m_count + m_padding, 400, 400),
@@ -284,12 +276,8 @@ impl Credits {
         }
 
         // Only one present needed per frame
-        self.core.wincan.present();
+        core.wincan.present();
 
         Ok(m_count)
     }
-}
-
-fn main() {
-    inf_runner::runner(TITLE, Credits::init);
 }
