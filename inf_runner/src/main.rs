@@ -3,6 +3,7 @@
 // Infinite Runner
 
 mod credits;
+mod utils;
 
 use inf_runner::Game;
 

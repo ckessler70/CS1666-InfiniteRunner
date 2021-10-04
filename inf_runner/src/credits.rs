@@ -1,3 +1,7 @@
+use crate::rect;
+use inf_runner::Game;
+use inf_runner::SDLCore;
+
 use sdl2::event::Event;
 use sdl2::image::LoadTexture;
 use sdl2::pixels::Color;
@@ -5,20 +9,11 @@ use sdl2::rect::Rect;
 use sdl2::render::Texture;
 use sdl2::render::TextureQuery;
 
-use inf_runner::Game;
-use inf_runner::SDLCore;
-
 const CAM_W: u32 = 1280;
 const CAM_H: u32 = 720;
 const MOVE_PER_FRAME: u32 = 1;
 
 pub struct Credits;
-
-macro_rules! rect(
-    ($x:expr, $y:expr, $w:expr, $h:expr) => (
-        Rect::new($x as i32, $y as i32, $w as u32, $h as u32)
-    )
-);
 
 struct Headshot<'a> {
     pos: Rect,
@@ -45,10 +40,6 @@ impl<'a> Headshot<'a> {
     }
 }
 
-// fn print_type_of<T>(_: &T) {
-//     println!("{}", std::any::type_name::<T>())
-// }
-
 impl Game for Credits {
     fn init() -> Result<Self, String> {
         Ok(Credits {})
@@ -56,6 +47,8 @@ impl Game for Credits {
 
     fn run(&mut self, core: &mut SDLCore) -> Result<(), String> {
         let mut count = CAM_H;
+
+        /******************************** TEXTURES AND HEADSHOTS ***************************/
 
         let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
 
@@ -189,6 +182,8 @@ impl Game for Credits {
             elliot_hs,
             michael_hs,
         ];
+
+        /***********************************************************************************/
 
         let mut index = 0;
 
