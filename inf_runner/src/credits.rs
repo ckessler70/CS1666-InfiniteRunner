@@ -119,7 +119,7 @@ impl Game for Credits {
 
         let dominic_hs = Headshot::new(
             rect!((CAM_W / 2 - 400 / 2), 0, 400, 400),
-            texture_creator.load_texture("assets/dane_hs.jpg")?,
+            texture_creator.load_texture("assets/dominic_hs.jpg")?,
         );
 
         let surface = font
