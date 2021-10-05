@@ -1,3 +1,5 @@
+// File for important content used across entire project
+
 extern crate sdl2;
 
 use sdl2::rect::Rect;
@@ -47,26 +49,5 @@ pub trait Game {
     fn init() -> Result<Self, String>
     where
         Self: Sized;
-    fn run(&mut self) -> Result<(), String>;
-}
-
-pub fn runner<F, D>(desc: &str, initter: F)
-where
-    F: Fn() -> Result<D, String>,
-    D: Game,
-{
-    println!("\nRunning {}:", desc);
-    print!("\tInitting...");
-    match initter() {
-        Err(e) => println!("\n\t\tFailed to init: {}", e),
-        Ok(mut d) => {
-            println!("DONE");
-
-            print!("\tRunning...");
-            match d.run() {
-                Err(e) => println!("\n\t\tEncountered error while running: {}", e),
-                Ok(_) => println!("DONE\nExiting cleanly"),
-            };
-        }
-    };
+    fn run(&mut self, core: &mut SDLCore) -> Result<(), String>;
 }
