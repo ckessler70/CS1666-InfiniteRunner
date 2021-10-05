@@ -3,6 +3,7 @@
 // Infinite Runner
 
 mod credits;
+mod demo;
 mod utils;
 // mod physics;
 // mod proc_gen;
@@ -17,7 +18,7 @@ const CAM_H: u32 = 720;
 pub struct UrbanOdyssey {
     core: inf_runner::SDLCore,
     // title,
-    // gameplay,
+    demo: demo::Demo,
     credits: credits::Credits,
     // physics?
     // procedural generation?
@@ -41,6 +42,11 @@ fn main() {
 
             // TITLE SCREEN RUN
             // GAME PLAY RUN
+            match contents.demo.run(&mut (contents.core)) {
+                Err(e) => println!("\n\t\tEncountered error while running: {}", e),
+                Ok(_) => println!("DONE\nExiting cleanly"),
+            };
+
             // CREDITS RUN
 
             // Ownership is tough ... maybe there's a smarter way to do this
@@ -57,10 +63,14 @@ fn main() {
 fn init() -> Result<UrbanOdyssey, String> {
     let core = inf_runner::SDLCore::init(TITLE, true, CAM_W, CAM_H)?;
     // title
-    // gameplay
+    let demo = demo::Demo::init()?;
     let credits = credits::Credits::init()?;
     // physics?
     // procedural generation?
 
-    Ok(UrbanOdyssey { core, credits })
+    Ok(UrbanOdyssey {
+        core,
+        demo,
+        credits,
+    })
 }
