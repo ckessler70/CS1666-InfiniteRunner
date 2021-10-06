@@ -23,7 +23,6 @@ const LTHIRD: i32 = ((CAM_W as i32) / 3) - (TILE_SIZE as i32) / 2;
 const RTHIRD: i32 = ((CAM_W as i32) * 2 / 3) - (TILE_SIZE as i32) / 2;
 
 const SPEED_LIMIT: i32 = 5;
-const ACCEL_RATE: i32 = 1;
 
 pub struct Demo;
 
@@ -117,7 +116,12 @@ impl Game for Demo {
         let mut x_vel = 0;
         let mut y_vel = 0;
 
+        let mut jump = false;
+        let mut jump_ct = 0;
+
         'gameloop: loop {
+            let mut x_deltav = 1;
+            let mut y_deltav = 1;
             for event in core.event_pump.poll_iter() {
                 match event {
                     Event::Quit { .. }
@@ -127,29 +131,60 @@ impl Game for Demo {
                     } => break 'gameloop,
                     _ => {}
                 }
+                match event {
+                    Event::KeyDown {
+                        keycode: Some(k), ..
+                    } => match k {
+                        Keycode::W => {
+                            if !jump && jump_ct == 0 {
+                                jump = true;
+                            }
+                        }
+                        Keycode::Up => {
+                            if !jump && jump_ct == 0 {
+                                jump = true;
+                            }
+                        }
+                        Keycode::Space => {
+                            if !jump && jump_ct == 0 {
+                                jump = true;
+                            }
+                        }
+                        _ => {}
+                    },
+                    _ => {}
+                }
             }
 
-            let keystate: HashSet<Keycode> = core
-                .event_pump
-                .keyboard_state()
-                .pressed_scancodes()
-                .filter_map(Keycode::from_scancode)
-                .collect();
+            // Boing
+            if jump {
+                jump_ct += 1;
+                y_deltav = -1;
+            }
 
-            let mut x_deltav = 1;
-            let mut y_deltav = 1;
-            if keystate.contains(&Keycode::W) || keystate.contains(&Keycode::Up) {
-                y_deltav -= ACCEL_RATE * 2;
+            // Airtime
+            if jump_ct > 30 {
+                jump = false;
+                y_deltav = 1;
             }
-            // if keystate.contains(&Keycode::A) || keystate.contains(&Keycode::Left) {
-            //     x_deltav -= ACCEL_RATE;
-            // }
-            // if keystate.contains(&Keycode::S) || keystate.contains(&Keycode::Down) {
-            //     y_deltav += ACCEL_RATE;
-            // }
-            if keystate.contains(&Keycode::D) || keystate.contains(&Keycode::Right) {
-                x_deltav += ACCEL_RATE;
+
+            // Jump cooldown
+            if !jump && jump_ct > 0 {
+                jump_ct -= 1;
             }
+
+            // If we want to use keystates instead of events...
+            // let keystate: HashSet<Keycode> = core
+            //     .event_pump
+            //     .keyboard_state()
+            //     .pressed_scancodes()
+            //     .filter_map(Keycode::from_scancode)
+            //     .collect();
+
+            // if keystate.contains(&Keycode::W) || keystate.contains(&Keycode::Up) || keystate.contains(&Keycode::Space) {
+            //     y_deltav = -1;
+            // }
+
             x_deltav = resist(x_vel, x_deltav);
             y_deltav = resist(y_vel, y_deltav);
             x_vel = (x_vel + x_deltav).clamp(-SPEED_LIMIT, SPEED_LIMIT);
