@@ -14,8 +14,6 @@ use sdl2::render::Texture;
 const CAM_W: u32 = 1280;
 const CAM_H: u32 = 720;
 
-const LEVEL_LEN: u32 = 525600;
-
 const TILE_SIZE: u32 = 100;
 
 // Bounds we want to keep the player within
@@ -99,6 +97,8 @@ impl Game for Demo {
         let bg = texture_creator.load_texture("assets/bg.png")?;
         let mut scroll_offset = 0;
 
+        let mut LEVEL_LEN: u32 = CAM_W * 2;
+
         // Also drawing bricks again
         let brick_sheet = texture_creator.load_texture("assets/road.png")?;
 
@@ -154,6 +154,13 @@ impl Game for Demo {
                     },
                     _ => {}
                 }
+            }
+
+            if (scroll_offset + RTHIRD) % CAM_W as i32 == 0 {
+                LEVEL_LEN = LEVEL_LEN + CAM_W;
+            }
+            if (scroll_offset - LTHIRD) % CAM_W as i32 == 0 {
+                LEVEL_LEN = LEVEL_LEN - CAM_W;
             }
 
             // Boing
