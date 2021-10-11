@@ -4,6 +4,7 @@ use inf_runner::SDLCore;
 
 use sdl2::event::Event;
 use sdl2::image::LoadTexture;
+use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::Texture;
@@ -190,7 +191,11 @@ impl Game for Credits {
         'gameloop: loop {
             for event in core.event_pump.poll_iter() {
                 match event {
-                    Event::Quit { .. } => break 'gameloop,
+                    Event::Quit { .. }
+                    | Event::KeyDown {
+                        keycode: Some(Keycode::Escape),
+                        ..
+                    } => break 'gameloop,
                     _ => {}
                 }
             }
@@ -209,7 +214,7 @@ impl Game for Credits {
                 count = CAM_H;
                 index += 1;
                 if index == team.len() {
-                    index = 0;
+                    break;
                 }
             } else {
                 continue;
