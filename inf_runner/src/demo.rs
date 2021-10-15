@@ -24,24 +24,14 @@ const SPEED_LIMIT: i32 = 5;
 
 pub struct Demo;
 
-enum PlayerType {
-    Lizard,
-}
-
 struct Player<'a> {
     pos: Rect,
-    src: Rect,
     texture: Texture<'a>,
 }
 
 impl<'a> Player<'a> {
-    fn new(t: PlayerType, pos: Rect, texture: Texture<'a>) -> Player {
-        let (x, y) = match t {
-            PlayerType::Lizard => (0, 0),
-        };
-
-        let src = Rect::new(x as i32, y as i32, TILE_SIZE, TILE_SIZE);
-        Player { pos, src, texture }
+    fn new(pos: Rect, texture: Texture<'a>) -> Player {
+        Player { pos, texture }
     }
 
     fn x(&self) -> i32 {
@@ -57,10 +47,6 @@ impl<'a> Player<'a> {
             .set_x((self.pos.x() + vel.0).clamp(x_bounds.0, x_bounds.1));
         self.pos
             .set_y((self.pos.y() + vel.1).clamp(y_bounds.0, y_bounds.1));
-    }
-
-    fn src(&self) -> Rect {
-        self.src
     }
 
     fn texture(&self) -> &Texture {
@@ -103,15 +89,19 @@ impl Game for Demo {
         let brick_sheet = texture_creator.load_texture("assets/road.png")?;
 
         let mut p = Player::new(
-            PlayerType::Lizard,
             Rect::new(
-                (CAM_W / 2 - TILE_SIZE / 2) as i32,
-                (CAM_H / 2 - TILE_SIZE / 2) as i32,
+                TILE_SIZE as i32,
+                (CAM_H - TILE_SIZE * 2) as i32,
                 TILE_SIZE,
                 TILE_SIZE,
             ),
             texture_creator.load_texture("assets/player.png")?,
         );
+
+        // Used to keep track of animation status
+        let mut frames = 0;
+        let mut src_x = 0;
+        let mut flip = false;
 
         let mut x_vel = 0;
         let mut y_vel = 0;
@@ -218,6 +208,28 @@ impl Game for Demo {
             core.wincan.set_draw_color(Color::RGBA(3, 252, 206, 255));
             core.wincan.clear();
 
+            // Check if we need to update anything for animation
+            flip = if x_vel > 0 && flip {
+                false
+            } else if x_vel < 0 && !flip {
+                true
+            } else {
+                flip
+            };
+
+            src_x = if x_vel != 0 {
+                // Why not just:
+                /*frames = ((frames + 1) % 4);
+                frames * 100
+                */
+                // Why do this instead?
+                frames = if (frames + 1) / 6 > 3 { 0 } else { frames + 1 };
+
+                (frames / 6) * 100
+            } else {
+                src_x
+            };
+
             // Draw background
             core.wincan
                 .copy(&bg, None, Rect::new(bg_offset, 0, CAM_W, CAM_H))?;
@@ -247,10 +259,14 @@ impl Game for Demo {
             }
 
             // Draw player
-            core.wincan.copy(
+            core.wincan.copy_ex(
                 p.texture(),
-                p.src(),
+                Rect::new(src_x, 0, TILE_SIZE, TILE_SIZE),
                 Rect::new(p.x() - scroll_offset, p.y(), TILE_SIZE, TILE_SIZE),
+                0.0,
+                None,
+                flip,
+                false,
             )?;
 
             core.wincan.present();
