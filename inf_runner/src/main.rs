@@ -3,6 +3,7 @@
 // Infinite Runner
 
 mod credits;
+mod physics;
 mod utils;
 // mod physics;
 // mod proc_gen;
