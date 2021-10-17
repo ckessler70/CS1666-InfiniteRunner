@@ -2,17 +2,64 @@ use crate::rect;
 use sdl2::rect::Rect;
 use sdl2::render::Texture;
 
+// use crate::ProceduralGen;
+
 const LOWER_SPEED: i32 = 1;
 const UPPER_SPEED: i32 = 5;
+const GRAVITY: f64 = 9.80665;
+
+pub struct Physics;
+
+impl Physics {
+    fn check_collision(player: &Player, obstacle: &Obstacle) -> bool {
+        // TODO
+        // Using Rect::has_intersection -> bool OR Rect::intersection -> Rect
+        // Apply collision to Player AND Obstacle if necessary (i.e. spin out of control and break object or whatever)
+        // This includes force and torque
+        false
+    }
+
+    fn apply_friction() {
+        // TODO
+        // fn apply_friction(&player: Player, &surface: Option<Box<ProceduralGen::Surface>>) {
+        //      Completely made up ProceduralGen::Surface, but it's there to represent
+        //      checking the coefficient of friction of the ground
+        //      and using player.apply_force() appropriately
+
+        //      match surface {
+        //          Some(s) => {
+        //              F_friction = µmg*cos(θ)
+        //              let friction: f64 = (s.friction * player.mass() * GRAVITY * f64::cos(player.theta()));
+        //              let friction: (i32, i32) = [friction but split into components]
+        //              player.apply_force(normal);
+        //          }
+        //          None => {}
+        //      }
+        //
+        // }
+    }
+
+    fn bounce(player: &Player, obstacle: &Obstacle) {
+        // TODO
+        // Update player velocity
+        // Smash block into pieces if we want
+        // Broken pieces from collisions was a physics thing Farnan was looking for
+    }
+
+    fn buoyancy(player: &Player) {
+        // TODO
+        // apply_force()
+    }
+}
 
 pub struct Player<'a> {
     pos: Rect,
     velocity: (i32, i32),
     accel: (i32, i32),
 
-    theta: i32, // angle of rotation, in radians
-    omega: i32, // angular speed
-    alpha: i32, // angular acceleration
+    theta: f64, // angle of rotation, in radians
+    omega: f64, // angular speed
+    alpha: f64, // angular acceleration
 
     mass: i32,
     texture: Texture<'a>,
@@ -25,9 +72,9 @@ impl<'a> Player<'a> {
             pos: pos,
             velocity: (1, 0),
             accel: (0, 0),
-            theta: 0,
-            omega: 0,
-            alpha: 0,
+            theta: 0.0,
+            omega: 0.0,
+            alpha: 0.0,
             texture: texture,
             mass: mass,
             spinning: false,
@@ -81,6 +128,7 @@ impl<'a> Player<'a> {
         self.velocity.1 = (self.velocity.1 + self.accel.1).clamp(0, UPPER_SPEED);
     }
 
+    // Should we take in force as a magnitude and an angle? Makes the friction calculation above simpler
     fn apply_force(&mut self, force: (i32, i32)) {
         self.accel.0 += force.0 / self.mass;
         self.accel.1 += force.1 / self.mass;
@@ -88,20 +136,21 @@ impl<'a> Player<'a> {
 
     /****************** Angular motion ****************/
 
-    fn theta(&self) -> i32 {
+    // This doesn't NEED to be a function, but still here to keep things uniform
+    fn theta(&self) -> f64 {
         self.theta
     }
 
-    fn omega(&self) -> i32 {
+    fn omega(&self) -> f64 {
         self.omega
     }
 
-    fn alpha(&self) -> i32 {
+    fn alpha(&self) -> f64 {
         self.alpha
     }
 
     // Update_theta
-    fn rotate(&mut self, degree: i32) {
+    fn rotate(&mut self, degree: f64) {
         // TODO
     }
 
