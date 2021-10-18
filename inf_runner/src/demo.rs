@@ -101,6 +101,7 @@ impl Game for Demo {
 
         //ADDN
         let rh = texture_creator.load_texture("assets/rolling_hills.png")?;
+        let sky = texture_creator.load_texture("assets/sky.png")?;
         let mut scroll_offset = 0;
 
         let mut level_len: u32 = CAM_W * 2;
@@ -124,6 +125,10 @@ impl Game for Demo {
         let mut jump = false;
         let mut jump_ct = 0;
 
+        //For rotational flip (maybe not the best variable names)
+        let mut r_flip = false;
+        let mut r_flip_spot: f64 = 0.0;
+
         'gameloop: loop {
             let mut x_deltav = 1;
             let mut y_deltav = 1;
@@ -144,15 +149,24 @@ impl Game for Demo {
                             if !jump && jump_ct == 0 {
                                 jump = true;
                             }
+                            if jump && jump_ct != 0{
+                                r_flip = true;
+                            }
                         }
                         Keycode::Up => {
                             if !jump && jump_ct == 0 {
                                 jump = true;
                             }
+                            if jump && jump_ct != 0{
+                                r_flip = true;
+                            }
                         }
                         Keycode::Space => {
                             if !jump && jump_ct == 0 {
                                 jump = true;
+                            }
+                            if jump && jump_ct != 0{
+                                r_flip = true;
                             }
                         }
                         _ => {}
@@ -221,7 +235,8 @@ impl Game for Demo {
             let bg_offset = -(scroll_offset % (CAM_W as i32));
             let mut brick_offset = -(scroll_offset % (TILE_SIZE as i32));
 
-            core.wincan.set_draw_color(Color::RGBA(3, 252, 206, 255));
+            //MODIFIED: G 252 -> 120 (so I could see sky images better)
+            core.wincan.set_draw_color(Color::RGBA(3, 120, 206, 255));
             core.wincan.clear();
 
             // Check if we need to update anything for animation
@@ -257,9 +272,10 @@ impl Game for Demo {
 
             //Draw rolling hills on top of background
             core.wincan.copy(&rh, None, rect!(0, CAM_H*2/3, CAM_W, CAM_H/3))?;
-            
-            
-            
+
+            //Draw sky in background
+            core.wincan.copy(&sky, None, rect!(bg_offset, 0, CAM_W, CAM_H/3))?;
+            core.wincan.copy(&sky, None, rect!(CAM_W as i32+bg_offset, 0, CAM_W, CAM_H/3))?;
             
 
             // // Draw bricks
@@ -292,13 +308,24 @@ impl Game for Demo {
                 line_height += 1;
             } */
 
+            //ADDITION: Hey lizard, do a flip
+            r_flip_spot = if r_flip{
+                r_flip_spot + 30.0  //decrement for faster flip speed
+            } else{
+                0.0
+            };
+
+            if r_flip_spot == 360.0{ //flip complete
+                r_flip = false;
+                r_flip_spot == 0.0; //reset flip_spot
+            }
             // Draw player
             //NOTE: i added 10 to p.y()
             core.wincan.copy_ex(
                 p.texture(),
                 rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
                 rect!(p.x() - scroll_offset, p.y()+10, TILE_SIZE, TILE_SIZE),
-                0.0,
+                r_flip_spot,
                 None,
                 flip,
                 false,
