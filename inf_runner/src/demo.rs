@@ -60,7 +60,6 @@ impl<'a> Player<'a> {
             y_bounds.0,
             ground_pos(self.x() - scroll_offset) - (TILE_SIZE as i32),
         ));
-        // self.pos.set_y(CAM_H - ground_pos(self.x()));
     }
 
     fn texture(&self) -> &Texture {
@@ -109,9 +108,6 @@ impl Game for Demo {
         let mut scroll_offset = 0;
 
         let mut level_len: u32 = CAM_W * 2;
-
-        // Also drawing bricks again
-        // let brick_sheet = texture_creator.load_texture("assets/road.png")?;
 
         let mut p = Player::new(
             rect!(TILE_SIZE as i32, (CAM_H) as i32, TILE_SIZE, TILE_SIZE),
@@ -258,11 +254,6 @@ impl Game for Demo {
             };
 
             src_x = if x_vel != 0 {
-                // Why not just:
-                /*frames = ((frames + 1) % 4);
-                frames * 100
-                */
-                // Why do this instead?
                 frames = if (frames + 1) / 6 > 3 { 0 } else { frames + 1 };
 
                 (frames / 6) * 100
@@ -285,37 +276,6 @@ impl Game for Demo {
             //Draw sky in background
             core.wincan.copy(&sky, None, rect!(bg_offset, 0, CAM_W, CAM_H/3))?;
             core.wincan.copy(&sky, None, rect!(CAM_W as i32+bg_offset, 0, CAM_W, CAM_H/3))?;
-            
-
-            // // Draw bricks
-            // // Why not i = 0 here?
-            // let mut i = (scroll_offset % ((TILE_SIZE as i32) * 4)) / (TILE_SIZE as i32);
-            // // What happens if we use `while (brick_offset as u32) < CAM_W {` instead?
-            // while brick_offset < (CAM_W as i32) {
-            //     let src = rect!((i % 4) * (TILE_SIZE as i32), 0, TILE_SIZE, TILE_SIZE);
-            //     let pos = rect!(
-            //         brick_offset,
-            //         (CAM_H - TILE_SIZE) as i32,
-            //         TILE_SIZE,
-            //         TILE_SIZE
-            //     );
-
-            //     core.wincan.copy(&brick_sheet, src, pos)?;
-
-            //     i += 1;
-            //     brick_offset += TILE_SIZE as i32;
-            // }
-
-            // Draw road
-            /*core.wincan.set_draw_color(Color::RGBA(173, 173, 173, 255));
-            let mut line_height = 0;
-            while line_height <= ground_pos(0) {
-                core.wincan.draw_line(
-                    Point::new(0, ground_pos(0) + line_height),
-                    Point::new(CAM_W as i32, ground_pos(CAM_W as i32) + line_height),
-                )?;
-                line_height += 1;
-            } */
 
             //ADDITION: Hey lizard, do a flip
             r_flip_spot = if r_flip && flip{ //going left
