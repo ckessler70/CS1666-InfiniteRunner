@@ -311,12 +311,12 @@ impl Game for Demo {
 
             //ADDITION: Hey lizard, do a flip
             r_flip_spot = if r_flip && flip{    //going left
-                r_flip_spot + 30.0 //decrement "30.0" for faster flip speed
+                r_flip_spot + 15.0      //increment "15.0" for faster flip speed
 
             }else if r_flip && !flip{           //going right
-                r_flip_spot - 30.0
+                r_flip_spot - 15.0
 
-            }else{
+            } else{
                 0.0
             };
             //going right backlfip
