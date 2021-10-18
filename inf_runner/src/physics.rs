@@ -291,8 +291,6 @@ impl<'a> Body<'a> for Player<'a> {
         self.accel[1] += force[1] / self.mass;
     }
 
-    // This doesn't NEED to be a function, but still here to keep things uniform
-
     fn apply_torque(&mut self, force: i32, radius: i32) {
         // TODO
         // Update_alpha (angular acceleration)
@@ -310,6 +308,11 @@ pub struct Obstacle<'a> {
     bouncy: bool,
 }
 
+/// #TODO
+/// * Refactor Obstacle to use traits
+/// * Make multiple types of obstacles, some that move and some that do not
+/// * Add default impls of certain obstacle traits so that it is easier to make
+/// different types of obstacles
 impl<'a> Obstacle<'a> {
     fn new(pos: Rect, mass: i32, texture: Texture<'a>) -> Obstacle {
         Obstacle {
