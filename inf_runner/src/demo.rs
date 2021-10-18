@@ -83,17 +83,17 @@ impl Game for Demo {
         let bg = texture_creator.load_texture("assets/bg.png")?;
         let mut scroll_offset = 0;
 
-        let mut LEVEL_LEN: u32 = CAM_W * 2;
+        let mut level_len: u32 = CAM_W * 2;
 
         // Also drawing bricks again
         let brick_sheet = texture_creator.load_texture("assets/road.png")?;
 
         let mut p = Player::new(
-            Rect::new(
+            rect!(
                 TILE_SIZE as i32,
                 (CAM_H - TILE_SIZE * 2) as i32,
                 TILE_SIZE,
-                TILE_SIZE,
+                TILE_SIZE
             ),
             texture_creator.load_texture("assets/player.png")?,
         );
@@ -147,10 +147,10 @@ impl Game for Demo {
             }
 
             if (scroll_offset + RTHIRD) % CAM_W as i32 == 0 {
-                LEVEL_LEN = LEVEL_LEN + CAM_W;
+                level_len = level_len + CAM_W;
             }
             if (scroll_offset - LTHIRD) % CAM_W as i32 == 0 {
-                LEVEL_LEN = LEVEL_LEN - CAM_W;
+                level_len = level_len - CAM_W;
             }
 
             // Boing
@@ -189,15 +189,15 @@ impl Game for Demo {
 
             p.update_pos(
                 (x_vel, y_vel),
-                (0, (LEVEL_LEN - TILE_SIZE) as i32),
+                (0, (level_len - TILE_SIZE) as i32),
                 (0, (CAM_H - 2 * TILE_SIZE) as i32),
             );
 
             // Check if we need to updated scroll offset
             scroll_offset = if p.x() > scroll_offset + RTHIRD {
-                (p.x() - RTHIRD).clamp(0, (LEVEL_LEN - CAM_W) as i32)
+                (p.x() - RTHIRD).clamp(0, (level_len - CAM_W) as i32)
             } else if p.x() < scroll_offset + LTHIRD {
-                (p.x() - LTHIRD).clamp(0, (LEVEL_LEN - CAM_W) as i32)
+                (p.x() - LTHIRD).clamp(0, (level_len - CAM_W) as i32)
             } else {
                 scroll_offset
             };
@@ -232,11 +232,11 @@ impl Game for Demo {
 
             // Draw background
             core.wincan
-                .copy(&bg, None, Rect::new(bg_offset, 0, CAM_W, CAM_H))?;
+                .copy(&bg, None, rect!(bg_offset, 0, CAM_W, CAM_H))?;
             core.wincan.copy(
                 &bg,
                 None,
-                Rect::new(bg_offset + (CAM_W as i32), 0, CAM_W, CAM_H),
+                rect!(bg_offset + (CAM_W as i32), 0, CAM_W, CAM_H),
             )?;
 
             // Draw bricks
@@ -244,12 +244,12 @@ impl Game for Demo {
             let mut i = (scroll_offset % ((TILE_SIZE as i32) * 4)) / (TILE_SIZE as i32);
             // What happens if we use `while (brick_offset as u32) < CAM_W {` instead?
             while brick_offset < (CAM_W as i32) {
-                let src = Rect::new((i % 4) * (TILE_SIZE as i32), 0, TILE_SIZE, TILE_SIZE);
-                let pos = Rect::new(
+                let src = rect!((i % 4) * (TILE_SIZE as i32), 0, TILE_SIZE, TILE_SIZE);
+                let pos = rect!(
                     brick_offset,
                     (CAM_H - TILE_SIZE) as i32,
                     TILE_SIZE,
-                    TILE_SIZE,
+                    TILE_SIZE
                 );
 
                 core.wincan.copy(&brick_sheet, src, pos)?;
@@ -261,8 +261,8 @@ impl Game for Demo {
             // Draw player
             core.wincan.copy_ex(
                 p.texture(),
-                Rect::new(src_x, 0, TILE_SIZE, TILE_SIZE),
-                Rect::new(p.x() - scroll_offset, p.y(), TILE_SIZE, TILE_SIZE),
+                rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
+                rect!(p.x() - scroll_offset, p.y(), TILE_SIZE, TILE_SIZE),
                 0.0,
                 None,
                 flip,
