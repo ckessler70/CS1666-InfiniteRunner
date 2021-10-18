@@ -8,7 +8,7 @@ use sdl2::event::Event;
 use sdl2::image::LoadTexture;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
-use sdl2::rect::Point;
+// use sdl2::rect::Point;
 use sdl2::rect::Rect;
 use sdl2::render::Texture;
 
@@ -107,7 +107,7 @@ impl Game for Demo {
         let mut level_len: u32 = CAM_W * 2;
 
         // Also drawing bricks again
-        let brick_sheet = texture_creator.load_texture("assets/road.png")?;
+        // let brick_sheet = texture_creator.load_texture("assets/road.png")?;
 
         let mut p = Player::new(
             rect!(TILE_SIZE as i32, (CAM_H) as i32, TILE_SIZE, TILE_SIZE),
@@ -128,7 +128,6 @@ impl Game for Demo {
         //For rotational flip (maybe not the best variable names)
         let mut r_flip = false;
         let mut r_flip_spot: f64 = 0.0;
-        let mut left = false;
 
         'gameloop: loop {
             let mut x_deltav = 1;
@@ -234,7 +233,7 @@ impl Game for Demo {
             };
 
             let bg_offset = -(scroll_offset % (CAM_W as i32));
-            let mut brick_offset = -(scroll_offset % (TILE_SIZE as i32));
+            // let mut brick_offset = -(scroll_offset % (TILE_SIZE as i32));
 
             //MODIFIED: G 252 -> 120 (so I could see sky images better)
             core.wincan.set_draw_color(Color::RGBA(3, 120, 206, 255));
@@ -322,12 +321,12 @@ impl Game for Demo {
             //going right backlfip
             if r_flip_spot == -360.0{ //flip complete
                 r_flip = false;
-                r_flip_spot == 0.0; //reset flip_spot
+                r_flip_spot = 0.0; //reset flip_spot
             }
             //Going left backflip
             if r_flip_spot == 360.0{ //flip complete
                 r_flip = false;
-                r_flip_spot == 0.0; //reset flip_spot
+                r_flip_spot = 0.0; //reset flip_spot
             }
 
             // Draw player
