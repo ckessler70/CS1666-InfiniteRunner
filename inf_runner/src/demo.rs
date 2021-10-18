@@ -129,8 +129,6 @@ impl Game for Demo {
         let mut r_flip = false;
         let mut r_flip_spot: f64 = 0.0;
 
-        let mut rh_offset = 0;
-
         'gameloop: loop {
             let mut x_deltav = 1;
             let mut y_deltav = 1;
@@ -151,7 +149,7 @@ impl Game for Demo {
                             if !jump && jump_ct == 0 {
                                 jump = true;
                             }
-                            if jump && jump_ct != 0 {
+                            if jump_ct != 0 {
                                 r_flip = true;
                             }
                         }
@@ -159,7 +157,7 @@ impl Game for Demo {
                             if !jump && jump_ct == 0 {
                                 jump = true;
                             }
-                            if jump && jump_ct != 0 {
+                            if jump_ct != 0 {
                                 r_flip = true;
                             }
                         }
@@ -167,7 +165,7 @@ impl Game for Demo {
                             if !jump && jump_ct == 0 {
                                 jump = true;
                             }
-                            if jump && jump_ct != 0 {
+                            if jump_ct != 0 {
                                 r_flip = true;
                             }
                         }
@@ -271,7 +269,7 @@ impl Game for Demo {
                 rect!(bg_offset + (CAM_W as i32), 0, CAM_W, CAM_H),
             )?;
 
-            rh_offset = (((scroll_offset % CAM_W as i32) / 10) as u32).clamp(0, CAM_H * 2);
+            let rh_offset = (((scroll_offset % CAM_W as i32) / 10) as u32).clamp(0, CAM_H * 2);
 
             //Draw rolling hills on top of background
             // core.wincan.copy(&rh, None, rect!(0, CAM_H*2/3, CAM_W, CAM_H/3))?;
