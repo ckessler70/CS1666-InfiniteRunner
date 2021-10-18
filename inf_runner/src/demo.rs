@@ -311,7 +311,7 @@ impl Game for Demo {
 
             //ADDITION: Hey lizard, do a flip
             r_flip_spot = if r_flip{
-                r_flip_spot - 30.0  //decrement for faster flip speed
+                r_flip_spot - 15.0  //decrement for faster flip speed
             } else{
                 0.0
             };
