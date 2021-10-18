@@ -55,16 +55,16 @@ impl Physics {
     }
 }
 
-/// Object can be represented on the display using a texture, as well as being able to change position and rotation.
+/// Object can be represented on the display using a texture, as well as being
+/// able to change position and rotation.
 pub trait Entity<'a> {
-    
     /****************** Constants ******************** */
 
     /// Returns the `Texture` currently loaded into the `Entity`
     fn texture(&self) -> &Texture<'a>;
 
     /****************** Linear motion *************** */
-    
+
     /// Returns the x position of the `Entity`'s top left corner
     fn x(&self) -> i32;
     /// Returns the y position of the `Entity`'s top left corner
@@ -87,7 +87,6 @@ pub trait Entity<'a> {
 
 /// Object can collide with other objects using a hitbox
 pub trait Collider<'a>: Entity<'a> {
-
     /****************** Collision ******************** */
 
     /// Returns the collision boundary of the object as a list of `Rect` stored
@@ -102,9 +101,9 @@ pub trait Collider<'a>: Entity<'a> {
     fn collide(&mut self, other: &impl Collider<'a>);
 }
 
-/// Object can change its linear velocity and acceleration as well as rotation velocity and acceleration
+/// Object can change its linear velocity and acceleration as well as rotation
+/// velocity and acceleration
 pub trait Dynamic<'a>: Entity<'a> {
-
     /****************** Linear motion *************** */
 
     /// Returns the `Entity`'s x velocity
@@ -128,9 +127,9 @@ pub trait Dynamic<'a>: Entity<'a> {
     fn update_omega(&mut self);
 }
 
-/// Object has mass and rotational inertia. Object responds to forces and torque, which can be arbitrarily applied to it.
+/// Object has mass and rotational inertia. Object responds to forces and
+/// torque, which can be arbitrarily applied to it.
 pub trait Body<'a>: Collider<'a> + Dynamic<'a> {
-
     /****************** Constants ******************** */
 
     /// Returns the `Body`'s mass
@@ -165,7 +164,7 @@ pub trait Body<'a>: Collider<'a> + Dynamic<'a> {
 }
 
 ///Represents the player character
-/// 
+///
 /// # Traits
 /// * `Body`
 /// * `Collider`
