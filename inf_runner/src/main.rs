@@ -20,8 +20,8 @@ pub struct UrbanOdyssey {
     // title,
     // gameplay,
     credits: credits::Credits,
-    // physics?
-    // procedural generation?
+    /* physics?
+     * procedural generation? */
 }
 
 fn main() {
@@ -36,9 +36,10 @@ fn main() {
             println!("DONE");
 
             print!("\tRunning...");
-            // Run all segments one-by-one using contents.segment.run(&mut (contents.core), ...)
-            //      [Perhaps this will make less sense in the future if the segments switch
-            //      back and forth between each other, but this is just a starting point]
+            // Run all segments one-by-one using contents.segment.run(&mut (contents.core),
+            // ...)      [Perhaps this will make less sense in the future if the
+            // segments switch      back and forth between each other, but this
+            // is just a starting point]
 
             // TITLE SCREEN RUN
             // GAME PLAY RUN

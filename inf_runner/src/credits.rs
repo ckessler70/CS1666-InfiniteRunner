@@ -48,7 +48,8 @@ impl Game for Credits {
     fn run(&mut self, core: &mut SDLCore) -> Result<(), String> {
         let mut count = CAM_H;
 
-        /******************************** TEXTURES AND HEADSHOTS ***************************/
+        /******************************** TEXTURES AND HEADSHOTS
+         * ************************** */
 
         let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
 
@@ -183,7 +184,8 @@ impl Game for Credits {
             michael_hs,
         ];
 
-        /***********************************************************************************/
+        /***************************************************************************
+         * ******* */
 
         let mut index = 0;
 
@@ -229,7 +231,8 @@ impl Credits {
         image: &Headshot,
     ) -> Result<u32, String> {
         let m_count = count - MOVE_PER_FRAME;
-        //Removal of this and changing instances to just `padding` causes it to break for some reason
+        //Removal of this and changing instances to just `padding` causes it to break
+        // for some reason
         let m_padding = padding;
 
         // Background wipe

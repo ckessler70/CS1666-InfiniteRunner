@@ -14,23 +14,25 @@ impl Physics {
     fn check_collision(player: &Player, obstacle: &Obstacle) -> bool {
         // TODO
         // Using Rect::has_intersection -> bool OR Rect::intersection -> Rect
-        // Apply collision to Player AND Obstacle if necessary (i.e. spin out of control and break object or whatever)
-        // This includes force and torque
+        // Apply collision to Player AND Obstacle if necessary (i.e. spin out of control
+        // and break object or whatever) This includes force and torque
         false
     }
 
     fn apply_friction() {
         // TODO
-        // fn apply_friction(&player: Player, &surface: Option<Box<ProceduralGen::Surface>>) {
-        //      Completely made up ProceduralGen::Surface, but it's there to represent
+        // fn apply_friction(&player: Player, &surface:
+        // Option<Box<ProceduralGen::Surface>>) {      Completely made
+        // up ProceduralGen::Surface, but it's there to represent
         //      checking the coefficient of friction of the ground
         //      and using player.apply_force() appropriately
 
         //      match surface {
         //          Some(s) => {
         //              F_friction = µmg*cos(θ)
-        //              let friction: f64 = (s.friction * player.mass() * GRAVITY * f64::cos(player.theta()));
-        //              let friction: (i32, i32) = [friction but split into components]
+        //              let friction: f64 = (s.friction * player.mass() *
+        // GRAVITY * f64::cos(player.theta()));              let
+        // friction: (i32, i32) = [friction but split into components]
         //              player.apply_force(normal);
         //          }
         //          None => {}
@@ -43,7 +45,8 @@ impl Physics {
         // TODO
         // Update player velocity
         // Smash block into pieces if we want
-        // Broken pieces from collisions was a physics thing Farnan was looking for
+        // Broken pieces from collisions was a physics thing Farnan was looking
+        // for
     }
 
     fn buoyancy(player: &Player) {
@@ -81,7 +84,7 @@ impl<'a> Player<'a> {
         }
     }
 
-    /****************** Constants ****************/
+    /****************** Constants *************** */
 
     fn mass(&self) -> i32 {
         self.mass
@@ -96,7 +99,7 @@ impl<'a> Player<'a> {
         &self.texture
     }
 
-    /****************** Linear motion ****************/
+    /****************** Linear motion *************** */
 
     fn x(&self) -> i32 {
         self.pos.x()
@@ -123,18 +126,20 @@ impl<'a> Player<'a> {
 
     fn update_vel(&mut self) {
         // Update to make the TOTAL MAX VELOCITY constant
-        // Right now it's UPPER_SPEED in one direction and UPPER_SPEED*sqrt(2) diagonally
+        // Right now it's UPPER_SPEED in one direction and UPPER_SPEED*sqrt(2)
+        // diagonally
         self.velocity.0 = (self.velocity.0 + self.accel.0).clamp(LOWER_SPEED, UPPER_SPEED);
         self.velocity.1 = (self.velocity.1 + self.accel.1).clamp(0, UPPER_SPEED);
     }
 
-    // Should we take in force as a magnitude and an angle? Makes the friction calculation above simpler
+    // Should we take in force as a magnitude and an angle? Makes the friction
+    // calculation above simpler
     fn apply_force(&mut self, force: (i32, i32)) {
         self.accel.0 += force.0 / self.mass;
         self.accel.1 += force.1 / self.mass;
     }
 
-    /****************** Angular motion ****************/
+    /****************** Angular motion *************** */
 
     // This doesn't NEED to be a function, but still here to keep things uniform
     fn theta(&self) -> f64 {
