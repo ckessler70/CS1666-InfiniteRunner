@@ -310,16 +310,26 @@ impl Game for Demo {
             } */
 
             //ADDITION: Hey lizard, do a flip
-            r_flip_spot = if r_flip{
-                r_flip_spot - 30.0  //decrement for faster flip speed
-            } else{
+            r_flip_spot = if r_flip && flip{    //going left
+                r_flip_spot + 30.0 //decrement "30.0" for faster flip speed
+
+            }else if r_flip && !flip{           //going right
+                r_flip_spot - 30.0
+
+            }else{
                 0.0
             };
-
+            //going right backlfip
             if r_flip_spot == -360.0{ //flip complete
                 r_flip = false;
                 r_flip_spot == 0.0; //reset flip_spot
             }
+            //Going left backflip
+            if r_flip_spot == 360.0{ //flip complete
+                r_flip = false;
+                r_flip_spot == 0.0; //reset flip_spot
+            }
+
             // Draw player
             //NOTE: i added 10 to p.y()
             core.wincan.copy_ex(
