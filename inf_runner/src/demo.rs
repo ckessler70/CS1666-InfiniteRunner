@@ -238,7 +238,6 @@ impl Game for Demo {
             };
 
             let bg_offset = -(scroll_offset % (CAM_W as i32));
-            // let mut brick_offset = -(scroll_offset % (TILE_SIZE as i32));
 
             //MODIFIED: G 252 -> 120 (so I could see sky images better)
             core.wincan.set_draw_color(Color::RGBA(3, 120, 206, 255));
