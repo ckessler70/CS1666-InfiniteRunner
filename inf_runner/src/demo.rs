@@ -98,6 +98,9 @@ impl Game for Demo {
 
         // BG is the same size and window, but will scroll as the user moves
         let bg = texture_creator.load_texture("assets/bg.png")?;
+
+        //ADDN
+        let rh = texture_creator.load_texture("assets/rolling_hills.png")?;
         let mut scroll_offset = 0;
 
         let mut level_len: u32 = CAM_W * 2;
@@ -252,6 +255,13 @@ impl Game for Demo {
                 rect!(bg_offset + (CAM_W as i32), 0, CAM_W, CAM_H),
             )?;
 
+            //Draw rolling hills on top of background
+            core.wincan.copy(&rh, None, rect!(0, CAM_H*2/3, CAM_W, CAM_H/3))?;
+            
+            
+            
+            
+
             // // Draw bricks
             // // Why not i = 0 here?
             // let mut i = (scroll_offset % ((TILE_SIZE as i32) * 4)) / (TILE_SIZE as i32);
@@ -272,7 +282,7 @@ impl Game for Demo {
             // }
 
             // Draw road
-            core.wincan.set_draw_color(Color::RGBA(173, 173, 173, 255));
+            /*core.wincan.set_draw_color(Color::RGBA(173, 173, 173, 255));
             let mut line_height = 0;
             while line_height <= ground_pos(0) {
                 core.wincan.draw_line(
@@ -280,13 +290,14 @@ impl Game for Demo {
                     Point::new(CAM_W as i32, ground_pos(CAM_W as i32) + line_height),
                 )?;
                 line_height += 1;
-            }
+            } */
 
             // Draw player
+            //NOTE: i added 10 to p.y()
             core.wincan.copy_ex(
                 p.texture(),
                 rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
-                rect!(p.x() - scroll_offset, p.y(), TILE_SIZE, TILE_SIZE),
+                rect!(p.x() - scroll_offset, p.y()+10, TILE_SIZE, TILE_SIZE),
                 0.0,
                 None,
                 flip,
