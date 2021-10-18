@@ -124,6 +124,8 @@ impl Game for Demo {
         let mut jump = false;
         let mut jump_ct = 0;
 
+        let mut left = false;
+
         'gameloop: loop {
             let mut x_deltav = 1;
             let mut y_deltav = 1;
@@ -162,10 +164,10 @@ impl Game for Demo {
             }
 
             if (scroll_offset + RTHIRD) % CAM_W as i32 == 0 {
-                level_len = level_len + CAM_W;
+                level_len = level_len + CAM_W*2;
             }
             if (scroll_offset - LTHIRD) % CAM_W as i32 == 0 {
-                level_len = level_len - CAM_W;
+                level_len = level_len - CAM_W*2;
             }
 
             // Boing
@@ -186,16 +188,16 @@ impl Game for Demo {
             }
 
             // If we want to use keystates instead of events...
-            // let keystate: HashSet<Keycode> = core
-            //     .event_pump
-            //     .keyboard_state()
-            //     .pressed_scancodes()
-            //     .filter_map(Keycode::from_scancode)
-            //     .collect();
+            let keystate: HashSet<Keycode> = core
+                .event_pump
+                .keyboard_state()
+                .pressed_scancodes()
+                .filter_map(Keycode::from_scancode)
+                .collect();
 
-            // if keystate.contains(&Keycode::W) || keystate.contains(&Keycode::Up) || keystate.contains(&Keycode::Space) {
-            //     y_deltav = -1;
-            // }
+            if keystate.contains(&Keycode::A) || keystate.contains(&Keycode::Left) {
+                x_deltav = -1;
+            }
 
             x_deltav = resist(x_vel, x_deltav);
             y_deltav = resist(y_vel, y_deltav);
