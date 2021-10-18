@@ -25,7 +25,7 @@ const SPEED_LIMIT: i32 = 5;
 
 // Flipping bounds
 // Roughly anything larger than 30 will not complete flip in jump's time
-const FLIP_INCREMENT: f64 = 360.0/30.0; 
+const FLIP_INCREMENT: f64 = 360.0 / 30.0;
 
 pub struct Demo;
 
@@ -129,6 +129,8 @@ impl Game for Demo {
         let mut r_flip = false;
         let mut r_flip_spot: f64 = 0.0;
 
+        let mut rh_offset = 0;
+
         'gameloop: loop {
             let mut x_deltav = 1;
             let mut y_deltav = 1;
@@ -149,7 +151,7 @@ impl Game for Demo {
                             if !jump && jump_ct == 0 {
                                 jump = true;
                             }
-                            if jump && jump_ct != 0{
+                            if jump && jump_ct != 0 {
                                 r_flip = true;
                             }
                         }
@@ -157,7 +159,7 @@ impl Game for Demo {
                             if !jump && jump_ct == 0 {
                                 jump = true;
                             }
-                            if jump && jump_ct != 0{
+                            if jump && jump_ct != 0 {
                                 r_flip = true;
                             }
                         }
@@ -165,7 +167,7 @@ impl Game for Demo {
                             if !jump && jump_ct == 0 {
                                 jump = true;
                             }
-                            if jump && jump_ct != 0{
+                            if jump && jump_ct != 0 {
                                 r_flip = true;
                             }
                         }
@@ -176,10 +178,10 @@ impl Game for Demo {
             }
 
             if (scroll_offset + RTHIRD) % CAM_W as i32 == 0 {
-                level_len = level_len + CAM_W*2;
+                level_len = level_len + CAM_W * 2;
             }
             if (scroll_offset - LTHIRD) % CAM_W as i32 == 0 {
-                level_len = level_len - CAM_W*2;
+                level_len = level_len - CAM_W * 2;
             }
 
             // Boing
@@ -269,31 +271,60 @@ impl Game for Demo {
                 rect!(bg_offset + (CAM_W as i32), 0, CAM_W, CAM_H),
             )?;
 
+            rh_offset = (((scroll_offset % CAM_W as i32) / 10) as u32).clamp(0, CAM_H * 2);
+
             //Draw rolling hills on top of background
-            core.wincan.copy(&rh, None, rect!(0, CAM_H*2/3, CAM_W, CAM_H/3))?;
+            // core.wincan.copy(&rh, None, rect!(0, CAM_H*2/3, CAM_W, CAM_H/3))?;
+            core.wincan.copy(
+                &rh,
+                None,
+                rect!(
+                    bg_offset,
+                    (CAM_H * 2 / 3 - rh_offset).clamp(CAM_H / 2 + 15, CAM_H),
+                    CAM_W,
+                    CAM_H / 3
+                ),
+            )?;
+            core.wincan.copy(
+                &rh,
+                None,
+                rect!(
+                    CAM_W as i32 + bg_offset,
+                    (CAM_H + 273 / 2 - (rh_offset + 273)).clamp(CAM_H * 2 / 3, CAM_H),
+                    CAM_W,
+                    CAM_H / 3
+                ),
+            )?;
 
             //Draw sky in background
-            core.wincan.copy(&sky, None, rect!(bg_offset, 0, CAM_W, CAM_H/3))?;
-            core.wincan.copy(&sky, None, rect!(CAM_W as i32+bg_offset, 0, CAM_W, CAM_H/3))?;
+            core.wincan
+                .copy(&sky, None, rect!(bg_offset, 0, CAM_W, CAM_H / 3))?;
+            core.wincan.copy(
+                &sky,
+                None,
+                rect!(CAM_W as i32 + bg_offset, 0, CAM_W, CAM_H / 3),
+            )?;
 
             //ADDITION: Hey lizard, do a flip
-            r_flip_spot = if r_flip && flip{ //going left
-                r_flip_spot + FLIP_INCREMENT 
-
-            }else if r_flip && !flip{        //going right
+            r_flip_spot = if r_flip && flip {
+                //going left
+                r_flip_spot + FLIP_INCREMENT
+            } else if r_flip && !flip {
+                //going right
                 r_flip_spot - FLIP_INCREMENT
-
-            }else{
+            } else {
                 0.0
             };
 
             //going right backlfip
-            if r_flip_spot == -360.0{ //flip complete
+            if r_flip_spot == -360.0 {
+                //flip complete
                 r_flip = false;
                 r_flip_spot = 0.0; //reset flip_spot
             }
             //Going left backflip
-            if r_flip_spot == 360.0{ //flip complete
+            if r_flip_spot == 360.0 {
+                //flip complete
                 r_flip = false;
                 r_flip_spot = 0.0; //reset flip_spot
             }
@@ -303,7 +334,7 @@ impl Game for Demo {
             core.wincan.copy_ex(
                 p.texture(),
                 rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
-                rect!(p.x() - scroll_offset, p.y()+10, TILE_SIZE, TILE_SIZE),
+                rect!(p.x() - scroll_offset, p.y() + 10, TILE_SIZE, TILE_SIZE),
                 r_flip_spot,
                 None,
                 flip,
