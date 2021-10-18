@@ -23,6 +23,10 @@ const RTHIRD: i32 = ((CAM_W as i32) * 2 / 3) - (TILE_SIZE as i32) / 2;
 
 const SPEED_LIMIT: i32 = 5;
 
+// Flipping bounds
+// Roughly anything larger than 30 will not complete flip in jump's time
+const FLIP_INCREMENT: f64 = 360.0/30.0; 
+
 pub struct Demo;
 
 struct Player<'a> {
@@ -199,6 +203,7 @@ impl Game for Demo {
                 jump_ct -= 1;
             }
 
+            // Landed on head, GAME OVER
             if jump_ct == 0 && r_flip_spot != 0.0 {
                 break;
             }
@@ -313,15 +318,16 @@ impl Game for Demo {
             } */
 
             //ADDITION: Hey lizard, do a flip
-            r_flip_spot = if r_flip && flip{    //going left
-                r_flip_spot + 15.0      //increment "15.0" for faster flip speed
+            r_flip_spot = if r_flip && flip{ //going left
+                r_flip_spot + FLIP_INCREMENT 
 
-            }else if r_flip && !flip{           //going right
-                r_flip_spot - 15.0
+            }else if r_flip && !flip{        //going right
+                r_flip_spot - FLIP_INCREMENT
 
-            } else{
+            }else{
                 0.0
             };
+
             //going right backlfip
             if r_flip_spot == -360.0{ //flip complete
                 r_flip = false;
