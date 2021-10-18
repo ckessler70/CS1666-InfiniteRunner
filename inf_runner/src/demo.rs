@@ -8,6 +8,7 @@ use sdl2::event::Event;
 use sdl2::image::LoadTexture;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
+use sdl2::rect::Point;
 use sdl2::rect::Rect;
 use sdl2::render::Texture;
 
@@ -42,11 +43,20 @@ impl<'a> Player<'a> {
         self.pos.y()
     }
 
-    fn update_pos(&mut self, vel: (i32, i32), x_bounds: (i32, i32), y_bounds: (i32, i32)) {
+    fn update_pos(
+        &mut self,
+        vel: (i32, i32),
+        x_bounds: (i32, i32),
+        y_bounds: (i32, i32),
+        scroll_offset: i32,
+    ) {
         self.pos
             .set_x((self.pos.x() + vel.0).clamp(x_bounds.0, x_bounds.1));
-        self.pos
-            .set_y((self.pos.y() + vel.1).clamp(y_bounds.0, y_bounds.1));
+        self.pos.set_y((self.pos.y() + vel.1).clamp(
+            y_bounds.0,
+            ground_pos(self.x() - scroll_offset) - (TILE_SIZE as i32),
+        ));
+        // self.pos.set_y(CAM_H - ground_pos(self.x()));
     }
 
     fn texture(&self) -> &Texture {
@@ -66,6 +76,13 @@ fn resist(vel: i32, deltav: i32) -> i32 {
     } else {
         deltav
     }
+}
+
+// y = -0.05x + 100
+fn ground_pos(x: i32) -> i32 {
+    let res = (-0.05 * (x as f64) + 100.0) as i32;
+    // println!("ground: {}", res);
+    (CAM_H as i32) - res
 }
 
 impl Game for Demo {
@@ -89,12 +106,7 @@ impl Game for Demo {
         let brick_sheet = texture_creator.load_texture("assets/road.png")?;
 
         let mut p = Player::new(
-            rect!(
-                TILE_SIZE as i32,
-                (CAM_H - TILE_SIZE * 2) as i32,
-                TILE_SIZE,
-                TILE_SIZE
-            ),
+            rect!(TILE_SIZE as i32, (CAM_H) as i32, TILE_SIZE, TILE_SIZE),
             texture_creator.load_texture("assets/player.png")?,
         );
 
@@ -191,6 +203,7 @@ impl Game for Demo {
                 (x_vel, y_vel),
                 (0, (level_len - TILE_SIZE) as i32),
                 (0, (CAM_H - 2 * TILE_SIZE) as i32),
+                scroll_offset,
             );
 
             // Check if we need to updated scroll offset
@@ -239,23 +252,34 @@ impl Game for Demo {
                 rect!(bg_offset + (CAM_W as i32), 0, CAM_W, CAM_H),
             )?;
 
-            // Draw bricks
-            // Why not i = 0 here?
-            let mut i = (scroll_offset % ((TILE_SIZE as i32) * 4)) / (TILE_SIZE as i32);
-            // What happens if we use `while (brick_offset as u32) < CAM_W {` instead?
-            while brick_offset < (CAM_W as i32) {
-                let src = rect!((i % 4) * (TILE_SIZE as i32), 0, TILE_SIZE, TILE_SIZE);
-                let pos = rect!(
-                    brick_offset,
-                    (CAM_H - TILE_SIZE) as i32,
-                    TILE_SIZE,
-                    TILE_SIZE
-                );
+            // // Draw bricks
+            // // Why not i = 0 here?
+            // let mut i = (scroll_offset % ((TILE_SIZE as i32) * 4)) / (TILE_SIZE as i32);
+            // // What happens if we use `while (brick_offset as u32) < CAM_W {` instead?
+            // while brick_offset < (CAM_W as i32) {
+            //     let src = rect!((i % 4) * (TILE_SIZE as i32), 0, TILE_SIZE, TILE_SIZE);
+            //     let pos = rect!(
+            //         brick_offset,
+            //         (CAM_H - TILE_SIZE) as i32,
+            //         TILE_SIZE,
+            //         TILE_SIZE
+            //     );
 
-                core.wincan.copy(&brick_sheet, src, pos)?;
+            //     core.wincan.copy(&brick_sheet, src, pos)?;
 
-                i += 1;
-                brick_offset += TILE_SIZE as i32;
+            //     i += 1;
+            //     brick_offset += TILE_SIZE as i32;
+            // }
+
+            // Draw road
+            core.wincan.set_draw_color(Color::RGBA(173, 173, 173, 255));
+            let mut line_height = 0;
+            while line_height <= ground_pos(0) {
+                core.wincan.draw_line(
+                    Point::new(0, ground_pos(0) + line_height),
+                    Point::new(CAM_W as i32, ground_pos(CAM_W as i32) + line_height),
+                )?;
+                line_height += 1;
             }
 
             // Draw player
