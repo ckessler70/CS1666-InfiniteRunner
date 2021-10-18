@@ -199,6 +199,10 @@ impl Game for Demo {
                 jump_ct -= 1;
             }
 
+            if jump_ct == 0 && r_flip_spot != 0.0 {
+                break;
+            }
+
             // If we want to use keystates instead of events...
             let keystate: HashSet<Keycode> = core
                 .event_pump
