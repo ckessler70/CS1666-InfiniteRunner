@@ -4,6 +4,7 @@ use inf_runner::SDLCore;
 
 use sdl2::event::Event;
 use sdl2::image::LoadTexture;
+use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::Texture;
@@ -48,8 +49,7 @@ impl Game for Credits {
     fn run(&mut self, core: &mut SDLCore) -> Result<(), String> {
         let mut count = CAM_H;
 
-        /******************************** TEXTURES AND HEADSHOTS
-         * ************************** */
+        /******************************** TEXTURES AND HEADSHOTS ***************************/
 
         let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
 
@@ -184,15 +184,18 @@ impl Game for Credits {
             michael_hs,
         ];
 
-        /***************************************************************************
-         * ******* */
+        /***********************************************************************************/
 
         let mut index = 0;
 
         'gameloop: loop {
             for event in core.event_pump.poll_iter() {
                 match event {
-                    Event::Quit { .. } => break 'gameloop,
+                    Event::Quit { .. }
+                    | Event::KeyDown {
+                        keycode: Some(Keycode::Escape),
+                        ..
+                    } => break 'gameloop,
                     _ => {}
                 }
             }
@@ -211,7 +214,7 @@ impl Game for Credits {
                 count = CAM_H;
                 index += 1;
                 if index == team.len() {
-                    index = 0;
+                    break;
                 }
             } else {
                 continue;
@@ -231,8 +234,7 @@ impl Credits {
         image: &Headshot,
     ) -> Result<u32, String> {
         let m_count = count - MOVE_PER_FRAME;
-        //Removal of this and changing instances to just `padding` causes it to break
-        // for some reason
+        //Removal of this and changing instances to just `padding` causes it to break for some reason
         let m_padding = padding;
 
         // Background wipe
