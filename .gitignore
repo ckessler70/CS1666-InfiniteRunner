@@ -1,5 +1,6 @@
 */*.dll
 Cargo.lock
+target
 */target/
 */target/*
 *.DS_Store
