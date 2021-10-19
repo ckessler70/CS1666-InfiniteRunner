@@ -27,6 +27,8 @@ const SPEED_LIMIT: i32 = 5;
 // Roughly anything larger than 30 will not complete flip in jump's time
 const FLIP_INCREMENT: f64 = 360.0 / 30.0;
 
+const LEVEL_LEN: u32 = CAM_W * 3;
+
 pub struct Demo;
 
 struct Player<'a> {
@@ -107,10 +109,8 @@ impl Game for Demo {
         let sky = texture_creator.load_texture("assets/sky.png")?;
         let mut scroll_offset = 0;
 
-        let mut level_len: u32 = CAM_W * 2;
-
         let mut p = Player::new(
-            rect!(TILE_SIZE as i32, (CAM_H) as i32, TILE_SIZE, TILE_SIZE),
+            rect!(TILE_SIZE as i32 + 276, (CAM_H) as i32, TILE_SIZE, TILE_SIZE),
             texture_creator.load_texture("assets/player.png")?,
         );
 
@@ -175,13 +175,6 @@ impl Game for Demo {
                 }
             }
 
-            if (scroll_offset + RTHIRD) % CAM_W as i32 == 0 {
-                level_len = level_len + CAM_W * 2;
-            }
-            if (scroll_offset - LTHIRD) % CAM_W as i32 == 0 {
-                level_len = level_len - CAM_W * 2;
-            }
-
             // Boing
             if jump {
                 jump_ct += 1;
@@ -215,6 +208,9 @@ impl Game for Demo {
             if keystate.contains(&Keycode::A) || keystate.contains(&Keycode::Left) {
                 x_deltav = -1;
             }
+            if keystate.contains(&Keycode::D) || keystate.contains(&Keycode::Right) {
+                x_deltav = 1;
+            }
 
             x_deltav = resist(x_vel, x_deltav);
             y_deltav = resist(y_vel, y_deltav);
@@ -223,19 +219,41 @@ impl Game for Demo {
 
             p.update_pos(
                 (x_vel, y_vel),
-                (0, (level_len - TILE_SIZE) as i32),
+                (0, (LEVEL_LEN - TILE_SIZE) as i32),
                 (0, (CAM_H - 2 * TILE_SIZE) as i32),
                 scroll_offset,
             );
 
             // Check if we need to updated scroll offset
             scroll_offset = if p.x() > scroll_offset + RTHIRD {
-                (p.x() - RTHIRD).clamp(0, (level_len - CAM_W) as i32)
+                (p.x() - RTHIRD).clamp(0, (LEVEL_LEN - CAM_W) as i32)
             } else if p.x() < scroll_offset + LTHIRD {
-                (p.x() - LTHIRD).clamp(0, (level_len - CAM_W) as i32)
+                (p.x() - LTHIRD).clamp(0, (LEVEL_LEN - CAM_W) as i32)
             } else {
                 scroll_offset
             };
+
+            // If scroll offest is 0, set it CAM_W and update player pos to account for this update
+            if scroll_offset == 0 {
+                scroll_offset = CAM_W as i32;
+                p.update_pos(
+                    (CAM_W as i32, y_vel),
+                    (0, (LEVEL_LEN - TILE_SIZE) as i32),
+                    (0, (CAM_H - 2 * TILE_SIZE) as i32),
+                    scroll_offset,
+                );
+            }
+
+            // If scroll offest is 2x CAM_W, set it CAM_W and update player pos to account for this update
+            if scroll_offset / (CAM_W as i32) == 2 {
+                scroll_offset = CAM_W as i32;
+                p.update_pos(
+                    (-1 * CAM_W as i32, y_vel),
+                    (0, (LEVEL_LEN - TILE_SIZE) as i32),
+                    (0, (CAM_H - 2 * TILE_SIZE) as i32),
+                    scroll_offset,
+                );
+            }
 
             let bg_offset = -(scroll_offset % (CAM_W as i32));
 
