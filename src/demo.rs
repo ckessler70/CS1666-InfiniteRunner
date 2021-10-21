@@ -249,7 +249,7 @@ impl Game for Demo {
             if scroll_offset / (CAM_W as i32) == 2 {
                 scroll_offset = CAM_W as i32;
                 p.update_pos(
-                    (-1 * CAM_W as i32, y_vel),
+                    (-(CAM_W as i32), y_vel),
                     (0, (LEVEL_LEN - TILE_SIZE) as i32),
                     (0, (CAM_H - 2 * TILE_SIZE) as i32),
                     scroll_offset,
