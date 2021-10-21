@@ -10,3 +10,4 @@ target
 */*.xcf
 build.bat
 build.sh
+*.dll

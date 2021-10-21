@@ -16,6 +16,8 @@ use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::Texture;
 
+use std::collections::LinkedList; // For infinite terrain
+
 const FPS: f64 = 60.0;
 const FRAME_TIME: f64 = 1.0 / FPS as f64;
 
@@ -112,7 +114,7 @@ impl Game for Demo {
         let bg = texture_creator.load_texture("assets/bg.png")?;
 
         //ADDN
-        let rh = texture_creator.load_texture("assets/rolling_hills.png")?;
+        let tex_terrain = texture_creator.load_texture("assets/rolling_hills.png")?;
         let sky = texture_creator.load_texture("assets/sky.png")?;
         let mut scroll_offset = 0;
 
@@ -304,30 +306,37 @@ impl Game for Demo {
                 rect!(bg_offset + (CAM_W as i32), 0, CAM_W, CAM_H),
             )?;
 
-            let rh_offset = (((scroll_offset % CAM_W as i32) / 10) as u32).clamp(0, CAM_H * 2);
+            //Draw terrain on top of background
+            // core.wincan.copy(&tex_terrain, None, rect!(0, CAM_H*2/3, CAM_W, CAM_H/3))?;
+            let mut terrain: LinkedList<Rect> = LinkedList::new();
+            /*  With more complete procedural gen...
+                new_terrain = gen_land(...);
+                terrain.push_back(new_terrain);
+            */
+            // TEMP
+            let tex_terrain_offset =
+                (((scroll_offset % CAM_W as i32) / 10) as u32).clamp(0, CAM_H * 2);
+            let curr_terrain = rect!(
+                bg_offset,
+                (CAM_H * 2 / 3 - tex_terrain_offset).clamp(CAM_H / 2 + 15, CAM_H),
+                CAM_W,
+                CAM_H / 3
+            );
+            let next_terrain = rect!(
+                CAM_W as i32 + bg_offset,
+                (CAM_H + 273 / 2 - (tex_terrain_offset + 273)).clamp(CAM_H * 2 / 3, CAM_H),
+                CAM_W,
+                CAM_H / 3
+            );
+            terrain.push_back(curr_terrain);
+            terrain.push_back(next_terrain);
+            // END TEMP
 
-            //Draw rolling hills on top of background
-            // core.wincan.copy(&rh, None, rect!(0, CAM_H*2/3, CAM_W, CAM_H/3))?;
-            core.wincan.copy(
-                &rh,
-                None,
-                rect!(
-                    bg_offset,
-                    (CAM_H * 2 / 3 - rh_offset).clamp(CAM_H / 2 + 15, CAM_H),
-                    CAM_W,
-                    CAM_H / 3
-                ),
-            )?;
-            core.wincan.copy(
-                &rh,
-                None,
-                rect!(
-                    CAM_W as i32 + bg_offset,
-                    (CAM_H + 273 / 2 - (rh_offset + 273)).clamp(CAM_H * 2 / 3, CAM_H),
-                    CAM_W,
-                    CAM_H / 3
-                ),
-            )?;
+            for segment in terrain.iter() {
+                core.wincan.copy(&tex_terrain, None, *segment)?;
+            }
+            //core.wincan.copy(&tex_terrain, None, curr_terrain)?;
+            //core.wincan.copy(&tex_terrain, None, next_terrain)?;
 
             //Draw sky in background
             core.wincan
