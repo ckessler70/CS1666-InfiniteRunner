@@ -4,7 +4,8 @@ use inf_runner::Game;
 use inf_runner::SDLCore;
 
 use std::collections::HashSet;
-use std::time::{Instant, Duration};
+use std::thread::sleep;
+use std::time::{Duration, Instant};
 
 use sdl2::event::Event;
 use sdl2::image::LoadTexture;
@@ -12,6 +13,9 @@ use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::Texture;
+
+const FPS: f64 = 60.0;
+const FRAME_TIME: f64 = 1.0 / FPS as f64;
 
 const CAM_W: u32 = 1280;
 const CAM_H: u32 = 720;
@@ -130,7 +134,17 @@ impl Game for Demo {
         let mut r_flip = false;
         let mut r_flip_spot: f64 = 0.0;
 
+        // FPS tracking
+        let mut all_frames = 0;
+        let mut last_raw_time = Instant::now();
+        let mut last_adjusted_time = Instant::now();
+        let mut last_measurement_time = Instant::now();
+
         'gameloop: loop {
+            // FPS tracking
+            last_raw_time = Instant::now();
+            last_adjusted_time = Instant::now();
+
             let mut x_deltav = 1;
             let mut y_deltav = 1;
             for event in core.event_pump.poll_iter() {
@@ -234,7 +248,8 @@ impl Game for Demo {
                 scroll_offset
             };
 
-            // If scroll offest is 0, set it CAM_W and update player pos to account for this update
+            // If scroll offest is 0, set it CAM_W and update player pos to account for this
+            // update
             if scroll_offset == 0 {
                 scroll_offset = CAM_W as i32;
                 p.update_pos(
@@ -245,7 +260,8 @@ impl Game for Demo {
                 );
             }
 
-            // If scroll offest is 2x CAM_W, set it CAM_W and update player pos to account for this update
+            // If scroll offest is 2x CAM_W, set it CAM_W and update player pos to account
+            // for this update
             if scroll_offset / (CAM_W as i32) == 2 {
                 scroll_offset = CAM_W as i32;
                 p.update_pos(
@@ -359,6 +375,37 @@ impl Game for Demo {
             )?;
 
             core.wincan.present();
+
+            // FPS Calculation
+            // the time taken to display the last frame
+            let raw_frame_time = last_raw_time.elapsed().as_secs_f64();
+            let delay = FRAME_TIME - raw_frame_time;
+            // if the amount of time to display the last frame was less than expected, sleep
+            // until the expected amount of time has passed
+            if delay > 0.0 {
+                // using sleep to delay will always cause slightly more delay than intended due
+                // to CPU scheduling; possibly find a better way to delay
+                sleep(Duration::from_secs_f64(delay));
+            }
+            // let adjusted_frame_time = last_adjusted_time.elapsed().as_secs_f64();
+            all_frames += 1;
+            let time_since_last_measurement = last_measurement_time.elapsed();
+            // measure the FPS once every second
+            if time_since_last_measurement > Duration::from_secs(1) {
+                // println!("Raw frame time: {:.8}", raw_frame_time);
+                // println!("Frame delay: {:.8}", delay);
+                // println!("Adjusted frame time: {:.8}", adjusted_frame_time);
+                // println!("Theoretical adjusted frame time: {:.8}", raw_frame_time + delay);
+                // println!("Raw FPS: {:.2}", 1.0 / raw_frame_time);
+                // println!("Adjusted FPS: {:.2}", 1.0 / adjusted_frame_time);
+                // println!("Theoretical adjusted FPS: {:.2}", 1.0 / (raw_frame_time + delay));
+                println!(
+                    "Average FPS: {:.2}",
+                    (all_frames as f64) / time_since_last_measurement.as_secs_f64()
+                );
+                all_frames = 0;
+                last_measurement_time = Instant::now();
+            }
         }
 
         // Out of game loop, return Ok
