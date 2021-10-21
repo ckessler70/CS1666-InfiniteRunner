@@ -13,6 +13,12 @@ pub struct SDLCore {
     pub cam: Rect,
 }
 
+#[allow(dead_code)]
+pub struct GameStatus {
+    pub restart: bool,
+    pub score: i32,
+}
+
 impl SDLCore {
     pub fn init(title: &str, vsync: bool, width: u32, height: u32) -> Result<SDLCore, String> {
         let sdl_cxt = sdl2::init()?;
@@ -52,4 +58,5 @@ pub trait Game {
     where
         Self: Sized;
     fn run(&mut self, core: &mut SDLCore) -> Result<(), String>;
+    fn run_game(&mut self, core: &mut SDLCore) -> Result<GameStatus, String>;
 }

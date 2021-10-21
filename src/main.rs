@@ -9,6 +9,7 @@ mod utils;
 // mod proc_gen;
 
 use inf_runner::Game;
+use inf_runner::GameStatus;
 
 const TITLE: &str = "Urban Odyssey";
 const CAM_W: u32 = 1280;
@@ -43,10 +44,21 @@ fn main() {
 
             // TITLE SCREEN RUN
             // GAME PLAY RUN
-            match contents.demo.run(&mut (contents.core)) {
-                Err(e) => println!("\n\t\tEncountered error while running: {}", e),
-                Ok(_) => println!("DONE\nExiting cleanly"),
-            };
+            loop {
+                match contents.demo.run_game(&mut (contents.core)) {
+                    Err(e) => println!("\n\t\tEncountered error while running: {}", e),
+                    Ok(status) => {
+                        if status.restart {
+                            //Let the loop happen again
+                        } else {
+                            break;
+                        }
+
+                        //Do something with the score idk
+                        // let score = status.score;
+                    }
+                };
+            }
 
             // CREDITS RUN
 

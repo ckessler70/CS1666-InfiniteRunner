@@ -1,5 +1,6 @@
 use crate::rect;
 use inf_runner::Game;
+use inf_runner::GameStatus;
 use inf_runner::SDLCore;
 
 use sdl2::event::Event;
@@ -44,6 +45,14 @@ impl<'a> Headshot<'a> {
 impl Game for Credits {
     fn init() -> Result<Self, String> {
         Ok(Credits {})
+    }
+
+    // To appease the implementation
+    fn run_game(&mut self, core: &mut SDLCore) -> Result<GameStatus, String> {
+        Ok(GameStatus {
+            restart: false,
+            score: 0,
+        })
     }
 
     fn run(&mut self, core: &mut SDLCore) -> Result<(), String> {

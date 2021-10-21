@@ -1,8 +1,7 @@
 use crate::rect;
 
-//use float_cmp::ApproxEq;
-
 use inf_runner::Game;
+use inf_runner::GameStatus;
 use inf_runner::SDLCore;
 
 use std::collections::HashSet;
@@ -104,7 +103,12 @@ impl Game for Demo {
         Ok(Demo {})
     }
 
+    // To appease the implementation
     fn run(&mut self, core: &mut SDLCore) -> Result<(), String> {
+        Ok(())
+    }
+
+    fn run_game(&mut self, core: &mut SDLCore) -> Result<GameStatus, String> {
         core.wincan.set_blend_mode(sdl2::render::BlendMode::Blend);
 
         let texture_creator = core.wincan.texture_creator();
@@ -158,6 +162,8 @@ impl Game for Demo {
         let mut game_paused = false;
         let mut initial_pause = false;
 
+        let mut restart_state: bool = false;
+
         'gameloop: loop {
             // FPS tracking
             last_raw_time = Instant::now();
@@ -180,6 +186,8 @@ impl Game for Demo {
                                 game_paused = false;
                             }
                             Keycode::R => {
+                                restart_state = true;
+                                break 'gameloop;
                                 //Restart somehow...Need to figure this out
                             }
                             _ => {}
@@ -189,11 +197,9 @@ impl Game for Demo {
                 }
 
                 if initial_pause {
-                    println!("{}", initial_pause);
                     core.wincan.set_draw_color(Color::RGBA(0, 0, 0, 128));
                     core.wincan.fill_rect(rect!(0, 0, CAM_W, CAM_H))?;
                     initial_pause = false;
-                    println!("{}", initial_pause);
                 }
             } else {
                 let mut x_deltav = 1;
@@ -481,6 +487,9 @@ impl Game for Demo {
         }
 
         // Out of game loop, return Ok
-        Ok(())
+        Ok(GameStatus {
+            restart: restart_state,
+            score: score,
+        })
     }
 }
