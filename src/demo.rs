@@ -1,6 +1,6 @@
 use crate::rect;
 
-use float_cmp::ApproxEq;
+//use float_cmp::ApproxEq;
 
 use inf_runner::Game;
 use inf_runner::SDLCore;
@@ -359,13 +359,16 @@ impl Game for Demo {
             };
 
             //going right backlfip
-            if r_flip_spot.approx_eq(-360.0, (0.0, 2)) {
+            //if r_flip_spot.approx_eq(-360.0, (0.0, 2)) {
+            if r_flip_spot.floor() == -360.0{
                 //flip complete
                 r_flip = false;
                 r_flip_spot = 0.0; //reset flip_spot
             }
             //Going left backflip
-            if r_flip_spot.approx_eq(360.0, (0.0, 2)) {
+            //if r_flip_spot.approx_eq(360.0, (0.0, 2)) {
+
+            if r_flip_spot.floor() == 360.0{
                 //flip complete
                 r_flip = false;
                 r_flip_spot = 0.0; //reset flip_spot
