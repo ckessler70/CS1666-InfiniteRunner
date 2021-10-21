@@ -4,6 +4,7 @@ use inf_runner::Game;
 use inf_runner::SDLCore;
 
 use std::collections::HashSet;
+use std::time::{Instant, Duration};
 
 use sdl2::event::Event;
 use sdl2::image::LoadTexture;
