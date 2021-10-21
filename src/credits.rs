@@ -267,7 +267,7 @@ impl Credits {
 
         // Print out the name
         core.wincan
-            .copy(&texture, None, Some(rect!(cx, m_count, w, h)))?;
+            .copy(texture, None, Some(rect!(cx, m_count, w, h)))?;
 
         // Image drawing
         if m_count + m_padding <= CAM_H {

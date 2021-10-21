@@ -1,10 +1,12 @@
 // File for important content used across entire project
 
+extern crate float_cmp;
 extern crate sdl2;
 
 use sdl2::rect::Rect;
 
 pub struct SDLCore {
+    #[allow(dead_code)]
     sdl_cxt: sdl2::Sdl,
     pub wincan: sdl2::render::WindowCanvas,
     pub event_pump: sdl2::EventPump,

@@ -1,5 +1,7 @@
 use crate::rect;
 
+use float_cmp::ApproxEq;
+
 use inf_runner::Game;
 use inf_runner::SDLCore;
 
@@ -136,14 +138,12 @@ impl Game for Demo {
 
         // FPS tracking
         let mut all_frames = 0;
-        let mut last_raw_time = Instant::now();
-        let mut last_adjusted_time = Instant::now();
+        let mut last_raw_time;
         let mut last_measurement_time = Instant::now();
 
         'gameloop: loop {
             // FPS tracking
             last_raw_time = Instant::now();
-            last_adjusted_time = Instant::now();
 
             let mut x_deltav = 1;
             let mut y_deltav = 1;
@@ -350,13 +350,13 @@ impl Game for Demo {
             };
 
             //going right backlfip
-            if r_flip_spot == -360.0 {
+            if r_flip_spot.approx_eq(-360.0, (0.0, 2)) {
                 //flip complete
                 r_flip = false;
                 r_flip_spot = 0.0; //reset flip_spot
             }
             //Going left backflip
-            if r_flip_spot == 360.0 {
+            if r_flip_spot.approx_eq(360.0, (0.0, 2)) {
                 //flip complete
                 r_flip = false;
                 r_flip_spot = 0.0; //reset flip_spot
