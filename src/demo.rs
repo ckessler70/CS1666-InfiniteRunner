@@ -164,6 +164,7 @@ impl Game for Demo {
             last_raw_time = Instant::now();
 
             if game_paused {
+                // Game paused handler
                 for event in core.event_pump.poll_iter() {
                     match event {
                         Event::Quit { .. }
@@ -191,6 +192,7 @@ impl Game for Demo {
                     }
                 }
 
+                // Draw it to screen once and then wait due to BlendMode
                 if initial_pause {
                     let surface = font
                         .render("Escape/Space - Resume Play")
@@ -216,9 +218,11 @@ impl Game for Demo {
                         .create_texture_from_surface(&surface)
                         .map_err(|e| e.to_string())?;
 
+                    // Grey out screen
                     core.wincan.set_draw_color(Color::RGBA(0, 0, 0, 128));
                     core.wincan.fill_rect(rect!(0, 0, CAM_W, CAM_H))?;
 
+                    // Draw text
                     core.wincan
                         .copy(&resume_texture, None, Some(rect!(100, 100, 1000, 125)))?;
                     core.wincan

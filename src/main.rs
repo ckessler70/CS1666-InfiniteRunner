@@ -41,9 +41,14 @@ fn main() {
             // segments switch      back and forth between each other, but this
             // is just a starting point]
 
-            // TITLE SCREEN RUN
-            // GAME PLAY RUN
             loop {
+                // TITLE SCREEN RUN
+                // match contents.title.run(&mut (contents.core)) {
+                //     Err(e) => println!("\n\t\tEncountered error while running: {}", e),
+                //     Ok(title_status) => {}
+                // }
+
+                // GAME PLAY RUN
                 match contents.demo.run(&mut (contents.core)) {
                     Err(e) => println!("\n\t\tEncountered error while running: {}", e),
                     Ok(game_status) => {
@@ -51,6 +56,7 @@ fn main() {
                             //Let the loop happen again
                         } else {
                             println!("DONE\nExiting cleanly");
+
                             // CREDITS RUN
 
                             // Ownership is tough ... maybe there's a smarter way to do this
