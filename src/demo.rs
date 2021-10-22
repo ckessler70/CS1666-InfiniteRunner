@@ -103,12 +103,7 @@ impl Game for Demo {
         Ok(Demo {})
     }
 
-    // To appease the implementation
-    fn run(&mut self, core: &mut SDLCore) -> Result<(), String> {
-        Ok(())
-    }
-
-    fn run_game(&mut self, core: &mut SDLCore) -> Result<GameStatus, String> {
+    fn run(&mut self, core: &mut SDLCore) -> Result<GameStatus, String> {
         core.wincan.set_blend_mode(sdl2::render::BlendMode::Blend);
 
         let texture_creator = core.wincan.texture_creator();
@@ -197,8 +192,40 @@ impl Game for Demo {
                 }
 
                 if initial_pause {
+                    let surface = font
+                        .render("Escape/Space - Resume Play")
+                        .blended(Color::RGBA(119, 3, 252, 255))
+                        .map_err(|e| e.to_string())?;
+                    let resume_texture = texture_creator
+                        .create_texture_from_surface(&surface)
+                        .map_err(|e| e.to_string())?;
+
+                    let surface = font
+                        .render("R - Restart game")
+                        .blended(Color::RGBA(119, 3, 252, 255))
+                        .map_err(|e| e.to_string())?;
+                    let restart_texture = texture_creator
+                        .create_texture_from_surface(&surface)
+                        .map_err(|e| e.to_string())?;
+
+                    let surface = font
+                        .render("Q - Quit game")
+                        .blended(Color::RGBA(119, 3, 252, 255))
+                        .map_err(|e| e.to_string())?;
+                    let quit_texture = texture_creator
+                        .create_texture_from_surface(&surface)
+                        .map_err(|e| e.to_string())?;
+
                     core.wincan.set_draw_color(Color::RGBA(0, 0, 0, 128));
                     core.wincan.fill_rect(rect!(0, 0, CAM_W, CAM_H))?;
+
+                    core.wincan
+                        .copy(&resume_texture, None, Some(rect!(100, 100, 1000, 125)))?;
+                    core.wincan
+                        .copy(&restart_texture, None, Some(rect!(100, 250, 700, 125)))?;
+                    core.wincan
+                        .copy(&quit_texture, None, Some(rect!(100, 400, 600, 125)))?;
+
                     initial_pause = false;
                 }
             } else {
