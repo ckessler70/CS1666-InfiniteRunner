@@ -231,8 +231,16 @@ impl Game for Credits {
                 continue;
             }
         }
+
+        let mut main: bool = true;
+        if restart_state {
+            main = false;
+        }
+
         Ok(GameStatus {
-            restart: restart_state,
+            main: main,
+            game: restart_state,
+            credits: false,
             score: 0,
         })
     }

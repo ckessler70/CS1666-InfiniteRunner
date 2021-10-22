@@ -15,7 +15,9 @@ pub struct SDLCore {
 
 #[allow(dead_code)]
 pub struct GameStatus {
-    pub restart: bool,
+    pub main: bool,
+    pub game: bool,
+    pub credits: bool,
     pub score: i32,
 }
 

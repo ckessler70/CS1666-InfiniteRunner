@@ -158,6 +158,8 @@ impl Game for Demo {
         let mut initial_pause = false;
 
         let mut restart_state: bool = false;
+        let mut main: bool = false;
+        let mut credits: bool = true;
 
         'gameloop: loop {
             // FPS tracking
@@ -171,20 +173,29 @@ impl Game for Demo {
                         | Event::KeyDown {
                             keycode: Some(Keycode::Q),
                             ..
-                        } => break 'gameloop,
+                        } => {
+                            main = false;
+                            restart_state = false;
+                            credits = true;
+                            break 'gameloop;
+                        }
                         Event::KeyDown {
                             keycode: Some(k), ..
                         } => match k {
-                            Keycode::Escape => {
-                                game_paused = false;
-                            }
-                            Keycode::Space => {
+                            Keycode::Escape | Keycode::Space => {
                                 game_paused = false;
                             }
                             Keycode::R => {
+                                main = false;
                                 restart_state = true;
+                                credits = false;
                                 break 'gameloop;
-                                //Restart somehow...Need to figure this out
+                            }
+                            Keycode::M => {
+                                main = true;
+                                restart_state = false;
+                                credits = false;
+                                break 'gameloop;
                             }
                             _ => {}
                         },
@@ -211,6 +222,14 @@ impl Game for Demo {
                         .map_err(|e| e.to_string())?;
 
                     let surface = font
+                        .render("M - Main menu")
+                        .blended(Color::RGBA(119, 3, 252, 255))
+                        .map_err(|e| e.to_string())?;
+                    let main_texture = texture_creator
+                        .create_texture_from_surface(&surface)
+                        .map_err(|e| e.to_string())?;
+
+                    let surface = font
                         .render("Q - Quit game")
                         .blended(Color::RGBA(119, 3, 252, 255))
                         .map_err(|e| e.to_string())?;
@@ -228,7 +247,9 @@ impl Game for Demo {
                     core.wincan
                         .copy(&restart_texture, None, Some(rect!(100, 250, 700, 125)))?;
                     core.wincan
-                        .copy(&quit_texture, None, Some(rect!(100, 400, 600, 125)))?;
+                        .copy(&main_texture, None, Some(rect!(100, 400, 600, 125)))?;
+                    core.wincan
+                        .copy(&quit_texture, None, Some(rect!(100, 550, 600, 125)))?;
 
                     initial_pause = false;
                 }
@@ -519,7 +540,9 @@ impl Game for Demo {
 
         // Out of game loop, return Ok
         Ok(GameStatus {
-            restart: restart_state,
+            main: main,
+            game: restart_state,
+            credits: credits,
             score: score,
         })
     }
