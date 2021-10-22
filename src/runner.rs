@@ -127,7 +127,10 @@ impl Game for Runner {
         core.wincan.set_draw_color(Color::RGBA(3, 252, 206, 255));
         core.wincan.clear();
 
-<<<<<<< .merge_file_a03116
+        let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
+
+        let mut font = ttf_context.load_font("./assets/DroidSansMono.ttf", 128)?;
+        font.set_style(sdl2::ttf::FontStyle::BOLD);
         // Textures
         let tex_bg = texture_creator.load_texture("assets/bg.png")?;
         let tex_terrain = texture_creator.load_texture("assets/rolling_hills.png")?;
@@ -135,20 +138,6 @@ impl Game for Runner {
 
         // ???
         // let mut scroll_offset = 0;
-=======
-        let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
-
-        let mut font = ttf_context.load_font("./assets/DroidSansMono.ttf", 128)?;
-        font.set_style(sdl2::ttf::FontStyle::BOLD);
-
-        // BG is the same size and window, but will scroll as the user moves
-        let bg = texture_creator.load_texture("assets/bg.png")?;
-
-        //ADDN
-        let tex_terrain = texture_creator.load_texture("assets/rolling_hills.png")?;
-        let sky = texture_creator.load_texture("assets/sky.png")?;
-        let mut scroll_offset: i32 = 0;
->>>>>>> .merge_file_a17468
 
         // Create player at default position
         let mut player = Player::new(
@@ -487,15 +476,12 @@ impl Game for Runner {
                 };
 
                 // Draw background
+                core.wincan
+                    .copy(&tex_bg, None, rect!(bg_offset, 0, CAM_W, CAM_H))?;
                 core.wincan.copy(
                     &tex_bg,
                     None,
-                    rect!(bg_offset, 0, CAM_W, CAM_H)
-                )?;
-                core.wincan.copy(
-                    &tex_bg,
-                    None,
-                    rect!(bg_offset + (CAM_W as i32), 0, CAM_W, CAM_H)
+                    rect!(bg_offset + (CAM_W as i32), 0, CAM_W, CAM_H),
                 )?;
 
                 /*** Terrain Section ***/
@@ -525,11 +511,8 @@ impl Game for Runner {
 
                 // Draw all segments
                 for segment in terrain.iter() {
-                    core.wincan.copy(
-                        &(segment.texture()),
-                        None,
-                        *segment.pos()
-                    )?;
+                    core.wincan
+                        .copy(&(segment.texture()), None, *segment.pos())?;
                 }
                 /*** End Terrain Section ***/
 
