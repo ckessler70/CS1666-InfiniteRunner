@@ -8,6 +8,7 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
+use sdl2::render::TextureQuery;
 
 const CAM_W: u32 = 1280;
 const CAM_H: u32 = 720;
@@ -31,6 +32,35 @@ impl Game for Title {
 
         let mut font = ttf_context.load_font("./assets/DroidSansMono.ttf", 128)?;
         font.set_style(sdl2::ttf::FontStyle::BOLD);
+
+        let surface = font
+            .render("Urban Odyssey")
+            .blended(Color::RGBA(0, 255, 0, 255))
+            .map_err(|e| e.to_string())?;
+        let title_texture = texture_creator
+            .create_texture_from_surface(&surface)
+            .map_err(|e| e.to_string())?;
+
+        let TextureQuery { width, height, .. } = title_texture.query();
+
+        let padding = 64;
+
+        let wr = width as f32 / (CAM_W - padding) as f32;
+        let hr = height as f32 / (CAM_H - padding) as f32;
+
+        let (w, h) = if wr > 1f32 || hr > 1f32 {
+            if wr > hr {
+                let h = (height as f32 / wr) as i32;
+                ((CAM_W - padding) as i32, h)
+            } else {
+                let w = (width as f32 / hr) as i32;
+                (w, (CAM_H - padding) as i32)
+            }
+        } else {
+            (width as i32, height as i32)
+        };
+
+        let cx = (CAM_W as i32 - w) / 2;
 
         let surface = font
             .render("P/Space - Play")
@@ -62,11 +92,13 @@ impl Game for Title {
 
         // Draw text
         core.wincan
-            .copy(&play_texture, None, Some(rect!(100, 100, 600, 125)))?;
+            .copy(&title_texture, None, Some(rect!(cx, 50, w, h)))?;
         core.wincan
-            .copy(&credits_texture, None, Some(rect!(100, 250, 700, 125)))?;
+            .copy(&play_texture, None, Some(rect!(125, 200, 600, 125)))?;
         core.wincan
-            .copy(&quit_texture, None, Some(rect!(100, 400, 1000, 125)))?;
+            .copy(&credits_texture, None, Some(rect!(125, 350, 700, 125)))?;
+        core.wincan
+            .copy(&quit_texture, None, Some(rect!(125, 500, 1000, 125)))?;
 
         core.wincan.present();
 
