@@ -27,8 +27,10 @@ const CAM_H: u32 = 720;
 const TILE_SIZE: u32 = 100;
 
 // Bounds we want to keep the player within
-const LTHIRD: i32 = ((CAM_W as i32) / 3) - (TILE_SIZE as i32) / 2;
-const RTHIRD: i32 = ((CAM_W as i32) * 2 / 3) - (TILE_SIZE as i32) / 2;
+const PLAYER_BOUNDS_H: (i32, i32) = (0, (CAM_W - TILE_SIZE) as i32);
+const PLAYER_BOUNDS_V: (i32, i32) = (0, (CAM_H - TILE_SIZE) as i32);
+//const LTHIRD: i32 = ((CAM_W as i32) / 3) - (TILE_SIZE as i32) / 2;
+//const RTHIRD: i32 = ((CAM_W as i32) * 2 / 3) - (TILE_SIZE as i32) / 2;
 
 const SPEED_LIMIT: i32 = 5;
 
@@ -58,6 +60,13 @@ impl<'a> Player<'a> {
         self.pos.y()
     }
 
+    fn update_pos(&mut self, x_vel: i32, y_vel: i32) {
+        self.pos
+            .set_x((self.pos.x() + x_vel).clamp(PLAYER_BOUNDS_H.0, PLAYER_BOUNDS_H.1));
+        self.pos
+            .set_y((self.pos.y() + y_vel).clamp(PLAYER_BOUNDS_V.0, PLAYER_BOUNDS_V.1));
+    }
+    /*
     fn update_pos(
         &mut self,
         vel: (i32, i32),
@@ -72,12 +81,14 @@ impl<'a> Player<'a> {
             ground_pos(self.x() - scroll_offset) - (TILE_SIZE as i32),
         ));
     }
+    */
 
     fn texture(&self) -> &Texture {
         &self.texture
     }
 }
 
+// What is this?
 fn resist(vel: i32, deltav: i32) -> i32 {
     if deltav == 0 {
         if vel > 0 {
@@ -92,12 +103,14 @@ fn resist(vel: i32, deltav: i32) -> i32 {
     }
 }
 
+/*
 // y = -0.05x + 100
 fn ground_pos(x: i32) -> i32 {
     let res = (-0.05 * (x as f64) + 100.0) as i32;
     // println!("ground: {}", res);
     (CAM_H as i32) - res
 }
+*/
 
 impl Game for Demo {
     fn init() -> Result<Self, String> {
@@ -105,6 +118,7 @@ impl Game for Demo {
     }
 
     fn run(&mut self, core: &mut SDLCore) -> Result<GameStatus, String> {
+        // ???
         core.wincan.set_blend_mode(sdl2::render::BlendMode::Blend);
 
         let texture_creator = core.wincan.texture_creator();
@@ -112,16 +126,17 @@ impl Game for Demo {
         core.wincan.set_draw_color(Color::RGBA(3, 252, 206, 255));
         core.wincan.clear();
 
-        // BG is the same size and window, but will scroll as the user moves
-        let bg = texture_creator.load_texture("assets/bg.png")?;
-
-        //ADDN
+        // Textures
+        let tex_bg = texture_creator.load_texture("assets/bg.png")?;
         let tex_terrain = texture_creator.load_texture("assets/rolling_hills.png")?;
-        let sky = texture_creator.load_texture("assets/sky.png")?;
-        let mut scroll_offset = 0;
+        let tex_sky = texture_creator.load_texture("assets/sky.png")?;
 
-        let mut p = Player::new(
-            rect!(TILE_SIZE as i32 + 276, (CAM_H) as i32, TILE_SIZE, TILE_SIZE),
+        // ???
+        // let mut scroll_offset = 0;
+
+        // Create player at default position
+        let mut player = Player::new(
+            rect!(PLAYER_BOUNDS_H.0, PLAYER_BOUNDS_V.0, TILE_SIZE, TILE_SIZE),
             texture_creator.load_texture("assets/player.png")?,
         );
 
@@ -163,11 +178,12 @@ impl Game for Demo {
         let mut credits: bool = true;
 
         // Terrain Initialization
-        /*  Need to get rid of our fake slopes and hardcoded movement to actually use this
         let init_terrain = ProceduralGen::init_terrain(CAM_W as i32, CAM_H as i32, &tex_terrain);
         let mut terrain: LinkedList<TerrainSegment> = LinkedList::new();
         terrain.push_back(init_terrain);
-        */
+
+        // Total offset of terrain, also used for background
+        let mut OFFSET: i32 = 0;
 
         'gameloop: loop {
             // FPS tracking
@@ -335,24 +351,34 @@ impl Game for Demo {
                     .collect();
 
                 if keystate.contains(&Keycode::A) || keystate.contains(&Keycode::Left) {
-                    x_deltav = -1;
+                    //x_deltav = -1;
+                    x_vel = -SPEED_LIMIT;
                 }
                 if keystate.contains(&Keycode::D) || keystate.contains(&Keycode::Right) {
-                    x_deltav = 1;
+                    //x_deltav = 1;
+                    x_vel = SPEED_LIMIT;
                 }
 
+                /*
                 x_deltav = resist(x_vel, x_deltav);
                 y_deltav = resist(y_vel, y_deltav);
                 x_vel = (x_vel + x_deltav).clamp(-SPEED_LIMIT, SPEED_LIMIT);
                 y_vel = (y_vel + y_deltav).clamp(-SPEED_LIMIT, SPEED_LIMIT);
+                */
 
+                player.update_pos(0, y_vel);
+                OFFSET = (OFFSET + x_vel) % CAM_W as i32;
+                let bg_offset = -OFFSET;
+                /*
                 p.update_pos(
                     (x_vel, y_vel),
                     (0, (LEVEL_LEN - TILE_SIZE) as i32),
                     (0, (CAM_H - 2 * TILE_SIZE) as i32),
                     scroll_offset,
                 );
+                */
 
+                /*
                 // Check if we need to updated scroll offset
                 scroll_offset = if p.x() > scroll_offset + RTHIRD {
                     (p.x() - RTHIRD).clamp(0, (LEVEL_LEN - CAM_W) as i32)
@@ -389,6 +415,7 @@ impl Game for Demo {
                 }
 
                 let bg_offset = -(scroll_offset % (CAM_W as i32));
+                */
 
                 //MODIFIED: G 252 -> 120 (so I could see sky images better)
                 core.wincan.set_draw_color(Color::RGBA(3, 120, 206, 255));
@@ -412,24 +439,21 @@ impl Game for Demo {
                 };
 
                 // Draw background
-                core.wincan
-                    .copy(&bg, None, rect!(bg_offset, 0, CAM_W, CAM_H))?;
                 core.wincan.copy(
-                    &bg,
+                    &tex_bg,
                     None,
-                    rect!(bg_offset + (CAM_W as i32), 0, CAM_W, CAM_H),
+                    rect!(bg_offset, 0, CAM_W, CAM_H)
+                )?;
+                core.wincan.copy(
+                    &tex_bg,
+                    None,
+                    rect!(bg_offset + (CAM_W as i32), 0, CAM_W, CAM_H)
                 )?;
 
                 /*** Terrain Section ***/
-                /* All this stuff commented out is the real deal,
-                   the hacky solution below is being preserved until we do some house cleaning
-                // Get horizontal adjustment for this step
-                // This implementation is temporary
-                let terrain_offset =
-                    (((scroll_offset % CAM_W as i32) / 10) as u32).clamp(0, CAM_H * 2);
-
-                for segment in terrain.iter_mut() { // Update all segment postitions
-                    segment.update_pos(bg_offset, terrain_offset as i32);
+                // Update all segment postitions
+                for segment in terrain.iter_mut() {
+                    segment.update_pos(-x_vel, 0);
                 }
 
                 // Generate new segment if current tail is visible
@@ -450,44 +474,22 @@ impl Game for Demo {
                 if terrain.front().unwrap().x() + terrain.front().unwrap().w() <= 0 {
                     terrain.pop_front();
                 }
-                */
-                // TEMP
-                let tex_terrain_offset =
-                    (((scroll_offset % CAM_W as i32) / 10) as u32).clamp(0, CAM_H * 2);
-                let mut terrain: LinkedList<TerrainSegment> = LinkedList::new();
-                let curr_terrain = TerrainSegment::new(
-                    rect!(
-                        bg_offset,
-                        (CAM_H * 2 / 3).clamp(CAM_H / 2 + 15, CAM_H),
-                        CAM_W,
-                        CAM_H / 3
-                    ),
-                    &tex_terrain,
-                );
-                let next_terrain = TerrainSegment::new(
-                    rect!(
-                        CAM_W as i32 + bg_offset,
-                        (CAM_H + 273 / 2 - (tex_terrain_offset + 273)).clamp(CAM_H * 2 / 3, CAM_H),
-                        CAM_W,
-                        CAM_H / 3
-                    ),
-                    &tex_terrain,
-                );
-                terrain.push_back(curr_terrain);
-                terrain.push_back(next_terrain);
-                // END TEMP
 
+                // Draw all segments
                 for segment in terrain.iter() {
-                    core.wincan
-                        .copy(&(segment.texture()), None, *segment.pos())?;
+                    core.wincan.copy(
+                        &(segment.texture()),
+                        None,
+                        *segment.pos()
+                    )?;
                 }
                 /*** End Terrain Section ***/
 
                 //Draw sky in background
                 core.wincan
-                    .copy(&sky, None, rect!(bg_offset, 0, CAM_W, CAM_H / 3))?;
+                    .copy(&tex_sky, None, rect!(bg_offset, 0, CAM_W, CAM_H / 3))?;
                 core.wincan.copy(
-                    &sky,
+                    &tex_sky,
                     None,
                     rect!(CAM_W as i32 + bg_offset, 0, CAM_W, CAM_H / 3),
                 )?;
@@ -522,9 +524,9 @@ impl Game for Demo {
                 // Draw player
                 //NOTE: i added 10 to p.y()
                 core.wincan.copy_ex(
-                    p.texture(),
+                    player.texture(),
                     rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
-                    rect!(p.x() - scroll_offset, p.y() + 10, TILE_SIZE, TILE_SIZE),
+                    rect!(player.x(), player.y() + 10, TILE_SIZE, TILE_SIZE),
                     r_flip_spot,
                     None,
                     flip,
