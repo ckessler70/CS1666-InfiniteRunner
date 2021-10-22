@@ -57,6 +57,5 @@ pub trait Game {
     fn init() -> Result<Self, String>
     where
         Self: Sized;
-    fn run(&mut self, core: &mut SDLCore) -> Result<(), String>;
-    fn run_game(&mut self, core: &mut SDLCore) -> Result<GameStatus, String>;
+    fn run(&mut self, core: &mut SDLCore) -> Result<GameStatus, String>;
 }

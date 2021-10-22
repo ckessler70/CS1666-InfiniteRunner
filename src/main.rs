@@ -9,7 +9,6 @@ mod utils;
 // mod proc_gen;
 
 use inf_runner::Game;
-use inf_runner::GameStatus;
 
 const TITLE: &str = "Urban Odyssey";
 const CAM_W: u32 = 1280;
@@ -45,30 +44,36 @@ fn main() {
             // TITLE SCREEN RUN
             // GAME PLAY RUN
             loop {
-                match contents.demo.run_game(&mut (contents.core)) {
+                match contents.demo.run(&mut (contents.core)) {
                     Err(e) => println!("\n\t\tEncountered error while running: {}", e),
-                    Ok(status) => {
-                        if status.restart {
+                    Ok(game_status) => {
+                        if game_status.restart {
                             //Let the loop happen again
                         } else {
-                            break;
+                            println!("DONE\nExiting cleanly");
+                            // CREDITS RUN
+
+                            // Ownership is tough ... maybe there's a smarter way to do this
+                            // using smart pointers, but for now, looks like we'll be passing
+                            // around the SDLCore to each segment manually.
+                            match contents.credits.run(&mut (contents.core)) {
+                                Err(e) => println!("\n\t\tEncountered error while running: {}", e),
+                                Ok(credit_status) => {
+                                    if credit_status.restart {
+                                        //let the loop happen again
+                                    } else {
+                                        println!("DONE\nExiting cleanly");
+                                        break;
+                                    }
+                                }
+                            };
                         }
 
                         //Do something with the score idk
-                        // let score = status.score;
+                        // let score = game_status.score;
                     }
                 };
             }
-
-            // CREDITS RUN
-
-            // Ownership is tough ... maybe there's a smarter way to do this
-            // using smart pointers, but for now, looks like we'll be passing
-            // around the SDLCore to each segment manually.
-            match contents.credits.run(&mut (contents.core)) {
-                Err(e) => println!("\n\t\tEncountered error while running: {}", e),
-                Ok(_) => println!("DONE\nExiting cleanly"),
-            };
         }
     };
 }

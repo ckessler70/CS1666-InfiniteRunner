@@ -47,15 +47,7 @@ impl Game for Credits {
         Ok(Credits {})
     }
 
-    // To appease the implementation
-    fn run_game(&mut self, core: &mut SDLCore) -> Result<GameStatus, String> {
-        Ok(GameStatus {
-            restart: false,
-            score: 0,
-        })
-    }
-
-    fn run(&mut self, core: &mut SDLCore) -> Result<(), String> {
+    fn run(&mut self, core: &mut SDLCore) -> Result<GameStatus, String> {
         let mut count = CAM_H;
 
         /******************************** TEXTURES AND HEADSHOTS
@@ -198,15 +190,23 @@ impl Game for Credits {
          * ******* */
 
         let mut index = 0;
+        let mut restart_state = false;
 
         'gameloop: loop {
             for event in core.event_pump.poll_iter() {
                 match event {
                     Event::Quit { .. }
                     | Event::KeyDown {
-                        keycode: Some(Keycode::Escape),
+                        keycode: Some(Keycode::Escape | Keycode::Q),
                         ..
                     } => break 'gameloop,
+                    Event::KeyDown {
+                        keycode: Some(Keycode::R),
+                        ..
+                    } => {
+                        restart_state = true;
+                        break 'gameloop;
+                    }
                     _ => {}
                 }
             }
@@ -231,7 +231,10 @@ impl Game for Credits {
                 continue;
             }
         }
-        Ok(())
+        Ok(GameStatus {
+            restart: restart_state,
+            score: 0,
+        })
     }
 }
 
