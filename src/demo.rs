@@ -17,6 +17,7 @@ use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::Texture;
+use sdl2::render::TextureQuery;
 
 const FPS: f64 = 60.0;
 const FRAME_TIME: f64 = 1.0 / FPS as f64;
@@ -112,13 +113,18 @@ impl Game for Demo {
         core.wincan.set_draw_color(Color::RGBA(3, 252, 206, 255));
         core.wincan.clear();
 
+        let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
+
+        let mut font = ttf_context.load_font("./assets/DroidSansMono.ttf", 128)?;
+        font.set_style(sdl2::ttf::FontStyle::BOLD);
+
         // BG is the same size and window, but will scroll as the user moves
         let bg = texture_creator.load_texture("assets/bg.png")?;
 
         //ADDN
         let tex_terrain = texture_creator.load_texture("assets/rolling_hills.png")?;
         let sky = texture_creator.load_texture("assets/sky.png")?;
-        let mut scroll_offset = 0;
+        let mut scroll_offset: i32 = 0;
 
         let mut p = Player::new(
             rect!(TILE_SIZE as i32 + 276, (CAM_H) as i32, TILE_SIZE, TILE_SIZE),
@@ -126,37 +132,32 @@ impl Game for Demo {
         );
 
         // Used to keep track of animation status
-        let mut frames = 0;
-        let mut src_x = 0;
-        let mut flip = false;
+        let mut frames: i32 = 0;
+        let mut src_x: i32 = 0;
+        let mut flip: bool = false;
 
-        let mut x_vel = 0;
-        let mut y_vel = 0;
+        let mut x_vel: i32 = 0;
+        let mut y_vel: i32 = 0;
 
-        let mut jump = false;
-        let mut jump_ct = 0;
+        let mut jump: bool = false;
+        let mut jump_ct: i32 = 0;
 
         //For rotational flip (maybe not the best variable names)
-        let mut r_flip = false;
+        let mut r_flip: bool = false;
         let mut r_flip_spot: f64 = 0.0;
 
         // FPS tracking
-        let mut all_frames = 0;
+        let mut all_frames: i32 = 0;
         let mut last_raw_time;
         let mut last_measurement_time = Instant::now();
 
         // Score tracking
         let mut score: i32 = 0;
 
-        let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
-
-        let mut font = ttf_context.load_font("./assets/DroidSansMono.ttf", 128)?;
-        font.set_style(sdl2::ttf::FontStyle::BOLD);
-
-        let texture_creator = core.wincan.texture_creator();
-
-        let mut game_paused = false;
-        let mut initial_pause = false;
+        let mut game_paused: bool = false;
+        let mut initial_pause: bool = false;
+        let mut game_over: bool = false;
+        let mut ct: i32 = 0;
 
         let mut restart_state: bool = false;
         let mut main: bool = false;
@@ -213,36 +214,40 @@ impl Game for Demo {
 
                 // Draw it to screen once and then wait due to BlendMode
                 if initial_pause {
-                    let surface = font
-                        .render("Escape/Space - Resume Play")
-                        .blended(Color::RGBA(119, 3, 252, 255))
-                        .map_err(|e| e.to_string())?;
                     let resume_texture = texture_creator
-                        .create_texture_from_surface(&surface)
+                        .create_texture_from_surface(
+                            &font
+                                .render("Escape/Space - Resume Play")
+                                .blended(Color::RGBA(119, 3, 252, 255))
+                                .map_err(|e| e.to_string())?,
+                        )
                         .map_err(|e| e.to_string())?;
 
-                    let surface = font
-                        .render("R - Restart game")
-                        .blended(Color::RGBA(119, 3, 252, 255))
-                        .map_err(|e| e.to_string())?;
                     let restart_texture = texture_creator
-                        .create_texture_from_surface(&surface)
+                        .create_texture_from_surface(
+                            &font
+                                .render("R - Restart game")
+                                .blended(Color::RGBA(119, 3, 252, 255))
+                                .map_err(|e| e.to_string())?,
+                        )
                         .map_err(|e| e.to_string())?;
 
-                    let surface = font
-                        .render("M - Main menu")
-                        .blended(Color::RGBA(119, 3, 252, 255))
-                        .map_err(|e| e.to_string())?;
                     let main_texture = texture_creator
-                        .create_texture_from_surface(&surface)
+                        .create_texture_from_surface(
+                            &font
+                                .render("M - Main menu")
+                                .blended(Color::RGBA(119, 3, 252, 255))
+                                .map_err(|e| e.to_string())?,
+                        )
                         .map_err(|e| e.to_string())?;
 
-                    let surface = font
-                        .render("Q - Quit game")
-                        .blended(Color::RGBA(119, 3, 252, 255))
-                        .map_err(|e| e.to_string())?;
                     let quit_texture = texture_creator
-                        .create_texture_from_surface(&surface)
+                        .create_texture_from_surface(
+                            &font
+                                .render("Q - Quit game")
+                                .blended(Color::RGBA(119, 3, 252, 255))
+                                .map_err(|e| e.to_string())?,
+                        )
                         .map_err(|e| e.to_string())?;
 
                     // Grey out screen
@@ -261,32 +266,57 @@ impl Game for Demo {
 
                     initial_pause = false;
                 }
+            } else if game_over {
+                let game_over_texture = texture_creator
+                    .create_texture_from_surface(
+                        &font
+                            .render("GAME OVER")
+                            .blended(Color::RGBA(255, 0, 0, 255))
+                            .map_err(|e| e.to_string())?,
+                    )
+                    .map_err(|e| e.to_string())?;
+
+                let TextureQuery { width, height, .. } = game_over_texture.query();
+
+                let padding = 64;
+
+                let wr = width as f32 / (CAM_W - padding) as f32;
+                let hr = height as f32 / (CAM_H - padding) as f32;
+
+                let (w, h) = if wr > 1f32 || hr > 1f32 {
+                    if wr > hr {
+                        let h = (height as f32 / wr) as i32;
+                        ((CAM_W - padding) as i32, h)
+                    } else {
+                        let w = (width as f32 / hr) as i32;
+                        (w, (CAM_H - padding) as i32)
+                    }
+                } else {
+                    (width as i32, height as i32)
+                };
+
+                let cx = (CAM_W as i32 - w) / 2;
+                let cy = (CAM_H as i32 - h) / 2;
+
+                core.wincan
+                    .copy(&game_over_texture, None, Some(rect!(cx, cy, w, h)))?;
+
+                core.wincan.present();
+
+                ct += 1;
+                if ct == 120 {
+                    break;
+                }
             } else {
-                let mut x_deltav = 1;
-                let mut y_deltav = 1;
+                let mut x_deltav: i32 = 1;
+                let mut y_deltav: i32 = 1;
                 for event in core.event_pump.poll_iter() {
                     match event {
                         Event::Quit { .. } => break 'gameloop,
                         Event::KeyDown {
                             keycode: Some(k), ..
                         } => match k {
-                            Keycode::W => {
-                                if !jump && jump_ct == 0 {
-                                    jump = true;
-                                }
-                                if jump_ct != 0 {
-                                    r_flip = true;
-                                }
-                            }
-                            Keycode::Up => {
-                                if !jump && jump_ct == 0 {
-                                    jump = true;
-                                }
-                                if jump_ct != 0 {
-                                    r_flip = true;
-                                }
-                            }
-                            Keycode::Space => {
+                            Keycode::W | Keycode::Up | Keycode::Space => {
                                 if !jump && jump_ct == 0 {
                                     jump = true;
                                 }
@@ -323,7 +353,8 @@ impl Game for Demo {
 
                 // Landed on head, GAME OVER
                 if jump_ct == 0 && r_flip_spot != 0.0 {
-                    break;
+                    game_over = true;
+                    continue;
                 }
 
                 // If we want to use keystates instead of events...
