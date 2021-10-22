@@ -264,44 +264,50 @@ impl Game for Runner {
                     core.wincan
                         .copy(&quit_texture, None, Some(rect!(100, 550, 600, 125)))?;
 
+                    core.wincan.present();
+
                     initial_pause = false;
                 }
             } else if game_over {
-                let game_over_texture = texture_creator
-                    .create_texture_from_surface(
-                        &font
-                            .render("GAME OVER")
-                            .blended(Color::RGBA(255, 0, 0, 255))
-                            .map_err(|e| e.to_string())?,
-                    )
-                    .map_err(|e| e.to_string())?;
+                if initial_pause {
+                    let game_over_texture = texture_creator
+                        .create_texture_from_surface(
+                            &font
+                                .render("GAME OVER")
+                                .blended(Color::RGBA(255, 0, 0, 255))
+                                .map_err(|e| e.to_string())?,
+                        )
+                        .map_err(|e| e.to_string())?;
 
-                let TextureQuery { width, height, .. } = game_over_texture.query();
+                    let TextureQuery { width, height, .. } = game_over_texture.query();
 
-                let padding = 64;
+                    let padding = 64;
 
-                let wr = width as f32 / (CAM_W - padding) as f32;
-                let hr = height as f32 / (CAM_H - padding) as f32;
+                    let wr = width as f32 / (CAM_W - padding) as f32;
+                    let hr = height as f32 / (CAM_H - padding) as f32;
 
-                let (w, h) = if wr > 1f32 || hr > 1f32 {
-                    if wr > hr {
-                        let h = (height as f32 / wr) as i32;
-                        ((CAM_W - padding) as i32, h)
+                    let (w, h) = if wr > 1f32 || hr > 1f32 {
+                        if wr > hr {
+                            let h = (height as f32 / wr) as i32;
+                            ((CAM_W - padding) as i32, h)
+                        } else {
+                            let w = (width as f32 / hr) as i32;
+                            (w, (CAM_H - padding) as i32)
+                        }
                     } else {
-                        let w = (width as f32 / hr) as i32;
-                        (w, (CAM_H - padding) as i32)
-                    }
-                } else {
-                    (width as i32, height as i32)
-                };
+                        (width as i32, height as i32)
+                    };
 
-                let cx = (CAM_W as i32 - w) / 2;
-                let cy = (CAM_H as i32 - h) / 2;
+                    let cx = (CAM_W as i32 - w) / 2;
+                    let cy = (CAM_H as i32 - h) / 2;
 
-                core.wincan
-                    .copy(&game_over_texture, None, Some(rect!(cx, cy, w, h)))?;
+                    core.wincan
+                        .copy(&game_over_texture, None, Some(rect!(cx, cy, w, h)))?;
 
-                core.wincan.present();
+                    core.wincan.present();
+
+                    initial_pause = false;
+                }
 
                 ct += 1;
                 if ct == 120 {
@@ -354,6 +360,7 @@ impl Game for Runner {
                 // Landed on head, GAME OVER
                 if jump_ct == 0 && r_flip_spot != 0.0 {
                     game_over = true;
+                    initial_pause = true;
                     continue;
                 }
 
@@ -572,9 +579,9 @@ impl Game for Runner {
 
                 core.wincan
                     .copy(&score_texture, None, Some(rect!(10, 10, 100, 50)))?;
-            }
 
-            core.wincan.present();
+                core.wincan.present();
+            }
 
             // FPS Calculation
             // the time taken to display the last frame
