@@ -39,7 +39,7 @@ const FLIP_INCREMENT: f64 = 360.0 / 30.0;
 
 const LEVEL_LEN: u32 = CAM_W * 3;
 
-pub struct Demo;
+pub struct Runner;
 
 struct Player<'a> {
     pos: Rect,
@@ -100,9 +100,9 @@ fn ground_pos(x: i32) -> i32 {
     (CAM_H as i32) - res
 }
 
-impl Game for Demo {
+impl Game for Runner {
     fn init() -> Result<Self, String> {
-        Ok(Demo {})
+        Ok(Runner {})
     }
 
     fn run(&mut self, core: &mut SDLCore) -> Result<GameStatus, String> {

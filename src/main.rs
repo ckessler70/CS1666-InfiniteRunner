@@ -2,7 +2,7 @@
 // CS 1666 - Fall 2021
 // Infinite Runner
 mod credits;
-mod demo;
+mod runner;
 mod title;
 mod utils;
 // mod physics;
@@ -19,7 +19,7 @@ const CAM_H: u32 = 720;
 pub struct UrbanOdyssey {
     core: inf_runner::SDLCore,
     title: title::Title,
-    demo: demo::Demo,
+    runner: runner::Runner,
     credits: credits::Credits,
     /* physics?
      * procedural generation? */
@@ -66,7 +66,7 @@ fn main() {
                     print!("\tRunning...");
 
                     //GAME PLAY RUN
-                    match contents.demo.run(&mut (contents.core)) {
+                    match contents.runner.run(&mut (contents.core)) {
                         Err(e) => println!("\n\t\tEncountered error while running: {}", e),
                         Ok(game_status) => {
                             game_manager = game_status;
@@ -101,7 +101,7 @@ fn init() -> Result<UrbanOdyssey, String> {
     let core = inf_runner::SDLCore::init(TITLE, true, CAM_W, CAM_H)?;
 
     let title = title::Title::init()?;
-    let demo = demo::Demo::init()?;
+    let runner = runner::Runner::init()?;
     let credits = credits::Credits::init()?;
     // physics?
     // procedural generation?
@@ -109,7 +109,7 @@ fn init() -> Result<UrbanOdyssey, String> {
     Ok(UrbanOdyssey {
         core,
         title,
-        demo,
+        runner,
         credits,
     })
 }

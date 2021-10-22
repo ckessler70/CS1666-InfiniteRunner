@@ -215,9 +215,9 @@ impl Game for Credits {
                 i += 1;
                 if count <= MOVE_PER_FRAME + 1 {
                     count = MOVE_PER_FRAME + 1;
-                    count = self.credit_demo_text(core, &count, &team[index], &200, &hs[index])?;
+                    count = self.credit_text(core, &count, &team[index], &200, &hs[index])?;
                 } else {
-                    count = self.credit_demo_text(core, &count, &team[index], &200, &hs[index])?;
+                    count = self.credit_text(core, &count, &team[index], &200, &hs[index])?;
                     break;
                 }
             }
@@ -247,7 +247,7 @@ impl Game for Credits {
 }
 
 impl Credits {
-    fn credit_demo_text(
+    fn credit_text(
         &mut self,
         core: &mut SDLCore,
         count: &u32,
