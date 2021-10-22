@@ -6,12 +6,14 @@ use sdl2::render::Texture;
 
 pub struct ProceduralGen;
 
+#[allow(dead_code)]
 pub struct TerrainSegment<'a> {
     pos: Rect,
     // curve: Bezier Curve,
     texture: &'a Texture<'a>,
 }
 
+#[allow(dead_code)]
 impl<'a> TerrainSegment<'a> {
     pub fn new(pos: Rect, texture: &'a Texture<'a>) -> TerrainSegment {
         TerrainSegment { pos, texture }
@@ -47,6 +49,7 @@ impl<'a> TerrainSegment<'a> {
     }
 }
 
+#[allow(dead_code)]
 impl ProceduralGen {
     pub fn init_terrain<'a>(
         cam_w: i32,
@@ -60,9 +63,9 @@ impl ProceduralGen {
         prev_segment: &TerrainSegment,
         cam_w: i32,
         cam_h: i32,
-        is_pit: bool,
-        is_flat: bool,
-        is_cliff: bool,
+        _is_pit: bool,
+        _is_flat: bool,
+        _is_cliff: bool,
         texture: &'a Texture<'a>,
     ) -> TerrainSegment<'a> {
         //TODO
