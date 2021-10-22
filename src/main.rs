@@ -6,7 +6,7 @@ mod demo;
 mod title;
 mod utils;
 // mod physics;
-// mod proc_gen;
+mod proceduralgen;
 
 use inf_runner::Game;
 use inf_runner::GameStatus;

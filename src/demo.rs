@@ -1,3 +1,5 @@
+use crate::proceduralgen::ProceduralGen;
+use crate::proceduralgen::TerrainSegment;
 use crate::rect;
 
 use inf_runner::Game;
@@ -5,6 +7,7 @@ use inf_runner::GameStatus;
 use inf_runner::SDLCore;
 
 use std::collections::HashSet;
+use std::collections::LinkedList;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
@@ -14,8 +17,6 @@ use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::Texture;
-
-use std::collections::LinkedList; // For infinite terrain
 
 const FPS: f64 = 60.0;
 const FRAME_TIME: f64 = 1.0 / FPS as f64;
@@ -160,6 +161,13 @@ impl Game for Demo {
         let mut restart_state: bool = false;
         let mut main: bool = false;
         let mut credits: bool = true;
+
+        // Terrain Initialization
+        /*  Need to get rid of our fake slopes and hardcoded movement to actually use this
+        let init_terrain = ProceduralGen::init_terrain(CAM_W as i32, CAM_H as i32, &tex_terrain);
+        let mut terrain: LinkedList<TerrainSegment> = LinkedList::new();
+        terrain.push_back(init_terrain);
+        */
 
         'gameloop: loop {
             // FPS tracking
@@ -412,37 +420,68 @@ impl Game for Demo {
                     rect!(bg_offset + (CAM_W as i32), 0, CAM_W, CAM_H),
                 )?;
 
-                //Draw terrain on top of background
-                // core.wincan.copy(&tex_terrain, None, rect!(0, CAM_H*2/3, CAM_W, CAM_H/3))?;
-                let mut terrain: LinkedList<Rect> = LinkedList::new();
-                /*  With more complete procedural gen...
-                    new_terrain = gen_land(...);
-                    terrain.push_back(new_terrain);
+                /*** Terrain Section ***/
+                /* All this stuff commented out is the real deal,
+                   the hacky solution below is being preserved until we do some house cleaning
+                // Get horizontal adjustment for this step
+                // This implementation is temporary
+                let terrain_offset =
+                    (((scroll_offset % CAM_W as i32) / 10) as u32).clamp(0, CAM_H * 2);
+
+                for segment in terrain.iter_mut() { // Update all segment postitions
+                    segment.update_pos(bg_offset, terrain_offset as i32);
+                }
+
+                // Generate new segment if current tail is visible
+                if terrain.back().unwrap().x() <= CAM_W as i32 {
+                    let new_segment = ProceduralGen::gen_land(
+                        terrain.back().unwrap(),
+                        CAM_W as i32,
+                        CAM_H as i32,
+                        false,
+                        false,
+                        false,
+                        &tex_terrain,
+                    );
+                    terrain.push_back(new_segment);
+                }
+
+                // Delete head segment if invisible
+                if terrain.front().unwrap().x() + terrain.front().unwrap().w() <= 0 {
+                    terrain.pop_front();
+                }
                 */
                 // TEMP
                 let tex_terrain_offset =
                     (((scroll_offset % CAM_W as i32) / 10) as u32).clamp(0, CAM_H * 2);
-                let curr_terrain = rect!(
-                    bg_offset,
-                    (CAM_H * 2 / 3 - tex_terrain_offset).clamp(CAM_H / 2 + 15, CAM_H),
-                    CAM_W,
-                    CAM_H / 3
+                let mut terrain: LinkedList<TerrainSegment> = LinkedList::new();
+                let curr_terrain = TerrainSegment::new(
+                    rect!(
+                        bg_offset,
+                        (CAM_H * 2 / 3).clamp(CAM_H / 2 + 15, CAM_H),
+                        CAM_W,
+                        CAM_H / 3
+                    ),
+                    &tex_terrain,
                 );
-                let next_terrain = rect!(
-                    CAM_W as i32 + bg_offset,
-                    (CAM_H + 273 / 2 - (tex_terrain_offset + 273)).clamp(CAM_H * 2 / 3, CAM_H),
-                    CAM_W,
-                    CAM_H / 3
+                let next_terrain = TerrainSegment::new(
+                    rect!(
+                        CAM_W as i32 + bg_offset,
+                        (CAM_H + 273 / 2 - (tex_terrain_offset + 273)).clamp(CAM_H * 2 / 3, CAM_H),
+                        CAM_W,
+                        CAM_H / 3
+                    ),
+                    &tex_terrain,
                 );
                 terrain.push_back(curr_terrain);
                 terrain.push_back(next_terrain);
                 // END TEMP
 
                 for segment in terrain.iter() {
-                    core.wincan.copy(&tex_terrain, None, *segment)?;
+                    core.wincan
+                        .copy(&(segment.texture()), None, *segment.pos())?;
                 }
-                //core.wincan.copy(&tex_terrain, None, curr_terrain)?;
-                //core.wincan.copy(&tex_terrain, None, next_terrain)?;
+                /*** End Terrain Section ***/
 
                 //Draw sky in background
                 core.wincan
