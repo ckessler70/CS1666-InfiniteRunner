@@ -588,17 +588,6 @@ impl Game for Runner {
             let time_since_last_measurement = last_measurement_time.elapsed();
             // measure the FPS once every second
             if time_since_last_measurement > Duration::from_secs(1) {
-                // println!("Raw frame time: {:.8}", raw_frame_time);
-                // println!("Frame delay: {:.8}", delay);
-                // println!("Adjusted frame time: {:.8}", adjusted_frame_time);
-                // println!("Theoretical adjusted frame time: {:.8}", raw_frame_time + delay);
-                // println!("Raw FPS: {:.2}", 1.0 / raw_frame_time);
-                // println!("Adjusted FPS: {:.2}", 1.0 / adjusted_frame_time);
-                // println!("Theoretical adjusted FPS: {:.2}", 1.0 / (raw_frame_time + delay));
-                println!(
-                    "Average FPS: {:.2}",
-                    (all_frames as f64) / time_since_last_measurement.as_secs_f64()
-                );
                 all_frames = 0;
                 last_measurement_time = Instant::now();
             }

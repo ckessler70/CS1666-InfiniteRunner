@@ -76,6 +76,23 @@ impl ProceduralGen {
         texture: &'a Texture<'a>,
     ) -> TerrainSegment<'a> {
         //TODO
+
+        let mut rng = rand::thread_rng();
+
+        let flat_mod: f64 = 0.25;
+        let cliff_min_mod: f64 = 2.0;
+        let cliff_max_mod: f64 = 5.0;
+
+        let freq: f64 = 64.0;
+        let amp: f64 = if _is_flat {
+            rng.gen::<f64>() * flat_mod
+        } else if _is_cliff {
+            rng.gen::<f64>() * cliff_max_mod.clamp(cliff_min_mod, cliff_max_mod)
+        } else {
+            rng.gen::<f64>()
+        };
+        let perlin_noise: [[f64; 128]; 128] = gen_noise(freq, amp);
+
         //prev_point - Last point of the previouly generated bit of land
         //length - length of next batch of generated land
         //is_pit - binary tick, next batch of land will have a pit in it
@@ -93,42 +110,64 @@ impl ProceduralGen {
         )
     }
 
-    fn gen_noise() -> bool {
-        //TODO
-        //Perlin noise generation
-        false
-    }
+    pub fn test_mapper(&mut self) -> Result<(), String> {
+        let mut out = [[0.0; 128]; 128];
+        let mut random = [[0.0; 256]; 256];
 
-    fn gen_curve() -> bool {
-        //TODO
-        //Bezier curve
-        false
-    }
+        let mut rng = rand::thread_rng();
 
-    pub fn main_runner(&mut self) -> Result<(), String> {
-        let mut out = [[0; 32]; 160];
-
-        let amp1 = rand::thread_rng().gen::<f64>();
-        let amp2 = rand::thread_rng().gen::<f64>();
-        let amp3 = rand::thread_rng().gen::<f64>();
-        let amp4 = rand::thread_rng().gen::<f64>();
-
-        for i in 1..160 {
-            for j in 1..32 {
-                let cord = (i, j);
-
-                let n = noise(cord.0 as f64 * (1.0 / 300.0)) * amp1
-                    + noise(cord.0 as f64 * (1.0 / 150.0)) * amp2
-                    + noise(cord.0 as f64 * (1.0 / 75.0)) * amp3
-                    + noise(cord.0 as f64 * (1.0 / 37.5)) * amp4;
-                let y = 2.0 * (cord.1 as f64 / 32.0) - 1.0;
-
-                out[i][j] = if n > y { 1 } else { 0 };
+        for i in 0..255 {
+            for j in 0..255 {
+                random[i][j] = rng.gen::<f64>();
             }
         }
-        for i in 1..32 {
-            for j in 1..160 {
-                let print = if out[j][i] == 1 { '+' } else { '.' };
+
+        let freq = 64.0;
+        let amp = 1.0;
+
+        for i in 0..(out.len() - 1) {
+            for j in 0..(out.len() - 1) {
+                let cord = (i, j);
+
+                let n = noise(&random, (cord.0 as f64 / 64.0, cord.1 as f64 / (freq))) * (amp)
+                    + noise(
+                        &random,
+                        (cord.0 as f64 / 32.0, cord.1 as f64 / (freq / 2.0)),
+                    ) * (amp / 2.0)
+                    + noise(
+                        &random,
+                        (cord.0 as f64 / 16.0, cord.1 as f64 / (freq / 4.0)),
+                    ) * (amp / 4.0)
+                    + noise(&random, (cord.0 as f64 / 8.0, cord.1 as f64 / (freq / 8.0)))
+                        * (amp / 8.0);
+                let color = n * 0.5 + 0.5;
+
+                out[i][j] = color;
+            }
+        }
+        for i in 0..(out.len() - 1) {
+            for j in 0..(out.len() - 1) {
+                let print = if out[j][i] / 0.1 < 1.0 {
+                    ' '
+                } else if out[i][j] / 0.1 < 2.0 {
+                    '.'
+                } else if out[i][j] / 0.1 < 3.0 {
+                    ','
+                } else if out[i][j] / 0.1 < 4.0 {
+                    '-'
+                } else if out[i][j] / 0.1 < 5.0 {
+                    '|'
+                } else if out[i][j] / 0.1 < 6.0 {
+                    '"'
+                } else if out[i][j] / 0.1 < 7.0 {
+                    '='
+                } else if out[i][j] / 0.1 < 8.0 {
+                    '+'
+                } else if out[i][j] / 0.1 < 9.0 {
+                    'o'
+                } else {
+                    'O'
+                };
                 print!("{}", print);
             }
             println!("");
@@ -137,30 +176,87 @@ impl ProceduralGen {
     }
 }
 
-pub fn fade(t: f64) -> f64 {
+// Test function used freq = 64.0 and amp = 1.0
+fn gen_noise(freq: f64, amp: f64) -> [[f64; 128]; 128] {
+    let mut out = [[0.0; 128]; 128];
+    let mut random = [[0.0; 256]; 256];
+
+    let mut rng = rand::thread_rng();
+
+    for i in 0..255 {
+        for j in 0..255 {
+            random[i][j] = rng.gen::<f64>();
+        }
+    }
+
+    for i in 0..(out.len() - 1) {
+        for j in 0..(out.len() - 1) {
+            let cord = (i, j);
+
+            let n = noise(&random, (cord.0 as f64 / 64.0, cord.1 as f64 / (freq))) * (amp)
+                + noise(
+                    &random,
+                    (cord.0 as f64 / 32.0, cord.1 as f64 / (freq / 2.0)),
+                ) * (amp / 2.0)
+                + noise(
+                    &random,
+                    (cord.0 as f64 / 16.0, cord.1 as f64 / (freq / 4.0)),
+                ) * (amp / 4.0)
+                + noise(&random, (cord.0 as f64 / 8.0, cord.1 as f64 / (freq / 8.0))) * (amp / 8.0);
+            let color = n * 0.5 + 0.5;
+
+            out[i][j] = color;
+        }
+    }
+    return out;
+}
+
+fn gen_curve() -> bool {
+    //TODO
+    //Bezier curve
+    false
+}
+
+fn fade(t: f64) -> f64 {
     return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
 }
 
-pub fn grad(p: f64) -> f64 {
-    let mut random = [0.0; 256];
-    for mut i in random {
-        i = rand::thread_rng().gen();
-    }
-    let v = random[p.floor() as usize];
-
-    return if v > 0.5 { 1.0 } else { -1.0 };
+fn grad(random: &[[f64; 256]; 256], p: (f64, f64)) -> (f64, f64) {
+    let v = (
+        random[(p.0 / 256.0) as usize][0],
+        random[0][(p.1 / 256.0) as usize],
+    );
+    let n = (v.0 * 2.0 - 1.0, v.1 * 2.0 - 1.0);
+    let normalize = (v.0 * v.0 + v.1 * v.1).sqrt();
+    return (n.0 / normalize, n.1 / normalize);
 }
 
-pub fn noise(p: f64) -> f64 {
-    let p0 = p.floor();
-    let p1 = p0 + 1.0;
+fn noise(random: &[[f64; 256]; 256], p: (f64, f64)) -> f64 {
+    let p0 = (p.0.floor(), p.1.floor());
+    let p1 = (p0.0 + 1.0, p0.1);
+    let p2 = (p0.0, p0.1 + 1.0);
+    let p3 = (p0.0 + 1.0, p0.1 + 1.0);
 
-    let t = p - p0;
-    let fade_t = fade(t);
+    let g0 = grad(&random, p0);
+    let g1 = grad(&random, p1);
+    let g2 = grad(&random, p2);
+    let g3 = grad(&random, p3);
 
-    let g0 = grad(p0);
+    let t0 = p.0 - p0.0;
+    let fade_t0 = fade(t0);
 
-    let g1 = grad(p1);
+    let t1 = p.1 - p0.1;
+    let fade_t1 = fade(t1);
 
-    return ((1.0 - fade_t) * g0 * (p - p0) + fade_t * g1 * (p - p1));
+    let p_minus_p0 = (p.0 - p0.0, p.1 - p0.1);
+    let p_minus_p1 = (p.0 - p1.0, p.1 - p1.1);
+    let p_minus_p2 = (p.0 - p2.0, p.1 - p2.1);
+    let p_minus_p3 = (p.0 - p3.0, p.1 - p3.1);
+
+    let p0p1 = (1.0 - fade_t0) * (g0.0 * p_minus_p0.0 + g0.1 * p_minus_p0.1)
+        + fade_t0 * (g1.0 * p_minus_p1.0 + g1.1 * p_minus_p1.1);
+    let p2p3 = (1.0 - fade_t0) * (g2.0 * p_minus_p2.0 + g2.1 * p_minus_p2.1)
+        + fade_t0 * (g3.0 * p_minus_p3.0 + g3.1 * p_minus_p3.1);
+
+    return (1.0 - fade_t1) * p0p1 + fade_t1 * p2p3;
 }

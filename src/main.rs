@@ -89,7 +89,7 @@ fn main() {
                         println!("\tRunning...");
 
                         // CREDITS RUN
-                        match contents.proceduralgen.main_runner() {
+                        match contents.proceduralgen.test_mapper() {
                             Err(e) => {
                                 println!("\n\t\tEncountered error while running: {}", e)
                             }
