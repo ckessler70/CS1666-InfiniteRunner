@@ -1,5 +1,6 @@
 use crate::rect;
 use inf_runner::Game;
+use inf_runner::GameState;
 use inf_runner::GameStatus;
 use inf_runner::SDLCore;
 
@@ -47,11 +48,10 @@ impl Game for Credits {
         Ok(Credits {})
     }
 
-    fn run(&mut self, core: &mut SDLCore) -> Result<GameStatus, String> {
+    fn run(&mut self, core: &mut SDLCore) -> Result<GameState, String> {
         let mut count = CAM_H;
 
-        /******************************** TEXTURES AND HEADSHOTS
-         * ************************** */
+        /********************* TEXTURES AND HEADSHOTS ******************/
 
         let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
 
@@ -186,11 +186,10 @@ impl Game for Credits {
             michael_hs,
         ];
 
-        /***************************************************************************
-         * ******* */
+        /********************************************************************/
 
         let mut index = 0;
-        let mut restart_state = false;
+        let mut next_status = GameStatus::Main;
 
         'gameloop: loop {
             for event in core.event_pump.poll_iter() {
@@ -204,7 +203,7 @@ impl Game for Credits {
                         keycode: Some(Keycode::R),
                         ..
                     } => {
-                        restart_state = true;
+                        next_status = GameStatus::Game;
                         break 'gameloop;
                     }
                     _ => {}
@@ -232,15 +231,8 @@ impl Game for Credits {
             }
         }
 
-        let mut main: bool = true;
-        if restart_state {
-            main = false;
-        }
-
-        Ok(GameStatus {
-            main: main,
-            game: restart_state,
-            credits: false,
+        Ok(GameState {
+            status: Some(next_status),
             score: 0,
         })
     }

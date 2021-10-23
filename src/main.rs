@@ -9,6 +9,7 @@ mod utils;
 mod proceduralgen;
 
 use inf_runner::Game;
+use inf_runner::GameState;
 use inf_runner::GameStatus;
 
 const TITLE: &str = "Urban Odyssey";
@@ -41,57 +42,60 @@ fn main() {
             // segments switch      back and forth between each other, but this
             // is just a starting point]
 
-            let mut game_manager = GameStatus {
-                main: true,
-                game: false,
-                credits: false,
+            let mut game_manager = GameState {
+                status: Some(GameStatus::Main),
                 score: 0,
             };
 
             loop {
-                if game_manager.main {
-                    println!("\nRunning Title Sequence:");
-                    print!("\tRunning...");
+                match game_manager.status {
+                    Some(GameStatus::Main) => {
+                        println!("\nRunning Title Sequence:");
+                        print!("\tRunning...");
 
-                    // TITLE SCREEN RUN
-                    match contents.title.run(&mut (contents.core)) {
-                        Err(e) => println!("\n\t\tEncountered error while running: {}", e),
-                        Ok(title_status) => {
-                            game_manager = title_status;
-                            println!("DONE\nExiting cleanly");
-                        }
-                    };
-                } else if game_manager.game {
-                    println!("\nRunning Game Sequence:");
-                    print!("\tRunning...");
+                        // TITLE SCREEN RUN
+                        match contents.title.run(&mut (contents.core)) {
+                            Err(e) => println!("\n\t\tEncountered error while running: {}", e),
+                            Ok(title_status) => {
+                                game_manager = title_status;
+                                println!("DONE\nExiting cleanly");
+                            }
+                        };
+                    }
+                    Some(GameStatus::Game) => {
+                        println!("\nRunning Game Sequence:");
+                        print!("\tRunning...");
 
-                    //GAME PLAY RUN
-                    match contents.runner.run(&mut (contents.core)) {
-                        Err(e) => println!("\n\t\tEncountered error while running: {}", e),
-                        Ok(game_status) => {
-                            game_manager = game_status;
-                            println!("DONE\nExiting cleanly");
-                        }
-                    };
-                } else if game_manager.credits {
-                    println!("\nRunning Credits Sequence:");
-                    print!("\tRunning...");
+                        //GAME PLAY RUN
+                        match contents.runner.run(&mut (contents.core)) {
+                            Err(e) => println!("\n\t\tEncountered error while running: {}", e),
+                            Ok(game_status) => {
+                                game_manager = game_status;
+                                println!("DONE\nExiting cleanly");
+                            }
+                        };
+                    }
+                    Some(GameStatus::Credits) => {
+                        println!("\nRunning Credits Sequence:");
+                        print!("\tRunning...");
 
-                    // CREDITS RUN
+                        // CREDITS RUN
 
-                    // Ownership is tough ... maybe there's a smarter way to do this
-                    // using smart pointers, but for now, looks like we'll be passing
-                    // around the SDLCore to each segment manually.
-                    match contents.credits.run(&mut (contents.core)) {
-                        Err(e) => println!("\n\t\tEncountered error while running: {}", e),
-                        Ok(credits_status) => {
-                            game_manager = credits_status;
-                            println!("DONE\nExiting cleanly");
-                        }
-                    };
-                } else {
-                    break;
-                }
+                        // Ownership is tough ... maybe there's a smarter way to do this
+                        // using smart pointers, but for now, looks like we'll be passing
+                        // around the SDLCore to each segment manually.
+                        match contents.credits.run(&mut (contents.core)) {
+                            Err(e) => println!("\n\t\tEncountered error while running: {}", e),
+                            Ok(credits_status) => {
+                                game_manager = credits_status;
+                                println!("DONE\nExiting cleanly");
+                            }
+                        };
+                    }
+                    None => {
+                        break;
+                    }
+                };
             }
         }
     };

@@ -13,11 +13,15 @@ pub struct SDLCore {
     pub cam: Rect,
 }
 
+pub enum GameStatus {
+    Main,
+    Game,
+    Credits,
+}
+
 #[allow(dead_code)]
-pub struct GameStatus {
-    pub main: bool,
-    pub game: bool,
-    pub credits: bool,
+pub struct GameState {
+    pub status: Option<GameStatus>,
     pub score: i32,
 }
 
@@ -59,5 +63,5 @@ pub trait Game {
     fn init() -> Result<Self, String>
     where
         Self: Sized;
-    fn run(&mut self, core: &mut SDLCore) -> Result<GameStatus, String>;
+    fn run(&mut self, core: &mut SDLCore) -> Result<GameState, String>;
 }

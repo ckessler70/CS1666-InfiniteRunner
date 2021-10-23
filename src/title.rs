@@ -1,6 +1,7 @@
 use crate::rect;
 
 use inf_runner::Game;
+use inf_runner::GameState;
 use inf_runner::GameStatus;
 use inf_runner::SDLCore;
 
@@ -20,7 +21,7 @@ impl Game for Title {
         Ok(Title {})
     }
 
-    fn run(&mut self, core: &mut SDLCore) -> Result<GameStatus, String> {
+    fn run(&mut self, core: &mut SDLCore) -> Result<GameState, String> {
         core.wincan.set_blend_mode(sdl2::render::BlendMode::Blend);
 
         let texture_creator = core.wincan.texture_creator();
@@ -102,8 +103,7 @@ impl Game for Title {
 
         core.wincan.present();
 
-        let mut game: bool = false;
-        let mut credits: bool = false;
+        let mut next_status = Some(GameStatus::Main);
 
         'gameloop: loop {
             for event in core.event_pump.poll_iter() {
@@ -112,18 +112,19 @@ impl Game for Title {
                     | Event::KeyDown {
                         keycode: Some(Keycode::Escape | Keycode::Q),
                         ..
-                    } => break 'gameloop,
+                    } => {
+                        next_status = None;
+                        break 'gameloop;
+                    }
                     Event::KeyDown {
                         keycode: Some(k), ..
                     } => match k {
                         Keycode::P | Keycode::Space => {
-                            game = true;
-                            credits = false;
+                            next_status = Some(GameStatus::Game);
                             break 'gameloop;
                         }
                         Keycode::C => {
-                            game = false;
-                            credits = true;
+                            next_status = Some(GameStatus::Credits);
                             break 'gameloop;
                         }
                         _ => {}
@@ -134,10 +135,8 @@ impl Game for Title {
         }
 
         // Out of game loop, return Ok
-        Ok(GameStatus {
-            main: false,
-            game: game,
-            credits: credits,
+        Ok(GameState {
+            status: next_status,
             score: 0,
         })
     }

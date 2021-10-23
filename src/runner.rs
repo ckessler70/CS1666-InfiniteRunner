@@ -3,6 +3,7 @@ use crate::proceduralgen::TerrainSegment;
 use crate::rect;
 
 use inf_runner::Game;
+use inf_runner::GameState;
 use inf_runner::GameStatus;
 use inf_runner::SDLCore;
 
@@ -118,7 +119,7 @@ impl Game for Runner {
         Ok(Runner {})
     }
 
-    fn run(&mut self, core: &mut SDLCore) -> Result<GameStatus, String> {
+    fn run(&mut self, core: &mut SDLCore) -> Result<GameState, String> {
         // ???
         core.wincan.set_blend_mode(sdl2::render::BlendMode::Blend);
 
@@ -176,6 +177,7 @@ impl Game for Runner {
         let mut restart_state: bool = false;
         let mut main: bool = false;
         let mut credits: bool = true;
+        let mut next_status = GameStatus::Main;
 
         // Terrain Initialization
         let init_terrain = ProceduralGen::init_terrain(CAM_W as i32, CAM_H as i32, &tex_terrain);
@@ -201,6 +203,7 @@ impl Game for Runner {
                             main = false;
                             restart_state = false;
                             credits = true;
+                            next_status = GameStatus::Credits;
                             break 'gameloop;
                         }
                         Event::KeyDown {
@@ -213,12 +216,14 @@ impl Game for Runner {
                                 main = false;
                                 restart_state = true;
                                 credits = false;
+                                next_status = GameStatus::Game;
                                 break 'gameloop;
                             }
                             Keycode::M => {
                                 main = true;
                                 restart_state = false;
                                 credits = false;
+                                next_status = GameStatus::Main;
                                 break 'gameloop;
                             }
                             _ => {}
@@ -611,10 +616,8 @@ impl Game for Runner {
         }
 
         // Out of game loop, return Ok
-        Ok(GameStatus {
-            main: main,
-            game: restart_state,
-            credits: credits,
+        Ok(GameState {
+            status: Some(next_status),
             score: score,
         })
     }
