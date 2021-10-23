@@ -82,7 +82,7 @@ impl ProceduralGen {
         let cliff_min_mod: f64 = 2.0;
         let cliff_max_mod: f64 = 5.0;
 
-        let freq: f64 = 64.0;
+        let freq = rng.gen::<f64>() * 256.0 + 32.0;
         let amp: f64 = if _is_flat {
             rng.gen::<f64>() * flat_mod
         } else if _is_cliff {
@@ -131,18 +131,18 @@ impl ProceduralGen {
 
     pub fn test_mapper(&mut self) -> Result<(), String> {
         let mut out = [[0.0; 128]; 128];
-        let mut random = [[0.0; 256]; 256];
+        let mut random = [[0.0; 64]; 64];
 
         let mut rng = rand::thread_rng();
 
-        for i in 0..255 {
-            for j in 0..255 {
+        for i in 0..64 {
+            for j in 0..64 {
                 random[i][j] = rng.gen::<f64>();
             }
         }
 
-        let freq = 64.0;
-        let amp = 1.0;
+        let freq = rng.gen::<f64>() * 256.0 + 32.0;
+        let amp = rng.gen::<f64>();
 
         for i in 0..(out.len() - 1) {
             for j in 0..(out.len() - 1) {
@@ -198,12 +198,12 @@ impl ProceduralGen {
 // Test function used freq = 64.0 and amp = 1.0
 fn gen_perlin_noise(freq: f64, amp: f64) -> [[f64; 128]; 128] {
     let mut out = [[0.0; 128]; 128];
-    let mut random = [[0.0; 256]; 256];
+    let mut random = [[0.0; 64]; 64];
 
     let mut rng = rand::thread_rng();
 
-    for i in 0..255 {
-        for j in 0..255 {
+    for i in 0..64 {
+        for j in 0..64 {
             random[i][j] = rng.gen::<f64>();
         }
     }
@@ -231,12 +231,12 @@ fn gen_perlin_noise(freq: f64, amp: f64) -> [[f64; 128]; 128] {
 }
 
 fn gen_point_mod(cord: (i32, i32), freq: f64, amp: f64) -> f64 {
-    let mut random = [[0.0; 256]; 256];
+    let mut random = [[0.0; 64]; 64];
 
     let mut rng = rand::thread_rng();
 
-    for i in 0..255 {
-        for j in 0..255 {
+    for i in 0..64 {
+        for j in 0..64 {
             random[i][j] = rng.gen::<f64>();
         }
     }
@@ -261,10 +261,10 @@ fn fade(t: f64) -> f64 {
 }
 
 //Perlin Noise helper function
-fn grad(random: &[[f64; 256]; 256], p: (f64, f64)) -> (f64, f64) {
+fn grad(random: &[[f64; 64]; 64], p: (f64, f64)) -> (f64, f64) {
     let v = (
-        random[(p.0 / 256.0) as usize][0],
-        random[0][(p.1 / 256.0) as usize],
+        random[(p.0 / random.len() as f64) as usize][0],
+        random[0][(p.1 / random.len() as f64) as usize],
     );
     let n = (v.0 * 2.0 - 1.0, v.1 * 2.0 - 1.0);
     let normalize = (v.0 * v.0 + v.1 * v.1).sqrt();
@@ -272,7 +272,7 @@ fn grad(random: &[[f64; 256]; 256], p: (f64, f64)) -> (f64, f64) {
 }
 
 //Perlin Noise helper function
-fn noise(random: &[[f64; 256]; 256], p: (f64, f64)) -> f64 {
+fn noise(random: &[[f64; 64]; 64], p: (f64, f64)) -> f64 {
     let p0 = (p.0.floor(), p.1.floor());
     let p1 = (p0.0 + 1.0, p0.1);
     let p2 = (p0.0, p0.1 + 1.0);
