@@ -22,6 +22,7 @@ pub struct UrbanOdyssey {
     title: title::Title,
     runner: runner::Runner,
     credits: credits::Credits,
+    proceduralgen: proceduralgen::ProceduralGen,
     /* physics?
      * procedural generation? */
 }
@@ -83,6 +84,24 @@ fn main() {
                             }
                         };
                     }
+                    Some(GameStatus::Test) => {
+                        println!("\nRunning Test Sequence:");
+                        println!("\tRunning...");
+
+                        // CREDITS RUN
+                        match contents.proceduralgen.main_runner() {
+                            Err(e) => {
+                                println!("\n\t\tEncountered error while running: {}", e)
+                            }
+                            Ok(_) => {
+                                game_manager = GameState {
+                                    status: Some(GameStatus::Main),
+                                    score: 0,
+                                };
+                                println!("DONE\nExiting cleanly");
+                            }
+                        };
+                    }
                     None => {
                         break;
                     }
@@ -99,6 +118,7 @@ fn init() -> Result<UrbanOdyssey, String> {
     let runner = runner::Runner::init()?;
     let credits = credits::Credits::init()?;
     // physics?
+    let proceduralgen = proceduralgen::ProceduralGen::init()?;
     // procedural generation?
 
     Ok(UrbanOdyssey {
@@ -106,5 +126,6 @@ fn init() -> Result<UrbanOdyssey, String> {
         title,
         runner,
         credits,
+        proceduralgen,
     })
 }

@@ -17,6 +17,7 @@ pub enum GameStatus {
     Main,
     Game,
     Credits,
+    Test,
 }
 
 #[allow(dead_code)]

@@ -127,6 +127,10 @@ impl Game for Title {
                             next_status = Some(GameStatus::Credits);
                             break 'gameloop;
                         }
+                        Keycode::T => {
+                            next_status = Some(GameStatus::Test);
+                            break 'gameloop;
+                        }
                         _ => {}
                     },
                     _ => {}
