@@ -1,7 +1,6 @@
 use crate::rect;
 // use crate::Physics;
 
-use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::Texture;
 
@@ -92,6 +91,13 @@ impl ProceduralGen {
             rng.gen::<f64>()
         };
         let perlin_noise: [[f64; 128]; 128] = gen_noise(freq, amp);
+
+        // As mod is closer to 1, it should be higher. As it is closer to 0, it should be lower
+        let point_mod: f64 = perlin_noise
+            [((rng.gen::<f64>() * (perlin_noise.len() - 1) as f64).floor()) as usize]
+            [((rng.gen::<f64>() * (perlin_noise.len() - 1) as f64).floor()) as usize];
+
+        let _curve = gen_curve(point_mod);
 
         //prev_point - Last point of the previouly generated bit of land
         //length - length of next batch of generated land
@@ -211,16 +217,12 @@ fn gen_noise(freq: f64, amp: f64) -> [[f64; 128]; 128] {
     return out;
 }
 
-fn gen_curve() -> bool {
-    //TODO
-    //Bezier curve
-    false
-}
-
+//Perlin Noise helper function
 fn fade(t: f64) -> f64 {
     return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
 }
 
+//Perlin Noise helper function
 fn grad(random: &[[f64; 256]; 256], p: (f64, f64)) -> (f64, f64) {
     let v = (
         random[(p.0 / 256.0) as usize][0],
@@ -231,6 +233,7 @@ fn grad(random: &[[f64; 256]; 256], p: (f64, f64)) -> (f64, f64) {
     return (n.0 / normalize, n.1 / normalize);
 }
 
+//Perlin Noise helper function
 fn noise(random: &[[f64; 256]; 256], p: (f64, f64)) -> f64 {
     let p0 = (p.0.floor(), p.1.floor());
     let p1 = (p0.0 + 1.0, p0.1);
@@ -259,4 +262,10 @@ fn noise(random: &[[f64; 256]; 256], p: (f64, f64)) -> f64 {
         + fade_t0 * (g3.0 * p_minus_p3.0 + g3.1 * p_minus_p3.1);
 
     return (1.0 - fade_t1) * p0p1 + fade_t1 * p2p3;
+}
+
+fn gen_curve(point_mod: f64) -> bool {
+    //TODO
+    //Bezier curve
+    false
 }
