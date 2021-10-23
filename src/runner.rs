@@ -1,3 +1,4 @@
+// use crate::physics::Player;
 use crate::proceduralgen::ProceduralGen;
 use crate::proceduralgen::TerrainSegment;
 use crate::rect;
@@ -40,7 +41,7 @@ const SPEED_LIMIT: i32 = 5;
 // Roughly anything larger than 30 will not complete flip in jump's time
 const FLIP_INCREMENT: f64 = 360.0 / 30.0;
 
-const LEVEL_LEN: u32 = CAM_W * 3;
+// const LEVEL_LEN: u32 = CAM_W * 3;
 
 pub struct Runner;
 
@@ -91,19 +92,19 @@ impl<'a> Player<'a> {
 }
 
 // What is this?
-fn resist(vel: i32, deltav: i32) -> i32 {
-    if deltav == 0 {
-        if vel > 0 {
-            -1
-        } else if vel < 0 {
-            1
-        } else {
-            deltav
-        }
-    } else {
-        deltav
-    }
-}
+// fn resist(vel: i32, deltav: i32) -> i32 {
+//     if deltav == 0 {
+//         if vel > 0 {
+//             -1
+//         } else if vel < 0 {
+//             1
+//         } else {
+//             deltav
+//         }
+//     } else {
+//         deltav
+//     }
+// }
 
 /*
 // y = -0.05x + 100
@@ -174,9 +175,6 @@ impl Game for Runner {
         let mut game_over: bool = false;
         let mut ct: i32 = 0;
 
-        let mut restart_state: bool = false;
-        let mut main: bool = false;
-        let mut credits: bool = true;
         let mut next_status = GameStatus::Main;
 
         // Terrain Initialization
@@ -200,9 +198,6 @@ impl Game for Runner {
                             keycode: Some(Keycode::Q),
                             ..
                         } => {
-                            main = false;
-                            restart_state = false;
-                            credits = true;
                             next_status = GameStatus::Credits;
                             break 'gameloop;
                         }
@@ -213,16 +208,10 @@ impl Game for Runner {
                                 game_paused = false;
                             }
                             Keycode::R => {
-                                main = false;
-                                restart_state = true;
-                                credits = false;
                                 next_status = GameStatus::Game;
                                 break 'gameloop;
                             }
                             Keycode::M => {
-                                main = true;
-                                restart_state = false;
-                                credits = false;
                                 next_status = GameStatus::Main;
                                 break 'gameloop;
                             }

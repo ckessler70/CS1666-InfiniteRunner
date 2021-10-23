@@ -2,11 +2,11 @@
 // CS 1666 - Fall 2021
 // Infinite Runner
 mod credits;
+mod physics;
+mod proceduralgen;
 mod runner;
 mod title;
 mod utils;
-// mod physics;
-mod proceduralgen;
 
 use inf_runner::Game;
 use inf_runner::GameState;
@@ -36,11 +36,6 @@ fn main() {
         Err(e) => println!("\n\t\tFailed to init: {}", e),
         Ok(mut contents) => {
             println!("DONE");
-
-            // Run all segments one-by-one using contents.segment.run(&mut (contents.core),
-            // ...)      [Perhaps this will make less sense in the future if the
-            // segments switch      back and forth between each other, but this
-            // is just a starting point]
 
             let mut game_manager = GameState {
                 status: Some(GameStatus::Main),
@@ -80,10 +75,6 @@ fn main() {
                         print!("\tRunning...");
 
                         // CREDITS RUN
-
-                        // Ownership is tough ... maybe there's a smarter way to do this
-                        // using smart pointers, but for now, looks like we'll be passing
-                        // around the SDLCore to each segment manually.
                         match contents.credits.run(&mut (contents.core)) {
                             Err(e) => println!("\n\t\tEncountered error while running: {}", e),
                             Ok(credits_status) => {
