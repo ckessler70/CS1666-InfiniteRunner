@@ -90,14 +90,27 @@ impl ProceduralGen {
         } else {
             rng.gen::<f64>()
         };
-        let perlin_noise: [[f64; 128]; 128] = gen_noise(freq, amp);
 
-        // As mod is closer to 1, it should be higher. As it is closer to 0, it should be lower
-        let point_mod: f64 = perlin_noise
-            [((rng.gen::<f64>() * (perlin_noise.len() - 1) as f64).floor()) as usize]
-            [((rng.gen::<f64>() * (perlin_noise.len() - 1) as f64).floor()) as usize];
+        // //Generates perlin noise map each terrain
+        // let perlin_noise: [[f64; 128]; 128] = gen_perlin_noise(freq, amp);
 
-        let _curve = gen_curve(point_mod);
+        // // As mod is closer to 1, it should be higher. As it is closer to 0, it should be lower
+        // let point_mod: f64 = perlin_noise
+        //     [((rng.gen::<f64>() * (perlin_noise.len() - 1) as f64).floor()) as usize]
+        //     [((rng.gen::<f64>() * (perlin_noise.len() - 1) as f64).floor()) as usize];
+
+        // Generates perlin noise for random point instead of whole map
+        let map_size = 128;
+        let point_mod: f64 = gen_point_mod(
+            (
+                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
+                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
+            ),
+            freq,
+            amp,
+        );
+
+        let _curve = gen_bezier_curve(point_mod);
 
         //prev_point - Last point of the previouly generated bit of land
         //length - length of next batch of generated land
@@ -146,9 +159,9 @@ impl ProceduralGen {
                     ) * (amp / 4.0)
                     + noise(&random, (cord.0 as f64 / 8.0, cord.1 as f64 / (freq / 8.0)))
                         * (amp / 8.0);
-                let color = n * 0.5 + 0.5;
+                let modifier = n * 0.5 + 0.5;
 
-                out[i][j] = color;
+                out[i][j] = modifier;
             }
         }
         for i in 0..(out.len() - 1) {
@@ -183,7 +196,7 @@ impl ProceduralGen {
 }
 
 // Test function used freq = 64.0 and amp = 1.0
-fn gen_noise(freq: f64, amp: f64) -> [[f64; 128]; 128] {
+fn gen_perlin_noise(freq: f64, amp: f64) -> [[f64; 128]; 128] {
     let mut out = [[0.0; 128]; 128];
     let mut random = [[0.0; 256]; 256];
 
@@ -209,12 +222,37 @@ fn gen_noise(freq: f64, amp: f64) -> [[f64; 128]; 128] {
                     (cord.0 as f64 / 16.0, cord.1 as f64 / (freq / 4.0)),
                 ) * (amp / 4.0)
                 + noise(&random, (cord.0 as f64 / 8.0, cord.1 as f64 / (freq / 8.0))) * (amp / 8.0);
-            let color = n * 0.5 + 0.5;
+            let modifier = n * 0.5 + 0.5;
 
-            out[i][j] = color;
+            out[i][j] = modifier;
         }
     }
     return out;
+}
+
+fn gen_point_mod(cord: (i32, i32), freq: f64, amp: f64) -> f64 {
+    let mut random = [[0.0; 256]; 256];
+
+    let mut rng = rand::thread_rng();
+
+    for i in 0..255 {
+        for j in 0..255 {
+            random[i][j] = rng.gen::<f64>();
+        }
+    }
+
+    let n = noise(&random, (cord.0 as f64 / 64.0, cord.1 as f64 / (freq))) * (amp)
+        + noise(
+            &random,
+            (cord.0 as f64 / 32.0, cord.1 as f64 / (freq / 2.0)),
+        ) * (amp / 2.0)
+        + noise(
+            &random,
+            (cord.0 as f64 / 16.0, cord.1 as f64 / (freq / 4.0)),
+        ) * (amp / 4.0)
+        + noise(&random, (cord.0 as f64 / 8.0, cord.1 as f64 / (freq / 8.0))) * (amp / 8.0);
+    let modifier = n * 0.5 + 0.5;
+    return modifier;
 }
 
 //Perlin Noise helper function
@@ -264,7 +302,7 @@ fn noise(random: &[[f64; 256]; 256], p: (f64, f64)) -> f64 {
     return (1.0 - fade_t1) * p0p1 + fade_t1 * p2p3;
 }
 
-fn gen_curve(point_mod: f64) -> bool {
+fn gen_bezier_curve(point_mod: f64) -> bool {
     //TODO
     //Bezier curve
     false
