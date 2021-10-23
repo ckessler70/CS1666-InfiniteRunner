@@ -235,19 +235,19 @@ impl<'a> Dynamic<'a> for Player<'a> {
     }
 
     fn accel_x(&self) -> i32 {
-        self.accel_x()
+        self.accel[0]
     }
 
     fn accel_y(&self) -> i32 {
-        self.accel_y()
-    }
-
-    fn alpha(&self) -> f64 {
-        self.alpha()
+        self.accel[1]
     }
 
     fn omega(&self) -> f64 {
-        self.omega()
+        self.omega
+    }
+
+    fn alpha(&self) -> f64 {
+        self.alpha
     }
 
     fn update_vel(&mut self) {

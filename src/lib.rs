@@ -1,14 +1,28 @@
 // File for important content used across entire project
 
+extern crate float_cmp;
 extern crate sdl2;
 
 use sdl2::rect::Rect;
 
 pub struct SDLCore {
+    #[allow(dead_code)]
     sdl_cxt: sdl2::Sdl,
     pub wincan: sdl2::render::WindowCanvas,
     pub event_pump: sdl2::EventPump,
     pub cam: Rect,
+}
+
+pub enum GameStatus {
+    Main,
+    Game,
+    Credits,
+}
+
+#[allow(dead_code)]
+pub struct GameState {
+    pub status: Option<GameStatus>,
+    pub score: i32,
 }
 
 impl SDLCore {
@@ -49,5 +63,5 @@ pub trait Game {
     fn init() -> Result<Self, String>
     where
         Self: Sized;
-    fn run(&mut self, core: &mut SDLCore) -> Result<(), String>;
+    fn run(&mut self, core: &mut SDLCore) -> Result<GameState, String>;
 }

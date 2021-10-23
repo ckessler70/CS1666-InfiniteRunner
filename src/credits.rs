@@ -1,5 +1,7 @@
 use crate::rect;
 use inf_runner::Game;
+use inf_runner::GameState;
+use inf_runner::GameStatus;
 use inf_runner::SDLCore;
 
 use sdl2::event::Event;
@@ -46,10 +48,10 @@ impl Game for Credits {
         Ok(Credits {})
     }
 
-    fn run(&mut self, core: &mut SDLCore) -> Result<(), String> {
+    fn run(&mut self, core: &mut SDLCore) -> Result<GameState, String> {
         let mut count = CAM_H;
 
-        /******************************** TEXTURES AND HEADSHOTS ***************************/
+        /********************* TEXTURES AND HEADSHOTS ******************/
 
         let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
 
@@ -184,18 +186,26 @@ impl Game for Credits {
             michael_hs,
         ];
 
-        /***********************************************************************************/
+        /********************************************************************/
 
         let mut index = 0;
+        let mut next_status = GameStatus::Main;
 
         'gameloop: loop {
             for event in core.event_pump.poll_iter() {
                 match event {
                     Event::Quit { .. }
                     | Event::KeyDown {
-                        keycode: Some(Keycode::Escape),
+                        keycode: Some(Keycode::Escape | Keycode::Q),
                         ..
                     } => break 'gameloop,
+                    Event::KeyDown {
+                        keycode: Some(Keycode::R),
+                        ..
+                    } => {
+                        next_status = GameStatus::Game;
+                        break 'gameloop;
+                    }
                     _ => {}
                 }
             }
@@ -204,9 +214,9 @@ impl Game for Credits {
                 i += 1;
                 if count <= MOVE_PER_FRAME + 1 {
                     count = MOVE_PER_FRAME + 1;
-                    count = self.credit_demo_text(core, &count, &team[index], &200, &hs[index])?;
+                    count = self.credit_text(core, &count, &team[index], &200, &hs[index])?;
                 } else {
-                    count = self.credit_demo_text(core, &count, &team[index], &200, &hs[index])?;
+                    count = self.credit_text(core, &count, &team[index], &200, &hs[index])?;
                     break;
                 }
             }
@@ -220,12 +230,16 @@ impl Game for Credits {
                 continue;
             }
         }
-        Ok(())
+
+        Ok(GameState {
+            status: Some(next_status),
+            score: 0,
+        })
     }
 }
 
 impl Credits {
-    fn credit_demo_text(
+    fn credit_text(
         &mut self,
         core: &mut SDLCore,
         count: &u32,
@@ -234,7 +248,8 @@ impl Credits {
         image: &Headshot,
     ) -> Result<u32, String> {
         let m_count = count - MOVE_PER_FRAME;
-        //Removal of this and changing instances to just `padding` causes it to break for some reason
+        //Removal of this and changing instances to just `padding` causes it to break
+        // for some reason
         let m_padding = padding;
 
         // Background wipe
@@ -264,7 +279,7 @@ impl Credits {
 
         // Print out the name
         core.wincan
-            .copy(&texture, None, Some(rect!(cx, m_count, w, h)))?;
+            .copy(texture, None, Some(rect!(cx, m_count, w, h)))?;
 
         // Image drawing
         if m_count + m_padding <= CAM_H {
