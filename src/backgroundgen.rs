@@ -51,7 +51,7 @@ impl Game for BackgroundGen {
         let freq_1: f64 = rng.gen::<f64>() * 150.0 + 64.0;
         let freq_2: f64 = rng.gen::<f64>() * 200.0 + 64.0;
 
-        let amp_1: f64 = rng.gen::<f64>() + 2.0;
+        let amp_1: f64 = rng.gen::<f64>() * 2.0;
         let amp_2: f64 = rng.gen::<f64>() + amp_1;
 
         while ct < 80 {
@@ -148,20 +148,8 @@ impl Game for BackgroundGen {
                         ));
                     }
 
-                    // if bg_1[i][j] == 1.0 {
-                    // } else if bg_1[i][j] == 0.2 {
-                    // } else if bg_1[i][j] == 0.01 {
-                    // } else {
-                    // core.wincan.set_draw_color(Color::RGBA(
-                    //     255,
-                    //     69,
-                    //     0,
-                    //     ((j / 720) * 255) as u8,
-                    // ));
-                    // }
-
                     core.wincan
-                        .fill_rect(rect!((16 * i), (720 - j - 1), 16, 1))?;
+                        .fill_rect(rect!((16 * i + 8), (720 - j - 1), 16, 1))?;
                 }
             }
 
@@ -209,7 +197,7 @@ fn main_image(i: usize, freq: f64, amp: f64, modifier: f64) -> [f64; 720] {
                 + noise(cord.0 as f64 * (1.0 / freq / 4.0)) * amp / 4.0
                 + noise(cord.0 as f64 * (1.0 / freq / 8.0)) * amp / 8.0);
 
-        let y = 2.0 * (cord.1 as f64 / 256.0) - 1.0;
+        let y = 2.0 * (cord.1 as f64 / 720.0) - 1.0;
         out[j] = 1.0;
         if n > y {
             out[j] = 0.01;
