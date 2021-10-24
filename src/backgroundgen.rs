@@ -203,12 +203,7 @@ impl Game for BackgroundGen {
 
             for i in 0..bg[0].len() - 1 {
                 // Furthest back mountains
-                core.wincan.set_draw_color(Color::RGBA(
-                    (0.2 * 255.0) as u8,
-                    (0.2 * 255.0) as u8,
-                    0,
-                    255,
-                ));
+                core.wincan.set_draw_color(Color::RGBA(128, 51, 6, 255));
                 core.wincan.fill_rect(rect!(
                     i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
                     CAM_H as i16 - bg[1][i],
@@ -217,7 +212,7 @@ impl Game for BackgroundGen {
                 ))?;
 
                 // Closest mountains
-                core.wincan.set_draw_color(Color::RGBA(12, 102, 133, 255));
+                core.wincan.set_draw_color(Color::RGBA(96, 161, 152, 255));
                 core.wincan.fill_rect(rect!(
                     i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
                     CAM_H as i16 - bg[0][i],
