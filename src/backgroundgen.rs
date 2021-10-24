@@ -23,6 +23,10 @@ const FRAME_TIME: f64 = 1.0 / FPS as f64;
 const CAM_H: u32 = 720;
 const CAM_W: u32 = 1280;
 
+// Ensure that SIZE is not a decimal
+// 2, 4, 5, 8, 10, 16, 20
+const SIZE: usize = CAM_W as usize / 8;
+
 pub struct BackgroundGen;
 
 impl Game for BackgroundGen {
@@ -40,23 +44,26 @@ impl Game for BackgroundGen {
 
         let mut next_status = Some(GameStatus::Main);
 
-        let mut ct = 0;
+        let mut ct: usize = 0;
+        let mut tick = 0;
         let mut buff_1: usize = 0;
         let mut buff_2: usize = 0;
+        let mut buff_3: usize = 0;
 
-        let mut bg: [[f64; 720]; 160] = [[0.0; 720]; 160];
+        let mut bg: [[i16; SIZE]; 3] = [[0; SIZE]; 3];
 
         let mut rng = rand::thread_rng();
 
-        let freq_1: f64 = rng.gen::<f64>() * 150.0 + 64.0;
-        let freq_2: f64 = rng.gen::<f64>() * 200.0 + 64.0;
+        let freq: f64 = rng.gen::<f64>() * 1000.0 + 100.0;
 
-        let amp_1: f64 = rng.gen::<f64>() * 2.0;
-        let amp_2: f64 = rng.gen::<f64>() + amp_1;
+        let amp_1: f64 = rng.gen::<f64>() * 4.0 + 1.0;
+        let amp_2: f64 = rng.gen::<f64>() * 2.0 + amp_1;
+        let amp_3: f64 = rng.gen::<f64>() * 2.0 + 1.0;
 
-        while ct < 80 {
-            bg[ct] = main_image((ct + buff_1), freq_1, amp_1, 0.5);
-            bg[ct + 80] = main_image((ct + buff_2), freq_2, amp_2, 1.0);
+        while ct < SIZE as usize {
+            bg[0][ct] = main_image((ct + buff_1), freq, amp_1, 0.5, 600.0);
+            bg[1][ct] = main_image((ct + buff_2), freq, amp_2, 1.0, 820.0);
+            bg[2][ct] = main_image((ct + buff_3), freq, amp_3, 1.5, 256.0);
             ct += 1;
         }
 
@@ -98,62 +105,91 @@ impl Game for BackgroundGen {
             core.wincan.set_draw_color(Color::RGBA(3, 120, 206, 255));
             core.wincan.clear();
 
-            if ct >= 80 {
-                for i in 0..79 {
-                    bg[i] = bg[i + 1];
+            // Every tick, build a new ground segment
+            if tick % 1 == 0 {
+                for i in 0..(SIZE as usize - 1) {
+                    bg[2][i] = bg[2][i + 1];
                 }
+                buff_3 += 1;
+                let chunk_3 = main_image(((SIZE - 1) as usize + buff_3), freq, amp_3, 1.5, 256.0);
+                bg[2][(SIZE - 1) as usize] = chunk_3;
+            }
 
-                if buff_1 % 3 == 1 {
-                    for i in 0..79 {
-                        bg[i + 80] = bg[i + 1 + 80];
-                    }
-                    buff_2 += 1;
+            // Every 3 ticks, build a new front mountain segment
+            if tick % 3 == 0 {
+                for i in 0..(SIZE as usize - 1) {
+                    bg[0][i] = bg[0][i + 1];
                 }
                 buff_1 += 1;
-                ct = 79
+                let chunk_1 = main_image(((SIZE - 1) as usize + buff_1), freq, amp_1, 0.5, 600.0);
+                bg[0][(SIZE - 1) as usize] = chunk_1;
             }
 
-            let chunk_1 = main_image((ct + buff_1), freq_1, amp_1, 0.5);
-            bg[ct] = chunk_1;
-
-            if buff_2 % 3 == 1 {
-                let chunk_2 = main_image((ct + buff_2), freq_2, amp_2, 1.0);
-                bg[ct + 80] = chunk_2;
-            }
-
-            for i in 0..ct {
-                for j in 0..720 {
-                    if bg[i][j] == 1.0 && bg[i + 80][j] == 1.0 {
-                        core.wincan.set_draw_color(Color::RGBA(
-                            255,
-                            69,
-                            0,
-                            (((720.0 - j as f64) / 720.0) * 255.0) as u8,
-                        ));
-                    }
-                    if bg[i + 80][j] == 0.01 {
-                        core.wincan.set_draw_color(Color::RGBA(
-                            (0.2 * 255.0) as u8,
-                            (0.2 * 255.0) as u8,
-                            0,
-                            255,
-                        ));
-                    }
-                    if bg[i][j] == 0.01 {
-                        core.wincan.set_draw_color(Color::RGBA(
-                            (bg[i][j] * 255.0).floor() as u8,
-                            (bg[i][j] * 255.0).floor() as u8,
-                            (bg[i][j] * 255.0).floor() as u8,
-                            255,
-                        ));
-                    }
-
-                    core.wincan
-                        .fill_rect(rect!((16 * i + 8), (720 - j - 1), 16, 1))?;
+            // Every 5 ticks, build a new back mountain segment
+            if tick % 5 == 0 {
+                for i in 0..(SIZE as usize - 1) {
+                    bg[1][i] = bg[1][i + 1];
                 }
+                buff_2 += 1;
+                let chunk_2 = main_image(((SIZE - 1) as usize + buff_2), freq, amp_2, 1.0, 820.0);
+                bg[1][(SIZE - 1) as usize] = chunk_2;
             }
 
-            ct += 1;
+            //Background gradient
+            for i in 0..CAM_H {
+                core.wincan.set_draw_color(Color::RGBA(
+                    255,
+                    69,
+                    0,
+                    ((i as f64 / CAM_H as f64 / 40.0) * 255.0) as u8,
+                ));
+                core.wincan.fill_rect(rect!(0, i, CAM_W, CAM_H));
+            }
+
+            for i in 0..bg[0].len() - 1 {
+                // Furthest back mountains
+                core.wincan.set_draw_color(Color::RGBA(
+                    (0.2 * 255.0) as u8,
+                    (0.2 * 255.0) as u8,
+                    0,
+                    255,
+                ));
+                core.wincan.fill_rect(rect!(
+                    i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
+                    CAM_H as i16 - bg[1][i],
+                    CAM_W as usize / SIZE,
+                    CAM_H as i16
+                ));
+
+                // Closest mountains
+                core.wincan.set_draw_color(Color::RGBA(
+                    (0.01 * 255.0) as u8,
+                    (0.01 * 255.0) as u8,
+                    (0.01 * 255.0) as u8,
+                    255,
+                ));
+                core.wincan.fill_rect(rect!(
+                    i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
+                    CAM_H as i16 - bg[0][i],
+                    CAM_W as usize / SIZE,
+                    CAM_H as i16
+                ));
+
+                // Ground
+                core.wincan.set_draw_color(Color::RGBA(13, 66, 31, 255));
+                core.wincan.fill_rect(rect!(
+                    i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
+                    CAM_H as i16 - bg[2][i],
+                    CAM_W as usize / SIZE,
+                    CAM_H as i16
+                ));
+            }
+
+            tick += 1;
+
+            if tick % 3 == 0 && tick % 5 == 0 {
+                tick = 0;
+            }
 
             core.wincan.present();
 
@@ -185,7 +221,7 @@ impl Game for BackgroundGen {
     }
 }
 
-fn main_image(i: usize, freq: f64, amp: f64, modifier: f64) -> [f64; 720] {
+fn main_image(i: usize, freq: f64, amp: f64, modifier: f64, mul: f64) -> i16 {
     let mut out = [0.0; 720];
 
     for j in 0..720 {
@@ -197,13 +233,14 @@ fn main_image(i: usize, freq: f64, amp: f64, modifier: f64) -> [f64; 720] {
                 + noise(cord.0 as f64 * (1.0 / freq / 4.0)) * amp / 4.0
                 + noise(cord.0 as f64 * (1.0 / freq / 8.0)) * amp / 8.0);
 
-        let y = 2.0 * (cord.1 as f64 / 720.0) - 1.0;
+        let y = 2.0 * (cord.1 as f64 / mul) - 1.0;
         out[j] = 1.0;
         if n > y {
-            out[j] = 0.01;
+        } else {
+            return j as i16;
         }
     }
-    return out;
+    return 720 as i16;
 }
 
 fn fade(t: f64) -> f64 {
