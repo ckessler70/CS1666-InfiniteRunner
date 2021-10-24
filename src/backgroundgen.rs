@@ -29,6 +29,10 @@ const CAM_W: u32 = 1280;
 // 2, 4, 5, 8, 10, 16, 20
 const SIZE: usize = CAM_W as usize / 8;
 
+const FRONT_HILL_INDEX: usize = 0;
+const BACK_HILL_INDEX: usize = 1;
+const GROUND_INDEX: usize = 2;
+
 pub struct BackgroundGen;
 
 impl Game for BackgroundGen {
@@ -71,11 +75,11 @@ impl Game for BackgroundGen {
         let amp_3: f64 = rng.gen::<f64>() * 2.0 + 1.0;
 
         while ct < SIZE as usize {
-            bg[0][ct] =
+            bg[FRONT_HILL_INDEX][ct] =
                 proceduralgen::gen_perlin_hill_point((ct + buff_1), freq, amp_1, 0.5, 600.0);
-            bg[1][ct] =
+            bg[BACK_HILL_INDEX][ct] =
                 proceduralgen::gen_perlin_hill_point((ct + buff_2), freq, amp_2, 1.0, 820.0);
-            bg[2][ct] =
+            bg[GROUND_INDEX][ct] =
                 proceduralgen::gen_perlin_hill_point((ct + buff_3), freq, amp_3, 1.5, 256.0);
             ct += 1;
         }
@@ -121,7 +125,7 @@ impl Game for BackgroundGen {
             // Every tick, build a new ground segment
             if tick % 1 == 0 {
                 for i in 0..(SIZE as usize - 1) {
-                    bg[2][i] = bg[2][i + 1];
+                    bg[GROUND_INDEX][i] = bg[GROUND_INDEX][i + 1];
                 }
                 buff_3 += 1;
                 let chunk_3 = proceduralgen::gen_perlin_hill_point(
@@ -131,13 +135,13 @@ impl Game for BackgroundGen {
                     1.5,
                     256.0,
                 );
-                bg[2][(SIZE - 1) as usize] = chunk_3;
+                bg[GROUND_INDEX][(SIZE - 1) as usize] = chunk_3;
             }
 
             // Every 3 ticks, build a new front mountain segment
             if tick % 3 == 0 {
                 for i in 0..(SIZE as usize - 1) {
-                    bg[0][i] = bg[0][i + 1];
+                    bg[FRONT_HILL_INDEX][i] = bg[FRONT_HILL_INDEX][i + 1];
                 }
                 buff_1 += 1;
                 let chunk_1 = proceduralgen::gen_perlin_hill_point(
@@ -147,13 +151,13 @@ impl Game for BackgroundGen {
                     0.5,
                     600.0,
                 );
-                bg[0][(SIZE - 1) as usize] = chunk_1;
+                bg[FRONT_HILL_INDEX][(SIZE - 1) as usize] = chunk_1;
             }
 
             // Every 5 ticks, build a new back mountain segment
             if tick % 5 == 0 {
                 for i in 0..(SIZE as usize - 1) {
-                    bg[1][i] = bg[1][i + 1];
+                    bg[BACK_HILL_INDEX][i] = bg[BACK_HILL_INDEX][i + 1];
                 }
                 buff_2 += 1;
                 let chunk_2 = proceduralgen::gen_perlin_hill_point(
@@ -163,7 +167,7 @@ impl Game for BackgroundGen {
                     1.0,
                     820.0,
                 );
-                bg[1][(SIZE - 1) as usize] = chunk_2;
+                bg[BACK_HILL_INDEX][(SIZE - 1) as usize] = chunk_2;
             }
             if tick % 10 == 0 {
                 bg_buff -= 1;
@@ -201,12 +205,12 @@ impl Game for BackgroundGen {
                 rect!(CAM_W as i32 + bg_buff, 0, CAM_W, CAM_H / 3),
             )?;
 
-            for i in 0..bg[0].len() - 1 {
+            for i in 0..bg[FRONT_HILL_INDEX].len() - 1 {
                 // Furthest back mountains
                 core.wincan.set_draw_color(Color::RGBA(128, 51, 6, 255));
                 core.wincan.fill_rect(rect!(
                     i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
-                    CAM_H as i16 - bg[1][i],
+                    CAM_H as i16 - bg[BACK_HILL_INDEX][i],
                     CAM_W as usize / SIZE,
                     CAM_H as i16
                 ))?;
@@ -215,7 +219,7 @@ impl Game for BackgroundGen {
                 core.wincan.set_draw_color(Color::RGBA(96, 161, 152, 255));
                 core.wincan.fill_rect(rect!(
                     i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
-                    CAM_H as i16 - bg[0][i],
+                    CAM_H as i16 - bg[FRONT_HILL_INDEX][i],
                     CAM_W as usize / SIZE,
                     CAM_H as i16
                 ))?;
@@ -224,7 +228,7 @@ impl Game for BackgroundGen {
                 core.wincan.set_draw_color(Color::RGBA(13, 66, 31, 255));
                 core.wincan.fill_rect(rect!(
                     i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
-                    CAM_H as i16 - bg[2][i],
+                    CAM_H as i16 - bg[GROUND_INDEX][i],
                     CAM_W as usize / SIZE,
                     CAM_H as i16
                 ))?;
