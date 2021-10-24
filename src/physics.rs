@@ -216,7 +216,8 @@ impl<'a> Player<'a> {
 
     pub fn stop_flipping(&mut self) {
         self.flipping = false;
-        if self.theta() <= OMEGA * 3.0 {
+        
+        if self.theta() >= OMEGA * 3.0 {
             self.theta = 0.0;
         }
     }
@@ -258,7 +259,8 @@ impl<'a> Player<'a> {
 
             // In the future, adjust this angle to match the approximate slope of the ground
             self.toggle_omega();
-            if self.theta() > (360.0 - OMEGA * 3.0) || self.theta() < (OMEGA * 3.0) {
+            
+            if (-360.0 + OMEGA * 3.0) > self.theta() || self.theta() > (-OMEGA * 3.0){
                 self.theta = 0.0;
                 true
             } else {
