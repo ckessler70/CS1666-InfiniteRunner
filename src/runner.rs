@@ -1,5 +1,5 @@
-use crate::physics::Body;
-use crate::physics::Collider;
+// use crate::physics::Body;
+// use crate::physics::Collider;
 use crate::physics::Dynamic;
 use crate::physics::Entity;
 use crate::physics::Player as PhysPlayer;
@@ -14,7 +14,7 @@ use inf_runner::GameState;
 use inf_runner::GameStatus;
 use inf_runner::SDLCore;
 
-use std::collections::HashSet;
+// use std::collections::HashSet;
 use std::collections::LinkedList;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
@@ -24,7 +24,7 @@ use sdl2::image::LoadTexture;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
-use sdl2::render::Texture;
+// use sdl2::render::Texture;
 use sdl2::render::TextureQuery;
 
 const FPS: f64 = 60.0;
@@ -250,8 +250,6 @@ impl Game for Runner {
                     break;
                 }
             } else {
-                let mut x_deltav: i32 = 1;
-                let mut y_deltav: i32 = 1;
                 for event in core.event_pump.poll_iter() {
                     match event {
                         Event::Quit { .. } => break 'gameloop,
@@ -378,6 +376,7 @@ impl Game for Runner {
                     .copy(&score_texture, None, Some(rect!(10, 10, 100, 50)))?;
 
                 core.wincan.present();
+                score += 1;
             }
 
             // FPS Calculation

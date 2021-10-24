@@ -1,4 +1,4 @@
-use crate::rect;
+// use crate::rect;
 use sdl2::rect::Rect;
 use sdl2::render::Texture;
 
@@ -6,7 +6,7 @@ use sdl2::render::Texture;
 
 const LOWER_SPEED: i32 = 1;
 const UPPER_SPEED: i32 = 5;
-const GRAVITY: f64 = 9.80665;
+// const GRAVITY: f64 = 9.80665;
 const OMEGA: f64 = 18.0;
 
 pub struct Physics;
@@ -17,7 +17,7 @@ impl Physics {
         // Using Rect::has_intersection -> bool OR Rect::intersection -> Rect
         // Apply collision to Player AND Obstacle if necessary (i.e. spin out of control
         // and break object or whatever) This includes force and torque
-        false
+        todo!();
     }
 
     fn apply_friction() {
@@ -40,6 +40,7 @@ impl Physics {
         //      }
         //
         // }
+        todo!();
     }
 
     fn bounce(player: &Player, obstacle: &Obstacle) {
@@ -48,11 +49,13 @@ impl Physics {
         // Smash block into pieces if we want
         // Broken pieces from collisions was a physics thing Farnan was looking
         // for
+        todo!();
     }
 
     fn apply_buoyancy(player: &Player) {
         // TODO
         // apply_force()
+        todo!();
     }
 }
 
@@ -213,6 +216,9 @@ impl<'a> Player<'a> {
 
     pub fn stop_flipping(&mut self) {
         self.flipping = false;
+        if self.theta() <= OMEGA * 3.0 {
+            self.theta = 0.0;
+        }
     }
 
     // Returns true if a jump was initiated
@@ -239,7 +245,7 @@ impl<'a> Player<'a> {
 
     // Returns false if the player crashed
     pub fn land(&mut self) -> bool {
-        if self.jumping && self.pos.y() == self.y_bounds.1 {
+        if self.is_jumping() && self.pos.y() == self.y_bounds.1 {
             self.velocity.1 = 0;
             self.accel.1 = 0;
             self.jumping = false;
@@ -325,7 +331,6 @@ impl<'a> Dynamic<'a> for Player<'a> {
     }
 
     fn toggle_omega(&mut self) {
-        // TODO
         self.omega = if self.omega > 0.0 { 0.0 } else { OMEGA };
     }
 }
@@ -337,6 +342,7 @@ impl<'a> Collider<'a> for Player<'a> {
     }
     fn collide(&mut self, other: &impl Collider<'a>) {
         // TODO
+        todo!();
     }
 }
 
@@ -364,6 +370,7 @@ impl<'a> Body<'a> for Player<'a> {
 
     fn collide_terrain(terrain_type: String) {
         // TODO
+        todo!();
     }
 }
 
