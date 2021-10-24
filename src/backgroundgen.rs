@@ -9,6 +9,7 @@ use std::thread::sleep;
 use std::time::{Duration, Instant};
 
 use sdl2::event::Event;
+use sdl2::image::LoadTexture;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
@@ -37,6 +38,11 @@ impl Game for BackgroundGen {
     fn run(&mut self, core: &mut SDLCore) -> Result<GameState, String> {
         core.wincan.set_blend_mode(sdl2::render::BlendMode::Blend);
 
+        let texture_creator = core.wincan.texture_creator();
+        let tex_bg = texture_creator.load_texture("assets/bg.png")?;
+        let tex_sky = texture_creator.load_texture("assets/sky.png")?;
+        let mut bg_buff = 0;
+
         // FPS tracking
         let mut all_frames: i32 = 0;
         let mut last_raw_time;
@@ -50,6 +56,9 @@ impl Game for BackgroundGen {
         let mut buff_2: usize = 0;
         let mut buff_3: usize = 0;
 
+        // bg[0] = Front hills
+        // bg[1] = Back hills
+        // bg[2] = Ground
         let mut bg: [[i16; SIZE]; 3] = [[0; SIZE]; 3];
 
         let mut rng = rand::thread_rng();
@@ -134,6 +143,9 @@ impl Game for BackgroundGen {
                 let chunk_2 = main_image(((SIZE - 1) as usize + buff_2), freq, amp_2, 1.0, 820.0);
                 bg[1][(SIZE - 1) as usize] = chunk_2;
             }
+            if tick % 10 == 0 {
+                bg_buff -= 1;
+            }
 
             //Background gradient
             for i in 0..CAM_H {
@@ -145,6 +157,27 @@ impl Game for BackgroundGen {
                 ));
                 core.wincan.fill_rect(rect!(0, i, CAM_W, CAM_H));
             }
+
+            core.wincan.set_draw_color(Color::RGBA(0, 0, 0, 255));
+            core.wincan.fill_rect(rect!(0, 470, CAM_W, CAM_H));
+
+            // Draw background
+            core.wincan
+                .copy(&tex_bg, None, rect!(bg_buff, -150, CAM_W, CAM_H))?;
+            core.wincan.copy(
+                &tex_bg,
+                None,
+                rect!(bg_buff + (CAM_W as i32), -150, CAM_W, CAM_H),
+            )?;
+
+            //Draw sky in background
+            core.wincan
+                .copy(&tex_sky, None, rect!(bg_buff, 0, CAM_W, CAM_H / 3))?;
+            core.wincan.copy(
+                &tex_sky,
+                None,
+                rect!(CAM_W as i32 + bg_buff, 0, CAM_W, CAM_H / 3),
+            )?;
 
             for i in 0..bg[0].len() - 1 {
                 // Furthest back mountains
@@ -162,12 +195,7 @@ impl Game for BackgroundGen {
                 ));
 
                 // Closest mountains
-                core.wincan.set_draw_color(Color::RGBA(
-                    (0.01 * 255.0) as u8,
-                    (0.01 * 255.0) as u8,
-                    (0.01 * 255.0) as u8,
-                    255,
-                ));
+                core.wincan.set_draw_color(Color::RGBA(12, 102, 133, 255));
                 core.wincan.fill_rect(rect!(
                     i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
                     CAM_H as i16 - bg[0][i],
@@ -190,6 +218,24 @@ impl Game for BackgroundGen {
             if tick % 3 == 0 && tick % 5 == 0 {
                 tick = 0;
             }
+
+            if -bg_buff == CAM_W as i32 {
+                bg_buff = 0;
+            }
+
+            // There should be some way to determine where it repeats but I can't figure it out
+            // if buff_1 as f64 % (freq * amp_1) == 0 {
+            //     println!("{:?}", buff_1);
+            //     buff_1 = 0;
+            // }
+            // if buff_2 as f64 % (freq * amp_2) == 0 {
+            //     println!("{:?}", buff_2);
+            //     buff_2 = 0;
+            // }
+            // if buff_3 as f64 % (freq * amp_3) == 0 {
+            //     println!("{:?}", buff_3);
+            //     buff_3 = 0;
+            // }
 
             core.wincan.present();
 
