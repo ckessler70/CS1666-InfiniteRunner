@@ -37,30 +37,9 @@ const TILE_SIZE: u32 = 100;
 
 // Bounds we want to keep the player within
 const PLAYER_BOUNDS_H: (i32, i32) = (0, (CAM_W - TILE_SIZE) as i32);
-const PLAYER_BOUNDS_V: (i32, i32) = (0, (CAM_H - TILE_SIZE) as i32);
-
-const SPEED_LIMIT: i32 = 5;
-
-// Flipping bounds
-// Roughly anything larger than 30 will not complete flip in jump's time
-const FLIP_INCREMENT: f64 = 360.0 / 30.0;
+const PLAYER_BOUNDS_V: (i32, i32) = (0, (CAM_H - TILE_SIZE - 100) as i32);
 
 pub struct Runner;
-
-// What is this?
-// fn resist(vel: i32, deltav: i32) -> i32 {
-//     if deltav == 0 {
-//         if vel > 0 {
-//             -1
-//         } else if vel < 0 {
-//             1
-//         } else {
-//             deltav
-//         }
-//     } else {
-//         deltav
-//     }
-// }
 
 /*
 // y = -0.05x + 100
@@ -94,13 +73,10 @@ impl Game for Runner {
         let tex_terrain = texture_creator.load_texture("assets/rolling_hills.png")?;
         let tex_sky = texture_creator.load_texture("assets/sky.png")?;
 
-        // ???
-        // let mut scroll_offset = 0;
-
         let mut player = PhysPlayer::new(
             rect!(
                 PLAYER_BOUNDS_H.1 / 2,
-                PLAYER_BOUNDS_V.1 * 80 / 100,
+                PLAYER_BOUNDS_V.0,
                 TILE_SIZE,
                 TILE_SIZE
             ),
@@ -112,14 +88,6 @@ impl Game for Runner {
         // Used to keep track of animation status
         let mut frames: i32 = 0;
         let mut src_x: i32 = 0;
-        let mut flip: bool = false;
-
-        let mut jump: bool = false;
-        let mut jump_ct: i32 = 0;
-
-        //For rotational flip (maybe not the best variable names)
-        let mut r_flip: bool = false;
-        let mut r_flip_spot: f64 = 0.0;
 
         // FPS tracking
         let mut all_frames: i32 = 0;
@@ -291,12 +259,7 @@ impl Game for Runner {
                             keycode: Some(k), ..
                         } => match k {
                             Keycode::W | Keycode::Up | Keycode::Space => {
-                                if !jump && jump_ct == 0 {
-                                    jump = true;
-                                }
-                                if jump_ct != 0 {
-                                    r_flip = true;
-                                }
+                                player.jump();
                             }
                             Keycode::Escape => {
                                 game_paused = true;
@@ -304,57 +267,35 @@ impl Game for Runner {
                             }
                             _ => {}
                         },
+                        Event::KeyUp {
+                            keycode: Some(k), ..
+                        } => match k {
+                            Keycode::W | Keycode::Up | Keycode::Space => {
+                                player.stop_flipping();
+                            }
+                            _ => {}
+                        },
                         _ => {}
                     }
                 }
 
-                // Boing
-                if jump {
-                    jump_ct += 1;
-                    y_deltav = -1;
+                player.update_pos();
+                player.update_vel();
+                if frames % 2 == 0 {
+                    player.flip();
                 }
+                OFFSET = (OFFSET + player.vel_x()) % CAM_W as i32;
+                let bg_offset = -OFFSET;
 
-                // Airtime
-                if jump_ct > 30 {
-                    jump = false;
-                    y_deltav = 1;
-                }
-
-                // Jump cooldown
-                if !jump && jump_ct > 0 {
-                    jump_ct -= 1;
-                }
-
-                // Landed on head, GAME OVER
-                if jump_ct == 0 && r_flip_spot != 0.0 {
+                if !player.land() {
                     game_over = true;
                     initial_pause = true;
                     continue;
                 }
 
-                /*
-                x_deltav = resist(x_vel, x_deltav);
-                y_deltav = resist(y_vel, y_deltav);
-                x_vel = (x_vel + x_deltav).clamp(-SPEED_LIMIT, SPEED_LIMIT);
-                y_vel = (y_vel + y_deltav).clamp(-SPEED_LIMIT, SPEED_LIMIT);
-                */
-
-                player.update_pos();
-                OFFSET = (OFFSET + player.vel_x()) % CAM_W as i32;
-                let bg_offset = -OFFSET;
-
                 //MODIFIED: G 252 -> 120 (so I could see sky images better)
                 core.wincan.set_draw_color(Color::RGBA(3, 120, 206, 255));
                 core.wincan.clear();
-
-                // Check if we need to update anything for animation
-                flip = if player.vel_x() > 0 && flip {
-                    false
-                } else if player.vel_x() < 0 && !flip {
-                    true
-                } else {
-                    flip
-                };
 
                 src_x = if player.vel_x() != 0 {
                     frames = if (frames + 1) / 6 > 3 { 0 } else { frames + 1 };
@@ -414,42 +355,14 @@ impl Game for Runner {
                     rect!(CAM_W as i32 + bg_offset, 0, CAM_W, CAM_H / 3),
                 )?;
 
-                //ADDITION: Hey lizard, do a flip
-                r_flip_spot = if r_flip && flip {
-                    //going left
-                    r_flip_spot + FLIP_INCREMENT
-                } else if r_flip && !flip {
-                    //going right
-                    r_flip_spot - FLIP_INCREMENT
-                } else {
-                    0.0
-                };
-
-                //going right backlfip
-                //if r_flip_spot.approx_eq(-360.0, (0.0, 2)) {
-                if r_flip_spot.floor() == -360.0 {
-                    //flip complete
-                    r_flip = false;
-                    r_flip_spot = 0.0; //reset flip_spot
-                }
-                //Going left backflip
-                //if r_flip_spot.approx_eq(360.0, (0.0, 2)) {
-
-                if r_flip_spot.floor() == 360.0 {
-                    //flip complete
-                    r_flip = false;
-                    r_flip_spot = 0.0; //reset flip_spot
-                }
-
                 // Draw player
-                //NOTE: i added 10 to p.y()
                 core.wincan.copy_ex(
                     player.texture(),
                     rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
-                    rect!(player.x(), player.y() + 10, TILE_SIZE, TILE_SIZE),
-                    r_flip_spot,
+                    rect!(player.x(), player.y(), TILE_SIZE, TILE_SIZE),
+                    player.theta(),
                     None,
-                    flip,
+                    false,
                     false,
                 )?;
 

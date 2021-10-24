@@ -7,6 +7,7 @@ use sdl2::render::Texture;
 const LOWER_SPEED: i32 = 1;
 const UPPER_SPEED: i32 = 5;
 const GRAVITY: f64 = 9.80665;
+const OMEGA: f64 = 18.0;
 
 pub struct Physics;
 
@@ -49,7 +50,7 @@ impl Physics {
         // for
     }
 
-    fn buoyancy(player: &Player) {
+    fn apply_buoyancy(player: &Player) {
         // TODO
         // apply_force()
     }
@@ -82,7 +83,7 @@ pub trait Entity<'a> {
     /// # Arguments
     ///
     /// * `angle`: the angle to rotate the entity by in radians
-    fn rotate(&self, angle: f64);
+    fn rotate(&mut self);
 }
 
 /// Object can collide with other objects using a hitbox
@@ -118,13 +119,13 @@ pub trait Dynamic<'a>: Entity<'a> {
     /****************** Angular motion *************** */
 
     /// Returns the `Entity`'s angle of rotation in radians
-    fn alpha(&self) -> f64;
+    // fn alpha(&self) -> f64;
     /// Returns the `Body`'s rate of rotation
     fn omega(&self) -> f64;
     /// Modifies the velocity of the `Dynamic` `Entity`
     fn update_vel(&mut self);
     /// Modifies the rotation speed of the `Dynamic` `Entity`
-    fn update_omega(&mut self);
+    fn toggle_omega(&mut self);
 }
 
 /// Object has mass and rotational inertia. Object responds to forces and
@@ -152,7 +153,7 @@ pub trait Body<'a>: Collider<'a> + Dynamic<'a> {
     /// * `force`: the magnitude of the force being applied tangent to the
     ///   object
     /// * `radius`: the distance from the object's center of mass
-    fn apply_torque(&mut self, force: i32, radius: i32);
+    // fn apply_torque(&mut self, force: i32, radius: i32);
 
     /****************** Collision ******************** */
 
@@ -176,13 +177,13 @@ pub struct Player<'a> {
     velocity: (i32, i32),
     accel: (i32, i32),
 
-    theta: f64, // angle of rotation, in radians
+    theta: f64, // angle of rotation, in degrees
     omega: f64, // angular speed
-    alpha: f64, // angular acceleration
-
+    // alpha: f64, // angular acceleration
     mass: i32,
     texture: Texture<'a>,
-    spinning: bool,
+    jumping: bool,
+    flipping: bool,
 }
 
 impl<'a> Player<'a> {
@@ -191,13 +192,68 @@ impl<'a> Player<'a> {
             pos,
             y_bounds,
             velocity: (3, 0),
-            accel: (0, 0),
+            accel: (0, -1),
             theta: 0.0,
             omega: 0.0,
-            alpha: 0.0,
+            // alpha: 0.0,
             texture,
             mass,
-            spinning: false,
+            jumping: false,
+            flipping: false,
+        }
+    }
+
+    pub fn is_jumping(&self) -> bool {
+        self.jumping
+    }
+
+    pub fn is_flipping(&self) -> bool {
+        self.flipping
+    }
+
+    pub fn stop_flipping(&mut self) {
+        self.flipping = false;
+    }
+
+    // Returns true if a jump was initiated
+    pub fn jump(&mut self) -> bool {
+        if self.pos.y() == self.y_bounds.1 {
+            self.velocity.1 += 23;
+            self.accel.1 -= 1;
+            self.jumping = true;
+
+            self.toggle_omega();
+            self.flipping = true;
+
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn flip(&mut self) {
+        if self.is_flipping() {
+            self.rotate();
+        }
+    }
+
+    // Returns false if the player crashed
+    pub fn land(&mut self) -> bool {
+        if self.jumping && self.pos.y() == self.y_bounds.1 {
+            self.velocity.1 = 0;
+            self.accel.1 = 0;
+            self.jumping = false;
+
+            // In the future, adjust this angle to match the approximate slope of the ground
+            self.toggle_omega();
+            if self.theta() > (360.0 - OMEGA * 3.0) || self.theta() < (OMEGA * 3.0) {
+                self.theta = 0.0;
+                true
+            } else {
+                false
+            }
+        } else {
+            true
         }
     }
 }
@@ -221,12 +277,18 @@ impl<'a> Entity<'a> for Player<'a> {
 
     fn update_pos(&mut self) {
         // Player's x position is fixed
-
         self.pos
-            .set_y((self.pos.y() + self.vel_y()).clamp(self.y_bounds.0, self.y_bounds.1));
+            .set_y((self.pos.y() - self.vel_y()).clamp(self.y_bounds.0, self.y_bounds.1));
+
+        if self.pos.y() == self.y_bounds.1 {
+            self.accel.1 = 0;
+            self.velocity.1 = 0;
+        }
     }
 
-    fn rotate(&self, angle: f64) {}
+    fn rotate(&mut self) {
+        self.theta = (self.theta + self.omega) % 360.0;
+    }
 }
 
 impl<'a> Dynamic<'a> for Player<'a> {
@@ -250,20 +312,21 @@ impl<'a> Dynamic<'a> for Player<'a> {
         self.omega
     }
 
-    fn alpha(&self) -> f64 {
-        self.alpha
-    }
+    // fn alpha(&self) -> f64 {
+    //     self.alpha
+    // }
 
     fn update_vel(&mut self) {
         // Update to make the TOTAL MAX VELOCITY constant
         // Right now it's UPPER_SPEED in one direction and UPPER_SPEED*sqrt(2)
         // diagonally
         self.velocity.0 = (self.velocity.0 + self.accel.0).clamp(LOWER_SPEED, UPPER_SPEED);
-        self.velocity.1 = (self.velocity.1 + self.accel.1).clamp(0, UPPER_SPEED);
+        self.velocity.1 = (self.velocity.1 + self.accel.1).clamp(-10, 1000);
     }
 
-    fn update_omega(&mut self) {
+    fn toggle_omega(&mut self) {
         // TODO
+        self.omega = if self.omega > 0.0 { 0.0 } else { OMEGA };
     }
 }
 
@@ -294,10 +357,10 @@ impl<'a> Body<'a> for Player<'a> {
         self.accel.1 += force.1 / self.mass;
     }
 
-    fn apply_torque(&mut self, force: i32, radius: i32) {
-        // TODO
-        // Update_alpha (angular acceleration)
-    }
+    // fn apply_torque(&mut self, force: i32, radius: i32) {
+    //     // TODO
+    //     // Update_alpha (angular acceleration)
+    // }
 
     fn collide_terrain(terrain_type: String) {
         // TODO
