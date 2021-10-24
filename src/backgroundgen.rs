@@ -1,5 +1,6 @@
+use crate::proceduralgen;
 use crate::rect;
-// use crate::Physics;
+
 use inf_runner::Game;
 use inf_runner::GameState;
 use inf_runner::GameStatus;
@@ -70,9 +71,12 @@ impl Game for BackgroundGen {
         let amp_3: f64 = rng.gen::<f64>() * 2.0 + 1.0;
 
         while ct < SIZE as usize {
-            bg[0][ct] = main_image((ct + buff_1), freq, amp_1, 0.5, 600.0);
-            bg[1][ct] = main_image((ct + buff_2), freq, amp_2, 1.0, 820.0);
-            bg[2][ct] = main_image((ct + buff_3), freq, amp_3, 1.5, 256.0);
+            bg[0][ct] =
+                proceduralgen::gen_perlin_hill_point((ct + buff_1), freq, amp_1, 0.5, 600.0);
+            bg[1][ct] =
+                proceduralgen::gen_perlin_hill_point((ct + buff_2), freq, amp_2, 1.0, 820.0);
+            bg[2][ct] =
+                proceduralgen::gen_perlin_hill_point((ct + buff_3), freq, amp_3, 1.5, 256.0);
             ct += 1;
         }
 
@@ -120,7 +124,13 @@ impl Game for BackgroundGen {
                     bg[2][i] = bg[2][i + 1];
                 }
                 buff_3 += 1;
-                let chunk_3 = main_image(((SIZE - 1) as usize + buff_3), freq, amp_3, 1.5, 256.0);
+                let chunk_3 = proceduralgen::gen_perlin_hill_point(
+                    ((SIZE - 1) as usize + buff_3),
+                    freq,
+                    amp_3,
+                    1.5,
+                    256.0,
+                );
                 bg[2][(SIZE - 1) as usize] = chunk_3;
             }
 
@@ -130,7 +140,13 @@ impl Game for BackgroundGen {
                     bg[0][i] = bg[0][i + 1];
                 }
                 buff_1 += 1;
-                let chunk_1 = main_image(((SIZE - 1) as usize + buff_1), freq, amp_1, 0.5, 600.0);
+                let chunk_1 = proceduralgen::gen_perlin_hill_point(
+                    ((SIZE - 1) as usize + buff_1),
+                    freq,
+                    amp_1,
+                    0.5,
+                    600.0,
+                );
                 bg[0][(SIZE - 1) as usize] = chunk_1;
             }
 
@@ -140,7 +156,13 @@ impl Game for BackgroundGen {
                     bg[1][i] = bg[1][i + 1];
                 }
                 buff_2 += 1;
-                let chunk_2 = main_image(((SIZE - 1) as usize + buff_2), freq, amp_2, 1.0, 820.0);
+                let chunk_2 = proceduralgen::gen_perlin_hill_point(
+                    ((SIZE - 1) as usize + buff_2),
+                    freq,
+                    amp_2,
+                    1.0,
+                    820.0,
+                );
                 bg[1][(SIZE - 1) as usize] = chunk_2;
             }
             if tick % 10 == 0 {
@@ -265,50 +287,4 @@ impl Game for BackgroundGen {
             score: 0,
         })
     }
-}
-
-fn main_image(i: usize, freq: f64, amp: f64, modifier: f64, mul: f64) -> i16 {
-    let mut out = [0.0; 720];
-
-    for j in 0..720 {
-        let cord = (i, j);
-
-        let n = modifier
-            * (noise(cord.0 as f64 * (1.0 / freq)) * amp
-                + noise(cord.0 as f64 * (1.0 / freq / 2.0)) * amp / 2.0
-                + noise(cord.0 as f64 * (1.0 / freq / 4.0)) * amp / 4.0
-                + noise(cord.0 as f64 * (1.0 / freq / 8.0)) * amp / 8.0);
-
-        let y = 2.0 * (cord.1 as f64 / mul) - 1.0;
-        out[j] = 1.0;
-        if n > y {
-        } else {
-            return j as i16;
-        }
-    }
-    return 720 as i16;
-}
-
-fn fade(t: f64) -> f64 {
-    return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
-}
-
-fn grad(p: f64) -> f64 {
-    let random = [0.0; 256];
-    let v = random[p.floor() as usize];
-
-    return if v > 0.5 { 1.0 } else { -1.0 };
-}
-
-fn noise(p: f64) -> f64 {
-    let p0 = p.floor();
-    let p1 = p0 + 1.0;
-
-    let t = p - p0;
-    let fade_t = fade(t);
-
-    let g0 = grad(p0);
-    let g1 = grad(p1);
-
-    return ((1.0 - fade_t) * g0 * (p - p0) + fade_t * g1 * (p - p1));
 }

@@ -148,16 +148,16 @@ impl ProceduralGen {
             for j in 0..(out.len() - 1) {
                 let cord = (i, j);
 
-                let n = noise(&random, (cord.0 as f64 / 64.0, cord.1 as f64 / (freq))) * (amp)
-                    + noise(
+                let n = noise_2d(&random, (cord.0 as f64 / 64.0, cord.1 as f64 / (freq))) * (amp)
+                    + noise_2d(
                         &random,
                         (cord.0 as f64 / 32.0, cord.1 as f64 / (freq / 2.0)),
                     ) * (amp / 2.0)
-                    + noise(
+                    + noise_2d(
                         &random,
                         (cord.0 as f64 / 16.0, cord.1 as f64 / (freq / 4.0)),
                     ) * (amp / 4.0)
-                    + noise(&random, (cord.0 as f64 / 8.0, cord.1 as f64 / (freq / 8.0)))
+                    + noise_2d(&random, (cord.0 as f64 / 8.0, cord.1 as f64 / (freq / 8.0)))
                         * (amp / 8.0);
                 let modifier = n * 0.5 + 0.5;
 
@@ -212,16 +212,17 @@ fn gen_perlin_noise(freq: f64, amp: f64) -> [[f64; 128]; 128] {
         for j in 0..(out.len() - 1) {
             let cord = (i, j);
 
-            let n = noise(&random, (cord.0 as f64 / 64.0, cord.1 as f64 / (freq))) * (amp)
-                + noise(
+            let n = noise_2d(&random, (cord.0 as f64 / 64.0, cord.1 as f64 / (freq))) * (amp)
+                + noise_2d(
                     &random,
                     (cord.0 as f64 / 32.0, cord.1 as f64 / (freq / 2.0)),
                 ) * (amp / 2.0)
-                + noise(
+                + noise_2d(
                     &random,
                     (cord.0 as f64 / 16.0, cord.1 as f64 / (freq / 4.0)),
                 ) * (amp / 4.0)
-                + noise(&random, (cord.0 as f64 / 8.0, cord.1 as f64 / (freq / 8.0))) * (amp / 8.0);
+                + noise_2d(&random, (cord.0 as f64 / 8.0, cord.1 as f64 / (freq / 8.0)))
+                    * (amp / 8.0);
             let modifier = n * 0.5 + 0.5;
 
             out[i][j] = modifier;
@@ -241,27 +242,27 @@ fn gen_point_mod(cord: (i32, i32), freq: f64, amp: f64) -> f64 {
         }
     }
 
-    let n = noise(&random, (cord.0 as f64 / 64.0, cord.1 as f64 / (freq))) * (amp)
-        + noise(
+    let n = noise_2d(&random, (cord.0 as f64 / 64.0, cord.1 as f64 / (freq))) * (amp)
+        + noise_2d(
             &random,
             (cord.0 as f64 / 32.0, cord.1 as f64 / (freq / 2.0)),
         ) * (amp / 2.0)
-        + noise(
+        + noise_2d(
             &random,
             (cord.0 as f64 / 16.0, cord.1 as f64 / (freq / 4.0)),
         ) * (amp / 4.0)
-        + noise(&random, (cord.0 as f64 / 8.0, cord.1 as f64 / (freq / 8.0))) * (amp / 8.0);
+        + noise_2d(&random, (cord.0 as f64 / 8.0, cord.1 as f64 / (freq / 8.0))) * (amp / 8.0);
     let modifier = n * 0.5 + 0.5;
     return modifier;
 }
 
 //Perlin Noise helper function
-fn fade(t: f64) -> f64 {
+fn fade_2d(t: f64) -> f64 {
     return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
 }
 
 //Perlin Noise helper function
-fn grad(random: &[[f64; 64]; 64], p: (f64, f64)) -> (f64, f64) {
+fn grad_2d(random: &[[f64; 64]; 64], p: (f64, f64)) -> (f64, f64) {
     let v = (
         random[(p.0 / random.len() as f64) as usize][0],
         random[0][(p.1 / random.len() as f64) as usize],
@@ -272,22 +273,22 @@ fn grad(random: &[[f64; 64]; 64], p: (f64, f64)) -> (f64, f64) {
 }
 
 //Perlin Noise helper function
-fn noise(random: &[[f64; 64]; 64], p: (f64, f64)) -> f64 {
+fn noise_2d(random: &[[f64; 64]; 64], p: (f64, f64)) -> f64 {
     let p0 = (p.0.floor(), p.1.floor());
     let p1 = (p0.0 + 1.0, p0.1);
     let p2 = (p0.0, p0.1 + 1.0);
     let p3 = (p0.0 + 1.0, p0.1 + 1.0);
 
-    let g0 = grad(&random, p0);
-    let g1 = grad(&random, p1);
-    let g2 = grad(&random, p2);
-    let g3 = grad(&random, p3);
+    let g0 = grad_2d(&random, p0);
+    let g1 = grad_2d(&random, p1);
+    let g2 = grad_2d(&random, p2);
+    let g3 = grad_2d(&random, p3);
 
     let t0 = p.0 - p0.0;
-    let fade_t0 = fade(t0);
+    let fade_t0 = fade_2d(t0);
 
     let t1 = p.1 - p0.1;
-    let fade_t1 = fade(t1);
+    let fade_t1 = fade_2d(t1);
 
     let p_minus_p0 = (p.0 - p0.0, p.1 - p0.1);
     let p_minus_p1 = (p.0 - p1.0, p.1 - p1.1);
@@ -306,4 +307,50 @@ fn gen_bezier_curve(point_mod: f64) -> bool {
     //TODO
     //Bezier curve
     false
+}
+
+pub fn gen_perlin_hill_point(i: usize, freq: f64, amp: f64, modifier: f64, mul: f64) -> i16 {
+    let mut out = [0.0; 720];
+
+    for j in 0..720 {
+        let cord = (i, j);
+
+        let n = modifier
+            * (noise_1d(cord.0 as f64 * (1.0 / freq)) * amp
+                + noise_1d(cord.0 as f64 * (1.0 / freq / 2.0)) * amp / 2.0
+                + noise_1d(cord.0 as f64 * (1.0 / freq / 4.0)) * amp / 4.0
+                + noise_1d(cord.0 as f64 * (1.0 / freq / 8.0)) * amp / 8.0);
+
+        let y = 2.0 * (cord.1 as f64 / mul) - 1.0;
+        out[j] = 1.0;
+        if n > y {
+        } else {
+            return j as i16;
+        }
+    }
+    return 720 as i16;
+}
+
+fn fade_1d(t: f64) -> f64 {
+    return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+}
+
+fn grad_1d(p: f64) -> f64 {
+    let random = [0.0; 256];
+    let v = random[p.floor() as usize];
+
+    return if v > 0.5 { 1.0 } else { -1.0 };
+}
+
+fn noise_1d(p: f64) -> f64 {
+    let p0 = p.floor();
+    let p1 = p0 + 1.0;
+
+    let t = p - p0;
+    let fade_t = fade_1d(t);
+
+    let g0 = grad_1d(p0);
+    let g1 = grad_1d(p1);
+
+    return ((1.0 - fade_t) * g0 * (p - p0) + fade_t * g1 * (p - p1));
 }
