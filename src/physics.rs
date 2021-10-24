@@ -143,9 +143,9 @@ pub trait Body<'a>: Collider<'a> + Dynamic<'a> {
     ///
     /// # Arguments
     /// * `force`: an array containing the force's x and y components
-    ///     * `force[0]` is the x-component
-    ///     * `force[1]` is the y-component
-    fn apply_force(&mut self, force: [i32; 2]);
+    ///     * `force.0` is the x-component
+    ///     * `force.1` is the y-component
+    fn apply_force(&mut self, force: (i32, i32));
     /// Applies torque to the `Body`
     ///
     /// # Arguments
@@ -172,8 +172,9 @@ pub trait Body<'a>: Collider<'a> + Dynamic<'a> {
 /// * `Entity`
 pub struct Player<'a> {
     pos: Rect,
-    velocity: [i32; 2],
-    accel: [i32; 2],
+    y_bounds: (i32, i32),
+    velocity: (i32, i32),
+    accel: (i32, i32),
 
     theta: f64, // angle of rotation, in radians
     omega: f64, // angular speed
@@ -185,11 +186,12 @@ pub struct Player<'a> {
 }
 
 impl<'a> Player<'a> {
-    fn new(pos: Rect, mass: i32, texture: Texture<'a>) -> Player {
+    pub fn new(pos: Rect, mass: i32, y_bounds: (i32, i32), texture: Texture<'a>) -> Player {
         Player {
             pos,
-            velocity: [1, 0],
-            accel: [0, 0],
+            y_bounds,
+            velocity: (3, 0),
+            accel: (0, 0),
             theta: 0.0,
             omega: 0.0,
             alpha: 0.0,
@@ -218,8 +220,10 @@ impl<'a> Entity<'a> for Player<'a> {
     }
 
     fn update_pos(&mut self) {
-        self.pos.set_x(self.x() + self.vel_x());
-        self.pos.set_y(self.y() + self.vel_y());
+        // Player's x position is fixed
+
+        self.pos
+            .set_y((self.pos.y() + self.vel_y()).clamp(self.y_bounds.0, self.y_bounds.1));
     }
 
     fn rotate(&self, angle: f64) {}
@@ -227,19 +231,19 @@ impl<'a> Entity<'a> for Player<'a> {
 
 impl<'a> Dynamic<'a> for Player<'a> {
     fn vel_x(&self) -> i32 {
-        self.velocity[0]
+        self.velocity.0
     }
 
     fn vel_y(&self) -> i32 {
-        self.velocity[1]
+        self.velocity.1
     }
 
     fn accel_x(&self) -> i32 {
-        self.accel[0]
+        self.accel.0
     }
 
     fn accel_y(&self) -> i32 {
-        self.accel[1]
+        self.accel.1
     }
 
     fn omega(&self) -> f64 {
@@ -254,8 +258,8 @@ impl<'a> Dynamic<'a> for Player<'a> {
         // Update to make the TOTAL MAX VELOCITY constant
         // Right now it's UPPER_SPEED in one direction and UPPER_SPEED*sqrt(2)
         // diagonally
-        self.velocity[0] = (self.velocity[0] + self.accel[0]).clamp(LOWER_SPEED, UPPER_SPEED);
-        self.velocity[1] = (self.velocity[1] + self.accel[1]).clamp(0, UPPER_SPEED);
+        self.velocity.0 = (self.velocity.0 + self.accel.0).clamp(LOWER_SPEED, UPPER_SPEED);
+        self.velocity.1 = (self.velocity.1 + self.accel.1).clamp(0, UPPER_SPEED);
     }
 
     fn update_omega(&mut self) {
@@ -285,9 +289,9 @@ impl<'a> Body<'a> for Player<'a> {
 
     // Should we take in force as a magnitude and an angle? Makes the friction
     // calculation above simpler
-    fn apply_force(&mut self, force: [i32; 2]) {
-        self.accel[0] += force[0] / self.mass;
-        self.accel[1] += force[1] / self.mass;
+    fn apply_force(&mut self, force: (i32, i32)) {
+        self.accel.0 += force.0 / self.mass;
+        self.accel.1 += force.1 / self.mass;
     }
 
     fn apply_torque(&mut self, force: i32, radius: i32) {
@@ -313,7 +317,7 @@ pub struct Obstacle<'a> {
 /// * Add default impls of certain obstacle traits so that it is easier to make
 /// different types of obstacles
 impl<'a> Obstacle<'a> {
-    fn new(pos: Rect, mass: i32, texture: Texture<'a>) -> Obstacle {
+    pub fn new(pos: Rect, mass: i32, texture: Texture<'a>) -> Obstacle {
         Obstacle {
             pos,
             texture,
