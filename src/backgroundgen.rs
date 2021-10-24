@@ -34,50 +34,45 @@ impl Game for BackgroundGen {
 
         let mut next_status = Some(GameStatus::Main);
 
-        let mut ct = 0;
         let mut i = 0;
-        while ct < 1 {
-            let chunk = main_image();
-            while i < 160 {
-                for j in 0..720 {
-                    if chunk[i][j] == 1.0 {
-                        core.wincan.set_draw_color(Color::RGBA(
-                            255,
-                            69,
-                            0,
-                            (((720.0 - j as f64) / 720.0) * 255.0) as u8,
-                        ));
-                    } else if chunk[i][j] == 0.2 {
-                        core.wincan.set_draw_color(Color::RGBA(
-                            (chunk[i][j] * 255.0).floor() as u8,
-                            (chunk[i][j] * 255.0).floor() as u8,
-                            0,
-                            255,
-                        ));
-                    } else if chunk[i][j] == 0.01 {
-                        core.wincan.set_draw_color(Color::RGBA(
-                            (chunk[i][j] * 255.0).floor() as u8,
-                            (chunk[i][j] * 255.0).floor() as u8,
-                            (chunk[i][j] * 255.0).floor() as u8,
-                            255,
-                        ));
-                    } else {
-                        // core.wincan.set_draw_color(Color::RGBA(
-                        //     255,
-                        //     69,
-                        //     0,
-                        //     ((j / 720) * 255) as u8,
-                        // ));
-                    }
-
-                    core.wincan
-                        .fill_rect(rect!((8 * i) + 160 * ct, (720 - j), 8, 1))?;
+        let chunk = main_image();
+        while i < 160 {
+            for j in 0..720 {
+                if chunk[i][j] == 1.0 {
+                    core.wincan.set_draw_color(Color::RGBA(
+                        255,
+                        69,
+                        0,
+                        (((720.0 - j as f64) / 720.0) * 255.0) as u8,
+                    ));
+                } else if chunk[i][j] == 0.2 {
+                    core.wincan.set_draw_color(Color::RGBA(
+                        (chunk[i][j] * 255.0).floor() as u8,
+                        (chunk[i][j] * 255.0).floor() as u8,
+                        0,
+                        255,
+                    ));
+                } else if chunk[i][j] == 0.01 {
+                    core.wincan.set_draw_color(Color::RGBA(
+                        (chunk[i][j] * 255.0).floor() as u8,
+                        (chunk[i][j] * 255.0).floor() as u8,
+                        (chunk[i][j] * 255.0).floor() as u8,
+                        255,
+                    ));
+                } else {
+                    // core.wincan.set_draw_color(Color::RGBA(
+                    //     255,
+                    //     69,
+                    //     0,
+                    //     ((j / 720) * 255) as u8,
+                    // ));
                 }
-                i += 1;
+
+                core.wincan.fill_rect(rect!((8 * i), (720 - j), 8, 1))?;
             }
-            i = 0;
-            ct += 1;
+            i += 1;
         }
+        i = 0;
 
         core.wincan.present();
 
@@ -126,11 +121,11 @@ fn main_image() -> [[f64; 720]; 160] {
 
     let mut rng = rand::thread_rng();
 
-    let freq_n1: f64 = rng.gen::<f64>() * 300.0 + 32.0;
-    let amp_n1: f64 = rng.gen::<f64>() + 0.5;
+    let freq_n1: f64 = rng.gen::<f64>() * 150.0 + 64.0;
+    let freq_n2: f64 = rng.gen::<f64>() * 200.0 + 64.0;
 
-    let freq_n2: f64 = rng.gen::<f64>() * 300.0 + 32.0;
-    let amp_n2: f64 = rng.gen::<f64>() + 0.5;
+    let amp_n1: f64 = rng.gen::<f64>() + 1.0;
+    let amp_n2: f64 = rng.gen::<f64>() + amp_n1;
 
     for i in 0..160 {
         for j in 0..720 {
