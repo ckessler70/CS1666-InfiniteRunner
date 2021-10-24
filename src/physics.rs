@@ -55,6 +55,12 @@ impl Physics {
     fn apply_buoyancy(player: &Player) {
         // TODO
         // apply_force()
+
+        // Buoyant force = gravity * density of liquid * (volume of fluid displaced)
+        // Also  = mass * grav * (density object/density liquid)
+        // we probably just give the player a set volume
+        // then see "how far into the liquid it has collided"
+        
         todo!();
     }
 }
@@ -259,7 +265,7 @@ impl<'a> Player<'a> {
 
             // In the future, adjust this angle to match the approximate slope of the ground
             self.toggle_omega();
-            
+
             if (-360.0 + OMEGA * 3.0) > self.theta() || self.theta() > (-OMEGA * 3.0){
                 self.theta = 0.0;
                 true
@@ -360,7 +366,10 @@ impl<'a> Body<'a> for Player<'a> {
     }
 
     fn rotational_inertia(&self) -> i32 {
-        // TODO
+        // TODO:
+        // Rotaional inertia -- I = L/omega
+        // I think we'll wanna use L = mass*R^2     (ie. angular momentum for a sphere/thing with effective radius R)
+        // Torque (if we need it) tau = I * alpha
         todo!();
     }
 

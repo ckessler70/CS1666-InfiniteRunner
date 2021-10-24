@@ -10,4 +10,5 @@ target
 */*.xcf
 build.bat
 build.sh
+Physics_Outline.txt
 *.dll
