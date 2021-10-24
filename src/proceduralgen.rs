@@ -264,8 +264,8 @@ fn fade_2d(t: f64) -> f64 {
 //Perlin Noise helper function
 fn grad_2d(random: &[[f64; 64]; 64], p: (f64, f64)) -> (f64, f64) {
     let v = (
-        random[(p.0 / random.len() as f64) as usize][0],
-        random[0][(p.1 / random.len() as f64) as usize],
+        random[((p.0 / random.len() as f64) as usize) % random.len()][0],
+        random[0][((p.1 / random.len() as f64) as usize) % random.len()],
     );
     let n = (v.0 * 2.0 - 1.0, v.1 * 2.0 - 1.0);
     let normalize = (v.0 * v.0 + v.1 * v.1).sqrt();
@@ -337,7 +337,7 @@ fn fade_1d(t: f64) -> f64 {
 
 fn grad_1d(p: f64) -> f64 {
     let random = [0.0; 256];
-    let v = random[p.floor() as usize];
+    let v = random[p.floor() as usize % 256];
 
     return if v > 0.5 { 1.0 } else { -1.0 };
 }
