@@ -8,6 +8,8 @@ mod runner;
 mod title;
 mod utils;
 
+mod backgroundgen;
+
 use inf_runner::Game;
 use inf_runner::GameState;
 use inf_runner::GameStatus;
@@ -23,6 +25,7 @@ pub struct UrbanOdyssey {
     runner: runner::Runner,
     credits: credits::Credits,
     proceduralgen: proceduralgen::ProceduralGen,
+    backgroundgen: backgroundgen::BackgroundGen,
     /* physics?
      * procedural generation? */
 }
@@ -88,7 +91,6 @@ fn main() {
                         println!("\nRunning Test Sequence:");
                         println!("\tRunning...");
 
-                        // CREDITS RUN
                         match contents.proceduralgen.test_mapper() {
                             Err(e) => {
                                 println!("\n\t\tEncountered error while running: {}", e)
@@ -98,6 +100,15 @@ fn main() {
                                     status: Some(GameStatus::Main),
                                     score: 0,
                                 };
+                                println!("DONE\nExiting cleanly");
+                            }
+                        };
+                        match contents.backgroundgen.run(&mut (contents.core)) {
+                            Err(e) => {
+                                println!("\n\t\tEncountered error while running: {}", e)
+                            }
+                            Ok(background_status) => {
+                                game_manager = background_status;
                                 println!("DONE\nExiting cleanly");
                             }
                         };
@@ -119,6 +130,7 @@ fn init() -> Result<UrbanOdyssey, String> {
     let credits = credits::Credits::init()?;
     // physics?
     let proceduralgen = proceduralgen::ProceduralGen::init()?;
+    let backgroundgen = backgroundgen::BackgroundGen::init()?;
     // procedural generation?
 
     Ok(UrbanOdyssey {
@@ -127,5 +139,6 @@ fn init() -> Result<UrbanOdyssey, String> {
         runner,
         credits,
         proceduralgen,
+        backgroundgen,
     })
 }
