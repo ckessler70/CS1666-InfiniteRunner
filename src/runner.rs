@@ -258,6 +258,7 @@ impl Game for Runner {
                         } => match k {
                             Keycode::W | Keycode::Up | Keycode::Space => {
                                 player.jump();
+                                player.resume_flipping();
                             }
                             Keycode::Escape => {
                                 game_paused = true;

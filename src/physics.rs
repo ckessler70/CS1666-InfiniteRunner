@@ -221,6 +221,12 @@ impl<'a> Player<'a> {
         }
     }
 
+    pub fn resume_flipping(&mut self) {
+        self.flipping = true;
+        self.rotate();
+    }
+
+
     // Returns true if a jump was initiated
     pub fn jump(&mut self) -> bool {
         if self.pos.y() == self.y_bounds.1 {
@@ -293,7 +299,7 @@ impl<'a> Entity<'a> for Player<'a> {
     }
 
     fn rotate(&mut self) {
-        self.theta = (self.theta + self.omega) % 360.0;
+        self.theta = (self.theta - self.omega) % 360.0;
     }
 }
 
