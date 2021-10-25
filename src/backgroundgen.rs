@@ -236,7 +236,7 @@ impl Game for BackgroundGen {
 
             tick += 1;
 
-            if tick % 3 == 0 && tick % 5 == 0 {
+            if tick % 3 == 0 && tick % 5 == 0 && tick % 10 == 0 {
                 tick = 0;
             }
 
