@@ -7,7 +7,7 @@ use sdl2::render::Texture;
 const LOWER_SPEED: i32 = 1;
 const UPPER_SPEED: i32 = 5;
 // const GRAVITY: f64 = 9.80665;
-const OMEGA: f64 = 18.0;
+const OMEGA: f64 = 9.0;
 
 pub struct Physics;
 
@@ -267,8 +267,8 @@ impl<'a> Player<'a> {
 
             self.toggle_omega();
             // if (-360.0 + OMEGA * 3.0) > self.theta() || self.theta() > (-OMEGA * 3.0) {
-            if self.theta() > (-OMEGA * 2.5 - angle)
-                || self.theta() < ((-360.0 + OMEGA * 2.5 - angle) % 360.0)
+            if self.theta() > (-OMEGA * 5.0 - angle)
+                || self.theta() < ((-360.0 + OMEGA * 5.0 - angle) % 360.0)
             {
                 self.theta = angle;
                 true
