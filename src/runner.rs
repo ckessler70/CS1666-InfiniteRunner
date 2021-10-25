@@ -69,6 +69,7 @@ impl Game for Runner {
         let texture_creator = core.wincan.texture_creator();
         let tex_bg = texture_creator.load_texture("assets/bg.png")?;
         let tex_sky = texture_creator.load_texture("assets/sky.png")?;
+        let tex_grad = texture_creator.load_texture("assets/sunset_gradient.png")?;
 
         let mut bg_buff = 0;
 
@@ -328,6 +329,9 @@ impl Game for Runner {
                 core.wincan.set_draw_color(Color::RGBA(3, 120, 206, 255));
                 core.wincan.clear();
 
+                core.wincan
+                    .copy(&tex_grad, None, rect!(0, -128, CAM_W, CAM_H))?;
+
                 // Every tick, build a new ground segment
                 if tick % 1 == 0 {
                     for i in 0..(SIZE as usize - 1) {
@@ -379,7 +383,6 @@ impl Game for Runner {
                     bg_buff -= 1;
                 }
 
-                //Background gradient
                 core.wincan.set_draw_color(Color::RGBA(0, 0, 0, 255));
                 core.wincan.fill_rect(rect!(0, 470, CAM_W, CAM_H));
 
