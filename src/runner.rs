@@ -39,13 +39,6 @@ const CAM_W: u32 = 1280;
 
 const TILE_SIZE: u32 = 100;
 
-const LEVEL_LEN: u32 = CAM_W * 3;
-const SPEED_LIMIT: i32 = 5;
-
-// Flipping bounds
-// Roughly anything larger than 30 will not complete flip in jump's time
-const FLIP_INCREMENT: f64 = 360.0 / 30.0;
-
 // Ensure that SIZE is not a decimal
 // 1, 2, 4, 5, 8, 10, 16, 20, 32, 40, 64, 80, 128, 160, 256, 320, 640
 const SIZE: usize = CAM_W as usize / 8;
@@ -277,9 +270,20 @@ impl Game for Runner {
                     break 'gameloop;
                 }
             } else {
+                // Left ground position
                 let current_ground = CAM_H as i32
                     - bg[2][(player.x() as usize) / (CAM_W / SIZE as u32) as usize] as i32
                     - TILE_SIZE as i32;
+                // Right ground position
+                let next_ground = CAM_H as i32
+                    - bg[2][(((player.x() + TILE_SIZE as i32) as usize)
+                        / (CAM_W / SIZE as u32) as usize)] as i32
+                    - TILE_SIZE as i32;
+                // Angle between (slightly dampened so angling the player doesn't look silly)
+                let angle = ((next_ground as f64 - current_ground as f64) / (TILE_SIZE as f64))
+                    .atan()
+                    * 130.0
+                    / std::f64::consts::PI;
 
                 for event in core.event_pump.poll_iter() {
                     match event {
@@ -309,15 +313,13 @@ impl Game for Runner {
                     }
                 }
 
-                player.update_pos(current_ground);
+                player.update_pos(current_ground, angle);
                 player.update_vel();
                 if frames % 2 == 0 {
                     player.flip();
                 }
-                // OFFSET = (OFFSET + player.vel_x()) % CAM_W as i32;
-                // let bg_offset = -OFFSET;
 
-                if !player.land(current_ground) {
+                if !player.land(current_ground, angle) {
                     game_over = true;
                     initial_pause = true;
                     continue;
@@ -377,14 +379,6 @@ impl Game for Runner {
                     bg_buff -= 1;
                 }
 
-                //MODIFIED: G 252 -> 120 (so I could see sky images better)
-                // core.wincan.set_draw_color(Color::RGBA(3, 120, 206, 255));
-                // core.wincan.clear();
-
-                // src_x = if player.vel_x() != 0 {
-                //     frames = if (frames + 1) / 6 > 3 { 0 } else { frames + 1 };
-                // };
-
                 //Background gradient
                 core.wincan.set_draw_color(Color::RGBA(0, 0, 0, 255));
                 core.wincan.fill_rect(rect!(0, 470, CAM_W, CAM_H));
@@ -406,12 +400,6 @@ impl Game for Runner {
                     None,
                     rect!(CAM_W as i32 + bg_buff, 0, CAM_W, CAM_H / 3),
                 )?;
-
-                /*** Terrain Section ***/
-                // Update all segment postitions
-                // for segment in terrain.iter_mut() {
-                //     segment.update_pos(-player.vel_x(), 0);
-                // }
 
                 for i in 0..bg[FRONT_HILL_INDEX].len() - 1 {
                     // Furthest back mountains

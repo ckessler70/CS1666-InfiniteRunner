@@ -80,7 +80,7 @@ pub trait Entity<'a> {
     /// Returns the y position of the `Entity`'s top left corner
     fn y(&self) -> i32;
     /// Modifies the position of the `Entity`
-    fn update_pos(&mut self, ground_pos: i32);
+    fn update_pos(&mut self, ground_pos: i32, angle: f64);
 
     /****************** Angular motion *************** */
 
@@ -233,9 +233,9 @@ impl<'a> Player<'a> {
 
     // Returns true if a jump was initiated
     pub fn jump(&mut self, ground_pos: i32) -> bool {
-        if self.pos.y() == ground_pos {
+        if (self.pos.y() - ground_pos).abs() < 5 {
             self.velocity.1 += 23;
-            self.accel.1 -= 1;
+            self.accel.1 = -1;
             self.jumping = true;
 
             self.toggle_omega();
@@ -254,17 +254,23 @@ impl<'a> Player<'a> {
     }
 
     // Returns false if the player crashed
-    pub fn land(&mut self, ground_pos: i32) -> bool {
-        if self.is_jumping() && self.pos.y() == ground_pos {
+    // Uses slope of ground to approximate landing angle
+    // angle param is relative to the horizontal
+    //   - flat ground has angle 0
+    //   - ground sloped DOWN has negative angle
+    //   - ground sloped UP has positive angle
+    pub fn land(&mut self, ground_pos: i32, angle: f64) -> bool {
+        if self.is_jumping() && (self.pos.y() - ground_pos).abs() < 5 {
             self.velocity.1 = 0;
             self.accel.1 = 0;
             self.jumping = false;
 
-            // In the future, adjust this angle to match the approximate slope of the ground
             self.toggle_omega();
-
-            if (-360.0 + OMEGA * 3.0) > self.theta() || self.theta() > (-OMEGA * 3.0) {
-                self.theta = 0.0;
+            // if (-360.0 + OMEGA * 3.0) > self.theta() || self.theta() > (-OMEGA * 3.0) {
+            if self.theta() > (-OMEGA * 2.5 - angle)
+                || self.theta() < ((-360.0 + OMEGA * 2.5 - angle) % 360.0)
+            {
+                self.theta = angle;
                 true
             } else {
                 false
@@ -292,7 +298,7 @@ impl<'a> Entity<'a> for Player<'a> {
         self.theta
     }
 
-    fn update_pos(&mut self, ground_pos: i32) {
+    fn update_pos(&mut self, ground_pos: i32, angle: f64) {
         // Player's x position is fixed
         self.pos
             .set_y((self.pos.y() - self.vel_y()).clamp(0, ground_pos));
@@ -300,8 +306,9 @@ impl<'a> Entity<'a> for Player<'a> {
         if self.pos.y() == ground_pos {
             self.accel.1 = 0;
             self.velocity.1 = 0;
+            self.theta = angle * 3.0;
         } else if self.accel.1 == 0 {
-            self.accel.1 = -1;
+            self.accel.1 = -3;
         }
     }
 
