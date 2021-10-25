@@ -334,8 +334,7 @@ fn fade_1d(t: f32) -> f32 {
 }
 
 fn grad_1d(p: f32) -> f32 {
-    let mut rng = rand::thread_rng();
-    let v: f32 = rng.gen::<f32>();
+    let v: f32 = 0.0;
 
     return if v > 0.5 { 1.0 } else { -1.0 };
 }
