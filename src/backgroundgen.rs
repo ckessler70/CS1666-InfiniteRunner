@@ -174,14 +174,14 @@ impl Game for BackgroundGen {
             }
 
             //Background gradient
-            for i in 0..CAM_H {
+            for i in 0..CAM_H / 2 {
                 core.wincan.set_draw_color(Color::RGBA(
                     255,
                     69,
                     0,
                     ((i as f32 / CAM_H as f32 / 40.0) * 255.0) as u8,
                 ));
-                core.wincan.fill_rect(rect!(0, i, CAM_W, CAM_H))?;
+                core.wincan.fill_rect(rect!(0, i, CAM_W, CAM_H / 2))?;
             }
 
             core.wincan.set_draw_color(Color::RGBA(0, 0, 0, 255));
@@ -212,7 +212,7 @@ impl Game for BackgroundGen {
                     i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
                     CAM_H as i16 - bg[BACK_HILL_INDEX][i],
                     CAM_W as usize / SIZE,
-                    CAM_H as i16
+                    CAM_H as i16 - bg[BACK_HILL_INDEX][i]
                 ))?;
 
                 // Closest mountains
@@ -221,7 +221,7 @@ impl Game for BackgroundGen {
                     i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
                     CAM_H as i16 - bg[FRONT_HILL_INDEX][i],
                     CAM_W as usize / SIZE,
-                    CAM_H as i16
+                    CAM_H as i16 - bg[FRONT_HILL_INDEX][i]
                 ))?;
 
                 // Ground
@@ -230,7 +230,7 @@ impl Game for BackgroundGen {
                     i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
                     CAM_H as i16 - bg[GROUND_INDEX][i],
                     CAM_W as usize / SIZE,
-                    CAM_H as i16
+                    CAM_H as i16 - bg[GROUND_INDEX][i]
                 ))?;
             }
 
