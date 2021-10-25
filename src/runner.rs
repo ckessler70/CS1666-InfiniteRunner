@@ -1,15 +1,12 @@
-// use crate::physics::Player;
-use crate::proceduralgen::ProceduralGen;
-use crate::proceduralgen::TerrainSegment;
+use crate::proceduralgen;
 use crate::rect;
+// use crate::Physics;
 
 use inf_runner::Game;
 use inf_runner::GameState;
 use inf_runner::GameStatus;
 use inf_runner::SDLCore;
 
-use std::collections::HashSet;
-use std::collections::LinkedList;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
@@ -21,27 +18,30 @@ use sdl2::rect::Rect;
 use sdl2::render::Texture;
 use sdl2::render::TextureQuery;
 
+use rand::Rng;
+
 const FPS: f64 = 60.0;
 const FRAME_TIME: f64 = 1.0 / FPS as f64;
 
-const CAM_W: u32 = 1280;
 const CAM_H: u32 = 720;
+const CAM_W: u32 = 1280;
 
 const TILE_SIZE: u32 = 100;
 
-// Bounds we want to keep the player within
-const PLAYER_BOUNDS_H: (i32, i32) = (0, (CAM_W - TILE_SIZE) as i32);
-const PLAYER_BOUNDS_V: (i32, i32) = (0, (CAM_H - TILE_SIZE) as i32);
-//const LTHIRD: i32 = ((CAM_W as i32) / 3) - (TILE_SIZE as i32) / 2;
-//const RTHIRD: i32 = ((CAM_W as i32) * 2 / 3) - (TILE_SIZE as i32) / 2;
-
+const LEVEL_LEN: u32 = CAM_W * 3;
 const SPEED_LIMIT: i32 = 5;
 
 // Flipping bounds
 // Roughly anything larger than 30 will not complete flip in jump's time
 const FLIP_INCREMENT: f64 = 360.0 / 30.0;
 
-// const LEVEL_LEN: u32 = CAM_W * 3;
+// Ensure that SIZE is not a decimal
+// 1, 2, 4, 5, 8, 10, 16, 20, 32, 40, 64, 80, 128, 160, 256, 320, 640
+const SIZE: usize = CAM_W as usize / 8;
+
+const FRONT_HILL_INDEX: usize = 0;
+const BACK_HILL_INDEX: usize = 1;
+const GROUND_INDEX: usize = 2;
 
 pub struct Runner;
 
@@ -63,57 +63,38 @@ impl<'a> Player<'a> {
         self.pos.y()
     }
 
-    fn update_pos(&mut self, x_vel: i32, y_vel: i32) {
-        self.pos
-            .set_x((self.pos.x() + x_vel).clamp(PLAYER_BOUNDS_H.0, PLAYER_BOUNDS_H.1));
-        self.pos
-            .set_y((self.pos.y() + y_vel).clamp(PLAYER_BOUNDS_V.0, PLAYER_BOUNDS_V.1));
-    }
-    /*
-    fn update_pos(
-        &mut self,
-        vel: (i32, i32),
-        x_bounds: (i32, i32),
-        y_bounds: (i32, i32),
-        scroll_offset: i32,
-    ) {
-        self.pos
-            .set_x((self.pos.x() + vel.0).clamp(x_bounds.0, x_bounds.1));
-        self.pos.set_y((self.pos.y() + vel.1).clamp(
-            y_bounds.0,
-            ground_pos(self.x() - scroll_offset) - (TILE_SIZE as i32),
+    fn update_pos(&mut self, x_vel: i32, y_vel: i32, grounds: &[i16; SIZE]) {
+        self.pos.set_x((self.pos.x() + x_vel).clamp(
+            CAM_W as i32 / 2 - TILE_SIZE as i32 / 2,
+            CAM_W as i32 / 2 - TILE_SIZE as i32 / 2 + 1,
         ));
+
+        let clamp_bounds = CAM_H as i32
+            - grounds[(self.pos.x() as usize) / (CAM_W / SIZE as u32) as usize] as i32
+            - TILE_SIZE as i32;
+
+        self.pos
+            .set_y((self.pos.y() + y_vel).clamp(0, clamp_bounds));
     }
-    */
 
     fn texture(&self) -> &Texture {
         &self.texture
     }
 }
 
-// What is this?
-// fn resist(vel: i32, deltav: i32) -> i32 {
-//     if deltav == 0 {
-//         if vel > 0 {
-//             -1
-//         } else if vel < 0 {
-//             1
-//         } else {
-//             deltav
-//         }
-//     } else {
-//         deltav
-//     }
-// }
-
-/*
-// y = -0.05x + 100
-fn ground_pos(x: i32) -> i32 {
-    let res = (-0.05 * (x as f64) + 100.0) as i32;
-    // println!("ground: {}", res);
-    (CAM_H as i32) - res
+fn resist(vel: i32, deltav: i32) -> i32 {
+    if deltav == 0 {
+        if vel > 0 {
+            -1
+        } else if vel < 0 {
+            1
+        } else {
+            deltav
+        }
+    } else {
+        deltav
+    }
 }
-*/
 
 impl Game for Runner {
     fn init() -> Result<Self, String> {
@@ -121,29 +102,26 @@ impl Game for Runner {
     }
 
     fn run(&mut self, core: &mut SDLCore) -> Result<GameState, String> {
-        // ???
         core.wincan.set_blend_mode(sdl2::render::BlendMode::Blend);
-
-        let texture_creator = core.wincan.texture_creator();
-
-        core.wincan.set_draw_color(Color::RGBA(3, 252, 206, 255));
-        core.wincan.clear();
 
         let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
 
         let mut font = ttf_context.load_font("./assets/DroidSansMono.ttf", 128)?;
         font.set_style(sdl2::ttf::FontStyle::BOLD);
-        // Textures
-        let tex_bg = texture_creator.load_texture("assets/bg.png")?;
-        let tex_terrain = texture_creator.load_texture("assets/rolling_hills.png")?;
-        let tex_sky = texture_creator.load_texture("assets/sky.png")?;
 
-        // ???
-        // let mut scroll_offset = 0;
+        let texture_creator = core.wincan.texture_creator();
+        let tex_bg = texture_creator.load_texture("assets/bg.png")?;
+        let tex_sky = texture_creator.load_texture("assets/sky.png")?;
+        let mut bg_buff = 0;
 
         // Create player at default position
         let mut player = Player::new(
-            rect!(PLAYER_BOUNDS_H.0, PLAYER_BOUNDS_V.0, TILE_SIZE, TILE_SIZE),
+            rect!(
+                CAM_W as i32 / 2 - TILE_SIZE as i32 / 2,
+                CAM_H as i32 / 2,
+                TILE_SIZE,
+                TILE_SIZE
+            ),
             texture_creator.load_texture("assets/player.png")?,
         );
 
@@ -162,12 +140,6 @@ impl Game for Runner {
         let mut r_flip: bool = false;
         let mut r_flip_spot: f64 = 0.0;
 
-        // FPS tracking
-        let mut all_frames: i32 = 0;
-        let mut last_raw_time;
-        let mut last_measurement_time = Instant::now();
-
-        // Score tracking
         let mut score: i32 = 0;
 
         let mut game_paused: bool = false;
@@ -175,15 +147,41 @@ impl Game for Runner {
         let mut game_over: bool = false;
         let mut ct: i32 = 0;
 
+        // FPS tracking
+        let mut all_frames: i32 = 0;
+        let mut last_raw_time;
+        let mut last_measurement_time = Instant::now();
+
         let mut next_status = GameStatus::Main;
 
-        // Terrain Initialization
-        let init_terrain = ProceduralGen::init_terrain(CAM_W as i32, CAM_H as i32, &tex_terrain);
-        let mut terrain: LinkedList<TerrainSegment> = LinkedList::new();
-        terrain.push_back(init_terrain);
+        let mut ct: usize = 0;
+        let mut tick = 0;
+        let mut buff_1: usize = 0;
+        let mut buff_2: usize = 0;
+        let mut buff_3: usize = 0;
 
-        // Total offset of terrain, also used for background
-        let mut OFFSET: i32 = 0;
+        // bg[0] = Front hills
+        // bg[1] = Back hills
+        // bg[2] = Ground
+        let mut bg: [[i16; SIZE]; 3] = [[0; SIZE]; 3];
+
+        let mut rng = rand::thread_rng();
+
+        let freq: f32 = rng.gen::<f32>() * 1000.0 + 100.0;
+
+        let amp_1: f32 = rng.gen::<f32>() * 4.0 + 1.0;
+        let amp_2: f32 = rng.gen::<f32>() * 2.0 + amp_1;
+        let amp_3: f32 = rng.gen::<f32>() * 2.0 + 1.0;
+
+        while ct < SIZE as usize {
+            bg[FRONT_HILL_INDEX][ct] =
+                proceduralgen::gen_perlin_hill_point((ct + buff_1), freq, amp_1, 0.5, 600.0);
+            bg[BACK_HILL_INDEX][ct] =
+                proceduralgen::gen_perlin_hill_point((ct + buff_2), freq, amp_2, 1.0, 820.0);
+            bg[GROUND_INDEX][ct] =
+                proceduralgen::gen_perlin_hill_point((ct + buff_3), freq, amp_3, 1.5, 256.0);
+            ct += 1;
+        }
 
         'gameloop: loop {
             // FPS tracking
@@ -279,6 +277,7 @@ impl Game for Runner {
                 }
             } else if game_over {
                 if initial_pause {
+                    ct = 0;
                     let game_over_texture = texture_creator
                         .create_texture_from_surface(
                             &font
@@ -320,7 +319,7 @@ impl Game for Runner {
 
                 ct += 1;
                 if ct == 120 {
-                    break;
+                    break 'gameloop;
                 }
             } else {
                 let mut x_deltav: i32 = 1;
@@ -373,151 +372,144 @@ impl Game for Runner {
                     continue;
                 }
 
-                // If we want to use keystates instead of events...
-                let keystate: HashSet<Keycode> = core
-                    .event_pump
-                    .keyboard_state()
-                    .pressed_scancodes()
-                    .filter_map(Keycode::from_scancode)
-                    .collect();
+                core.wincan.set_draw_color(Color::RGBA(3, 120, 206, 255));
+                core.wincan.clear();
 
-                if keystate.contains(&Keycode::A) || keystate.contains(&Keycode::Left) {
-                    //x_deltav = -1;
-                    x_vel = -SPEED_LIMIT;
-                }
-                if keystate.contains(&Keycode::D) || keystate.contains(&Keycode::Right) {
-                    //x_deltav = 1;
-                    x_vel = SPEED_LIMIT;
+                // Every tick, build a new ground segment
+                if tick % 1 == 0 {
+                    for i in 0..(SIZE as usize - 1) {
+                        bg[GROUND_INDEX][i] = bg[GROUND_INDEX][i + 1];
+                    }
+                    buff_3 += 1;
+                    let chunk_3 = proceduralgen::gen_perlin_hill_point(
+                        ((SIZE - 1) as usize + buff_3),
+                        freq,
+                        amp_3,
+                        1.5,
+                        256.0,
+                    );
+                    bg[GROUND_INDEX][(SIZE - 1) as usize] = chunk_3;
                 }
 
-                /*
+                // Every 3 ticks, build a new front mountain segment
+                if tick % 3 == 0 {
+                    for i in 0..(SIZE as usize - 1) {
+                        bg[FRONT_HILL_INDEX][i] = bg[FRONT_HILL_INDEX][i + 1];
+                    }
+                    buff_1 += 1;
+                    let chunk_1 = proceduralgen::gen_perlin_hill_point(
+                        ((SIZE - 1) as usize + buff_1),
+                        freq,
+                        amp_1,
+                        0.5,
+                        600.0,
+                    );
+                    bg[FRONT_HILL_INDEX][(SIZE - 1) as usize] = chunk_1;
+                }
+
+                // Every 5 ticks, build a new back mountain segment
+                if tick % 5 == 0 {
+                    for i in 0..(SIZE as usize - 1) {
+                        bg[BACK_HILL_INDEX][i] = bg[BACK_HILL_INDEX][i + 1];
+                    }
+                    buff_2 += 1;
+                    let chunk_2 = proceduralgen::gen_perlin_hill_point(
+                        ((SIZE - 1) as usize + buff_2),
+                        freq,
+                        amp_2,
+                        1.0,
+                        820.0,
+                    );
+                    bg[BACK_HILL_INDEX][(SIZE - 1) as usize] = chunk_2;
+                }
+                if tick % 10 == 0 {
+                    bg_buff -= 1;
+                }
+
+                //Background gradient
+
+                core.wincan.set_draw_color(Color::RGBA(0, 0, 0, 255));
+                core.wincan.fill_rect(rect!(0, 470, CAM_W, CAM_H));
+
+                // Draw background
+                core.wincan
+                    .copy(&tex_bg, None, rect!(bg_buff, -150, CAM_W, CAM_H))?;
+                core.wincan.copy(
+                    &tex_bg,
+                    None,
+                    rect!(bg_buff + (CAM_W as i32), -150, CAM_W, CAM_H),
+                )?;
+
+                //Draw sky in background
+                core.wincan
+                    .copy(&tex_sky, None, rect!(bg_buff, 0, CAM_W, CAM_H / 3))?;
+                core.wincan.copy(
+                    &tex_sky,
+                    None,
+                    rect!(CAM_W as i32 + bg_buff, 0, CAM_W, CAM_H / 3),
+                )?;
+
+                for i in 0..bg[FRONT_HILL_INDEX].len() - 1 {
+                    // Furthest back mountains
+                    core.wincan.set_draw_color(Color::RGBA(128, 51, 6, 255));
+                    core.wincan.fill_rect(rect!(
+                        i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
+                        CAM_H as i16 - bg[BACK_HILL_INDEX][i],
+                        CAM_W as usize / SIZE,
+                        CAM_H as i16
+                    ))?;
+
+                    // Closest mountains
+                    core.wincan.set_draw_color(Color::RGBA(96, 161, 152, 255));
+                    core.wincan.fill_rect(rect!(
+                        i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
+                        CAM_H as i16 - bg[FRONT_HILL_INDEX][i],
+                        CAM_W as usize / SIZE,
+                        CAM_H as i16
+                    ))?;
+
+                    // Ground
+                    core.wincan.set_draw_color(Color::RGBA(13, 66, 31, 255));
+                    core.wincan.fill_rect(rect!(
+                        i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
+                        CAM_H as i16 - bg[GROUND_INDEX][i],
+                        CAM_W as usize / SIZE,
+                        CAM_H as i16
+                    ))?;
+                }
+
+                tick += 1;
+
+                score += 1;
+
+                if tick % 3 == 0 && tick % 5 == 0 {
+                    tick = 0;
+                }
+
+                if -bg_buff == CAM_W as i32 {
+                    bg_buff = 0;
+                }
+
+                // There should be some way to determine where it repeats but I can't figure it out
+                // if buff_1 as f64 % (freq * amp_1) == 0 {
+                //     println!("{:?}", buff_1);
+                //     buff_1 = 0;
+                // }
+                // if buff_2 as f64 % (freq * amp_2) == 0 {
+                //     println!("{:?}", buff_2);
+                //     buff_2 = 0;
+                // }
+                // if buff_3 as f64 % (freq * amp_3) == 0 {
+                //     println!("{:?}", buff_3);
+                //     buff_3 = 0;
+                // }
+
                 x_deltav = resist(x_vel, x_deltav);
                 y_deltav = resist(y_vel, y_deltav);
                 x_vel = (x_vel + x_deltav).clamp(-SPEED_LIMIT, SPEED_LIMIT);
                 y_vel = (y_vel + y_deltav).clamp(-SPEED_LIMIT, SPEED_LIMIT);
-                */
 
-                player.update_pos(0, y_vel);
-                OFFSET = (OFFSET + x_vel) % CAM_W as i32;
-                let bg_offset = -OFFSET;
-                /*
-                p.update_pos(
-                    (x_vel, y_vel),
-                    (0, (LEVEL_LEN - TILE_SIZE) as i32),
-                    (0, (CAM_H - 2 * TILE_SIZE) as i32),
-                    scroll_offset,
-                );
-                */
-
-                /*
-                // Check if we need to updated scroll offset
-                scroll_offset = if p.x() > scroll_offset + RTHIRD {
-                    (p.x() - RTHIRD).clamp(0, (LEVEL_LEN - CAM_W) as i32)
-                } else if p.x() < scroll_offset + LTHIRD {
-                    (p.x() - LTHIRD).clamp(0, (LEVEL_LEN - CAM_W) as i32)
-                } else {
-                    scroll_offset
-                };
-
-                // If scroll offest is 0, set it CAM_W and update player pos to account for this
-                // update
-                if scroll_offset == 0 {
-                    scroll_offset = CAM_W as i32;
-                    p.update_pos(
-                        (CAM_W as i32, y_vel),
-                        (0, (LEVEL_LEN - TILE_SIZE) as i32),
-                        (0, (CAM_H - 2 * TILE_SIZE) as i32),
-                        scroll_offset,
-                    );
-                }
-
-                // If scroll offest is 2x CAM_W, set it CAM_W and update player pos to account
-                // for this update
-                if scroll_offset / (CAM_W as i32) == 2 {
-                    scroll_offset = CAM_W as i32;
-                    p.update_pos(
-                        (-(CAM_W as i32), y_vel),
-                        (0, (LEVEL_LEN - TILE_SIZE) as i32),
-                        (0, (CAM_H - 2 * TILE_SIZE) as i32),
-                        scroll_offset,
-                    );
-
-                    score += 100;
-                }
-
-                let bg_offset = -(scroll_offset % (CAM_W as i32));
-                */
-
-                //MODIFIED: G 252 -> 120 (so I could see sky images better)
-                core.wincan.set_draw_color(Color::RGBA(3, 120, 206, 255));
-                core.wincan.clear();
-
-                // Check if we need to update anything for animation
-                flip = if x_vel > 0 && flip {
-                    false
-                } else if x_vel < 0 && !flip {
-                    true
-                } else {
-                    flip
-                };
-
-                src_x = if x_vel != 0 {
-                    frames = if (frames + 1) / 6 > 3 { 0 } else { frames + 1 };
-
-                    (frames / 6) * 100
-                } else {
-                    src_x
-                };
-
-                // Draw background
-                core.wincan
-                    .copy(&tex_bg, None, rect!(bg_offset, 0, CAM_W, CAM_H))?;
-                core.wincan.copy(
-                    &tex_bg,
-                    None,
-                    rect!(bg_offset + (CAM_W as i32), 0, CAM_W, CAM_H),
-                )?;
-
-                /*** Terrain Section ***/
-                // Update all segment postitions
-                for segment in terrain.iter_mut() {
-                    segment.update_pos(-x_vel, 0);
-                }
-
-                // Generate new segment if current tail is visible
-                if terrain.back().unwrap().x() <= CAM_W as i32 {
-                    let new_segment = ProceduralGen::gen_land(
-                        terrain.back().unwrap(),
-                        CAM_W as i32,
-                        CAM_H as i32,
-                        false,
-                        false,
-                        false,
-                        &tex_terrain,
-                    );
-                    terrain.push_back(new_segment);
-                }
-
-                // Delete head segment if invisible
-                if terrain.front().unwrap().x() + terrain.front().unwrap().w() <= 0 {
-                    terrain.pop_front();
-                }
-
-                // Draw all segments
-                for segment in terrain.iter() {
-                    core.wincan
-                        .copy(&(segment.texture()), None, *segment.pos())?;
-                }
-                /*** End Terrain Section ***/
-
-                //Draw sky in background
-                core.wincan
-                    .copy(&tex_sky, None, rect!(bg_offset, 0, CAM_W, CAM_H / 3))?;
-                core.wincan.copy(
-                    &tex_sky,
-                    None,
-                    rect!(CAM_W as i32 + bg_offset, 0, CAM_W, CAM_H / 3),
-                )?;
+                player.update_pos(x_vel, y_vel, &bg[2]);
 
                 //ADDITION: Hey lizard, do a flip
                 r_flip_spot = if r_flip && flip {
@@ -547,7 +539,7 @@ impl Game for Runner {
                 }
 
                 // Draw player
-                //NOTE: i added 10 to p.y()
+                //NOTE: i added 10 toplayer. y()
                 core.wincan.copy_ex(
                     player.texture(),
                     rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
@@ -593,7 +585,6 @@ impl Game for Runner {
             }
         }
 
-        // Out of game loop, return Ok
         Ok(GameState {
             status: Some(next_status),
             score: score,
