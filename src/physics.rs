@@ -266,9 +266,8 @@ impl<'a> Player<'a> {
             self.jumping = false;
 
             self.toggle_omega();
-            // if (-360.0 + OMEGA * 3.0) > self.theta() || self.theta() > (-OMEGA * 3.0) {
-            if self.theta() > (-OMEGA * 5.0 - angle)
-                || self.theta() < ((-360.0 + OMEGA * 5.0 - angle) % 360.0)
+            if self.theta() > (-OMEGA * 3.0 - angle)
+                || self.theta() < ((-360.0 + OMEGA * 3.0 - angle) % 360.0)
             {
                 self.theta = angle;
                 true
@@ -308,7 +307,7 @@ impl<'a> Entity<'a> for Player<'a> {
             self.velocity.1 = 0;
             self.theta = angle * 3.0;
         } else if self.accel.1 == 0 {
-            self.accel.1 = -3;
+            self.accel.1 = -5;
         }
     }
 

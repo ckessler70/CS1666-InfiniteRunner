@@ -41,7 +41,7 @@ const TILE_SIZE: u32 = 100;
 
 // Ensure that SIZE is not a decimal
 // 1, 2, 4, 5, 8, 10, 16, 20, 32, 40, 64, 80, 128, 160, 256, 320, 640
-const SIZE: usize = CAM_W as usize / 8;
+const SIZE: usize = CAM_W as usize / 10;
 
 const FRONT_HILL_INDEX: usize = 0;
 const BACK_HILL_INDEX: usize = 1;
@@ -283,7 +283,7 @@ impl Game for Runner {
                 // Angle between (slightly dampened so angling the player doesn't look silly)
                 let angle = ((next_ground as f64 - current_ground as f64) / (TILE_SIZE as f64))
                     .atan()
-                    * 130.0
+                    * 120.0
                     / std::f64::consts::PI;
 
                 for event in core.event_pump.poll_iter() {
