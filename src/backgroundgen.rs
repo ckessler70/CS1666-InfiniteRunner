@@ -68,11 +68,11 @@ impl Game for BackgroundGen {
 
         let mut rng = rand::thread_rng();
 
-        let freq: f64 = rng.gen::<f64>() * 1000.0 + 100.0;
+        let freq: f32 = rng.gen::<f32>() * 1000.0 + 100.0;
 
-        let amp_1: f64 = rng.gen::<f64>() * 4.0 + 1.0;
-        let amp_2: f64 = rng.gen::<f64>() * 2.0 + amp_1;
-        let amp_3: f64 = rng.gen::<f64>() * 2.0 + 1.0;
+        let amp_1: f32 = rng.gen::<f32>() * 4.0 + 1.0;
+        let amp_2: f32 = rng.gen::<f32>() * 2.0 + amp_1;
+        let amp_3: f32 = rng.gen::<f32>() * 2.0 + 1.0;
 
         while ct < SIZE as usize {
             bg[FRONT_HILL_INDEX][ct] =
@@ -179,7 +179,7 @@ impl Game for BackgroundGen {
                     255,
                     69,
                     0,
-                    ((i as f64 / CAM_H as f64 / 40.0) * 255.0) as u8,
+                    ((i as f32 / CAM_H as f32 / 40.0) * 255.0) as u8,
                 ));
                 core.wincan.fill_rect(rect!(0, i, CAM_W, CAM_H))?;
             }
@@ -276,6 +276,10 @@ impl Game for BackgroundGen {
             let time_since_last_measurement = last_measurement_time.elapsed();
             // measure the FPS once every second
             if time_since_last_measurement > Duration::from_secs(1) {
+                println!(
+                    "Average FPS: {:.2}",
+                    (all_frames as f64) / time_since_last_measurement.as_secs_f64()
+                );
                 all_frames = 0;
                 last_measurement_time = Instant::now();
             }

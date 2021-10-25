@@ -309,17 +309,17 @@ fn gen_bezier_curve(point_mod: f64) -> bool {
     false
 }
 
-pub fn gen_perlin_hill_point(i: usize, freq: f64, amp: f64, modifier: f64, mul: f64) -> i16 {
+pub fn gen_perlin_hill_point(i: usize, freq: f32, amp: f32, modifier: f32, mul: f32) -> i16 {
     for j in 0..720 {
         let cord = (i, j);
 
         let n = modifier
-            * (noise_1d(cord.0 as f64 * (1.0 / freq)) * amp
-                + noise_1d(cord.0 as f64 * (1.0 / freq / 2.0)) * amp / 2.0
-                + noise_1d(cord.0 as f64 * (1.0 / freq / 4.0)) * amp / 4.0
-                + noise_1d(cord.0 as f64 * (1.0 / freq / 8.0)) * amp / 8.0);
+            * (noise_1d(cord.0 as f32 * (1.0 / freq)) * amp
+                + noise_1d(cord.0 as f32 * (1.0 / freq / 2.0)) * amp / 2.0
+                + noise_1d(cord.0 as f32 * (1.0 / freq / 4.0)) * amp / 4.0
+                + noise_1d(cord.0 as f32 * (1.0 / freq / 8.0)) * amp / 8.0);
 
-        let y = 2.0 * (cord.1 as f64 / mul) - 1.0;
+        let y = 2.0 * (cord.1 as f32 / mul) - 1.0;
 
         if n > y {
         } else {
@@ -329,17 +329,18 @@ pub fn gen_perlin_hill_point(i: usize, freq: f64, amp: f64, modifier: f64, mul: 
     return 720 as i16;
 }
 
-fn fade_1d(t: f64) -> f64 {
+fn fade_1d(t: f32) -> f32 {
     return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
 }
 
-fn grad_1d(p: f64) -> f64 {
-    let v = 0.0;
+fn grad_1d(p: f32) -> f32 {
+    let mut rng = rand::thread_rng();
+    let v: f32 = rng.gen::<f32>();
 
     return if v > 0.5 { 1.0 } else { -1.0 };
 }
 
-fn noise_1d(p: f64) -> f64 {
+fn noise_1d(p: f32) -> f32 {
     let p0 = p.floor();
     let p1 = p0 + 1.0;
 
