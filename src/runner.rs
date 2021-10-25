@@ -1,12 +1,23 @@
+// use crate::physics::Physics;
+// use crate::physics::Body;
+// use crate::physics::Collider;
+use crate::physics::Dynamic;
+use crate::physics::Entity;
+use crate::physics::Player as PhysPlayer;
+
 use crate::proceduralgen;
+// use crate::proceduralgen::ProceduralGen;
+// use crate::proceduralgen::TerrainSegment;
+
 use crate::rect;
-// use crate::Physics;
 
 use inf_runner::Game;
 use inf_runner::GameState;
 use inf_runner::GameStatus;
 use inf_runner::SDLCore;
 
+// use std::collections::HashSet;
+use std::collections::LinkedList;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
@@ -15,7 +26,7 @@ use sdl2::image::LoadTexture;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
-use sdl2::render::Texture;
+// use sdl2::render::Texture;
 use sdl2::render::TextureQuery;
 
 use rand::Rng;
@@ -43,58 +54,11 @@ const FRONT_HILL_INDEX: usize = 0;
 const BACK_HILL_INDEX: usize = 1;
 const GROUND_INDEX: usize = 2;
 
+// Bounds we want to keep the player within
+const PLAYER_BOUNDS_H: (i32, i32) = (0, (CAM_W - TILE_SIZE) as i32);
+const PLAYER_BOUNDS_V: (i32, i32) = (0, (CAM_H - TILE_SIZE - 100) as i32);
+
 pub struct Runner;
-
-struct Player<'a> {
-    pos: Rect,
-    texture: Texture<'a>,
-}
-
-impl<'a> Player<'a> {
-    fn new(pos: Rect, texture: Texture<'a>) -> Player {
-        Player { pos, texture }
-    }
-
-    fn x(&self) -> i32 {
-        self.pos.x()
-    }
-
-    fn y(&self) -> i32 {
-        self.pos.y()
-    }
-
-    fn update_pos(&mut self, x_vel: i32, y_vel: i32, grounds: &[i16; SIZE]) {
-        self.pos.set_x((self.pos.x() + x_vel).clamp(
-            CAM_W as i32 / 2 - TILE_SIZE as i32 / 2,
-            CAM_W as i32 / 2 - TILE_SIZE as i32 / 2 + 1,
-        ));
-
-        let clamp_bounds = CAM_H as i32
-            - grounds[(self.pos.x() as usize) / (CAM_W / SIZE as u32) as usize] as i32
-            - TILE_SIZE as i32;
-
-        self.pos
-            .set_y((self.pos.y() + y_vel).clamp(0, clamp_bounds));
-    }
-
-    fn texture(&self) -> &Texture {
-        &self.texture
-    }
-}
-
-fn resist(vel: i32, deltav: i32) -> i32 {
-    if deltav == 0 {
-        if vel > 0 {
-            -1
-        } else if vel < 0 {
-            1
-        } else {
-            deltav
-        }
-    } else {
-        deltav
-    }
-}
 
 impl Game for Runner {
     fn init() -> Result<Self, String> {
@@ -112,33 +76,24 @@ impl Game for Runner {
         let texture_creator = core.wincan.texture_creator();
         let tex_bg = texture_creator.load_texture("assets/bg.png")?;
         let tex_sky = texture_creator.load_texture("assets/sky.png")?;
+
         let mut bg_buff = 0;
 
         // Create player at default position
-        let mut player = Player::new(
+        let mut player = PhysPlayer::new(
             rect!(
-                CAM_W as i32 / 2 - TILE_SIZE as i32 / 2,
-                CAM_H as i32 / 2,
+                PLAYER_BOUNDS_H.1 / 2,
+                PLAYER_BOUNDS_V.0,
                 TILE_SIZE,
                 TILE_SIZE
             ),
+            2,
             texture_creator.load_texture("assets/player.png")?,
         );
 
         // Used to keep track of animation status
         let mut frames: i32 = 0;
         let mut src_x: i32 = 0;
-        let mut flip: bool = false;
-
-        let mut x_vel: i32 = 0;
-        let mut y_vel: i32 = 0;
-
-        let mut jump: bool = false;
-        let mut jump_ct: i32 = 0;
-
-        //For rotational flip (maybe not the best variable names)
-        let mut r_flip: bool = false;
-        let mut r_flip_spot: f64 = 0.0;
 
         let mut score: i32 = 0;
 
@@ -322,8 +277,10 @@ impl Game for Runner {
                     break 'gameloop;
                 }
             } else {
-                let mut x_deltav: i32 = 1;
-                let mut y_deltav: i32 = 1;
+                let current_ground = CAM_H as i32
+                    - bg[2][(player.x() as usize) / (CAM_W / SIZE as u32) as usize] as i32
+                    - TILE_SIZE as i32;
+
                 for event in core.event_pump.poll_iter() {
                     match event {
                         Event::Quit { .. } => break 'gameloop,
@@ -331,12 +288,8 @@ impl Game for Runner {
                             keycode: Some(k), ..
                         } => match k {
                             Keycode::W | Keycode::Up | Keycode::Space => {
-                                if !jump && jump_ct == 0 {
-                                    jump = true;
-                                }
-                                if jump_ct != 0 {
-                                    r_flip = true;
-                                }
+                                player.jump(current_ground);
+                                player.resume_flipping();
                             }
                             Keycode::Escape => {
                                 game_paused = true;
@@ -344,29 +297,27 @@ impl Game for Runner {
                             }
                             _ => {}
                         },
+                        Event::KeyUp {
+                            keycode: Some(k), ..
+                        } => match k {
+                            Keycode::W | Keycode::Up | Keycode::Space => {
+                                player.stop_flipping();
+                            }
+                            _ => {}
+                        },
                         _ => {}
                     }
                 }
 
-                // Boing
-                if jump {
-                    jump_ct += 1;
-                    y_deltav = -1;
+                player.update_pos(current_ground);
+                player.update_vel();
+                if frames % 2 == 0 {
+                    player.flip();
                 }
+                // OFFSET = (OFFSET + player.vel_x()) % CAM_W as i32;
+                // let bg_offset = -OFFSET;
 
-                // Airtime
-                if jump_ct > 30 {
-                    jump = false;
-                    y_deltav = 1;
-                }
-
-                // Jump cooldown
-                if !jump && jump_ct > 0 {
-                    jump_ct -= 1;
-                }
-
-                // Landed on head, GAME OVER
-                if jump_ct == 0 && r_flip_spot != 0.0 {
+                if !player.land(current_ground) {
                     game_over = true;
                     initial_pause = true;
                     continue;
@@ -426,8 +377,15 @@ impl Game for Runner {
                     bg_buff -= 1;
                 }
 
-                //Background gradient
+                //MODIFIED: G 252 -> 120 (so I could see sky images better)
+                // core.wincan.set_draw_color(Color::RGBA(3, 120, 206, 255));
+                // core.wincan.clear();
 
+                // src_x = if player.vel_x() != 0 {
+                //     frames = if (frames + 1) / 6 > 3 { 0 } else { frames + 1 };
+                // };
+
+                //Background gradient
                 core.wincan.set_draw_color(Color::RGBA(0, 0, 0, 255));
                 core.wincan.fill_rect(rect!(0, 470, CAM_W, CAM_H));
 
@@ -448,6 +406,12 @@ impl Game for Runner {
                     None,
                     rect!(CAM_W as i32 + bg_buff, 0, CAM_W, CAM_H / 3),
                 )?;
+
+                /*** Terrain Section ***/
+                // Update all segment postitions
+                // for segment in terrain.iter_mut() {
+                //     segment.update_pos(-player.vel_x(), 0);
+                // }
 
                 for i in 0..bg[FRONT_HILL_INDEX].len() - 1 {
                     // Furthest back mountains
@@ -504,49 +468,14 @@ impl Game for Runner {
                 //     buff_3 = 0;
                 // }
 
-                x_deltav = resist(x_vel, x_deltav);
-                y_deltav = resist(y_vel, y_deltav);
-                x_vel = (x_vel + x_deltav).clamp(-SPEED_LIMIT, SPEED_LIMIT);
-                y_vel = (y_vel + y_deltav).clamp(-SPEED_LIMIT, SPEED_LIMIT);
-
-                player.update_pos(x_vel, y_vel, &bg[2]);
-
-                //ADDITION: Hey lizard, do a flip
-                r_flip_spot = if r_flip && flip {
-                    //going left
-                    r_flip_spot + FLIP_INCREMENT
-                } else if r_flip && !flip {
-                    //going right
-                    r_flip_spot - FLIP_INCREMENT
-                } else {
-                    0.0
-                };
-
-                //going right backlfip
-                //if r_flip_spot.approx_eq(-360.0, (0.0, 2)) {
-                if r_flip_spot.floor() == -360.0 {
-                    //flip complete
-                    r_flip = false;
-                    r_flip_spot = 0.0; //reset flip_spot
-                }
-                //Going left backflip
-                //if r_flip_spot.approx_eq(360.0, (0.0, 2)) {
-
-                if r_flip_spot.floor() == 360.0 {
-                    //flip complete
-                    r_flip = false;
-                    r_flip_spot = 0.0; //reset flip_spot
-                }
-
                 // Draw player
-                //NOTE: i added 10 toplayer. y()
                 core.wincan.copy_ex(
                     player.texture(),
                     rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
-                    rect!(player.x(), player.y() + 10, TILE_SIZE, TILE_SIZE),
-                    r_flip_spot,
+                    rect!(player.x(), player.y(), TILE_SIZE, TILE_SIZE),
+                    player.theta(),
                     None,
-                    flip,
+                    false,
                     false,
                 )?;
 
@@ -562,6 +491,7 @@ impl Game for Runner {
                     .copy(&score_texture, None, Some(rect!(10, 10, 100, 50)))?;
 
                 core.wincan.present();
+                score += 1;
             }
 
             // FPS Calculation
@@ -580,6 +510,10 @@ impl Game for Runner {
             let time_since_last_measurement = last_measurement_time.elapsed();
             // measure the FPS once every second
             if time_since_last_measurement > Duration::from_secs(1) {
+                println!(
+                    "Average FPS: {:.2}",
+                    (all_frames as f64) / time_since_last_measurement.as_secs_f64()
+                );
                 all_frames = 0;
                 last_measurement_time = Instant::now();
             }
