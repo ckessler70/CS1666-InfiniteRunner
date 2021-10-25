@@ -501,10 +501,10 @@ impl Game for Runner {
             let time_since_last_measurement = last_measurement_time.elapsed();
             // measure the FPS once every second
             if time_since_last_measurement > Duration::from_secs(1) {
-                println!(
-                    "Average FPS: {:.2}",
-                    (all_frames as f64) / time_since_last_measurement.as_secs_f64()
-                );
+                // println!(
+                //     "Average FPS: {:.2}",
+                //     (all_frames as f64) / time_since_last_measurement.as_secs_f64()
+                // );
                 all_frames = 0;
                 last_measurement_time = Instant::now();
             }
