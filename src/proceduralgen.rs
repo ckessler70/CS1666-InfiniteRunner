@@ -310,8 +310,6 @@ fn gen_bezier_curve(point_mod: f64) -> bool {
 }
 
 pub fn gen_perlin_hill_point(i: usize, freq: f64, amp: f64, modifier: f64, mul: f64) -> i16 {
-    let mut out = [0.0; 720];
-
     for j in 0..720 {
         let cord = (i, j);
 
@@ -322,7 +320,7 @@ pub fn gen_perlin_hill_point(i: usize, freq: f64, amp: f64, modifier: f64, mul: 
                 + noise_1d(cord.0 as f64 * (1.0 / freq / 8.0)) * amp / 8.0);
 
         let y = 2.0 * (cord.1 as f64 / mul) - 1.0;
-        out[j] = 1.0;
+
         if n > y {
         } else {
             return j as i16;
@@ -336,8 +334,7 @@ fn fade_1d(t: f64) -> f64 {
 }
 
 fn grad_1d(p: f64) -> f64 {
-    let random = [0.0; 256];
-    let v = random[p.floor() as usize % 256];
+    let v = 0.0;
 
     return if v > 0.5 { 1.0 } else { -1.0 };
 }
