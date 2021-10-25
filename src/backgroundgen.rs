@@ -173,17 +173,6 @@ impl Game for BackgroundGen {
                 bg_buff -= 1;
             }
 
-            //Background gradient
-            for i in 0..CAM_H / 2 {
-                core.wincan.set_draw_color(Color::RGBA(
-                    255,
-                    69,
-                    0,
-                    ((i as f32 / CAM_H as f32 / 40.0) * 255.0) as u8,
-                ));
-                core.wincan.fill_rect(rect!(0, i, CAM_W, CAM_H / 2))?;
-            }
-
             core.wincan.set_draw_color(Color::RGBA(0, 0, 0, 255));
             core.wincan.fill_rect(rect!(0, 470, CAM_W, CAM_H))?;
 
