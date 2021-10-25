@@ -60,7 +60,7 @@ impl Physics {
         // Also  = mass * grav * (density object/density liquid)
         // we probably just give the player a set volume
         // then see "how far into the liquid it has collided"
-        
+
         todo!();
     }
 }
@@ -80,7 +80,7 @@ pub trait Entity<'a> {
     /// Returns the y position of the `Entity`'s top left corner
     fn y(&self) -> i32;
     /// Modifies the position of the `Entity`
-    fn update_pos(&mut self);
+    fn update_pos(&mut self, ground_pos: i32);
 
     /****************** Angular motion *************** */
 
@@ -182,7 +182,6 @@ pub trait Body<'a>: Collider<'a> + Dynamic<'a> {
 /// * `Entity`
 pub struct Player<'a> {
     pos: Rect,
-    y_bounds: (i32, i32),
     velocity: (i32, i32),
     accel: (i32, i32),
 
@@ -196,10 +195,9 @@ pub struct Player<'a> {
 }
 
 impl<'a> Player<'a> {
-    pub fn new(pos: Rect, mass: i32, y_bounds: (i32, i32), texture: Texture<'a>) -> Player {
+    pub fn new(pos: Rect, mass: i32, texture: Texture<'a>) -> Player {
         Player {
             pos,
-            y_bounds,
             velocity: (3, 0),
             accel: (0, -1),
             theta: 0.0,
@@ -222,7 +220,7 @@ impl<'a> Player<'a> {
 
     pub fn stop_flipping(&mut self) {
         self.flipping = false;
-        
+
         if self.theta() >= OMEGA * 3.0 {
             self.theta = 0.0;
         }
@@ -233,10 +231,9 @@ impl<'a> Player<'a> {
         self.rotate();
     }
 
-
     // Returns true if a jump was initiated
-    pub fn jump(&mut self) -> bool {
-        if self.pos.y() == self.y_bounds.1 {
+    pub fn jump(&mut self, ground_pos: i32) -> bool {
+        if self.pos.y() == ground_pos {
             self.velocity.1 += 23;
             self.accel.1 -= 1;
             self.jumping = true;
@@ -257,8 +254,8 @@ impl<'a> Player<'a> {
     }
 
     // Returns false if the player crashed
-    pub fn land(&mut self) -> bool {
-        if self.is_jumping() && self.pos.y() == self.y_bounds.1 {
+    pub fn land(&mut self, ground_pos: i32) -> bool {
+        if self.is_jumping() && self.pos.y() == ground_pos {
             self.velocity.1 = 0;
             self.accel.1 = 0;
             self.jumping = false;
@@ -266,7 +263,7 @@ impl<'a> Player<'a> {
             // In the future, adjust this angle to match the approximate slope of the ground
             self.toggle_omega();
 
-            if (-360.0 + OMEGA * 3.0) > self.theta() || self.theta() > (-OMEGA * 3.0){
+            if (-360.0 + OMEGA * 3.0) > self.theta() || self.theta() > (-OMEGA * 3.0) {
                 self.theta = 0.0;
                 true
             } else {
@@ -295,14 +292,16 @@ impl<'a> Entity<'a> for Player<'a> {
         self.theta
     }
 
-    fn update_pos(&mut self) {
+    fn update_pos(&mut self, ground_pos: i32) {
         // Player's x position is fixed
         self.pos
-            .set_y((self.pos.y() - self.vel_y()).clamp(self.y_bounds.0, self.y_bounds.1));
+            .set_y((self.pos.y() - self.vel_y()).clamp(0, ground_pos));
 
-        if self.pos.y() == self.y_bounds.1 {
+        if self.pos.y() == ground_pos {
             self.accel.1 = 0;
             self.velocity.1 = 0;
+        } else if self.accel.1 == 0 {
+            self.accel.1 = -1;
         }
     }
 
