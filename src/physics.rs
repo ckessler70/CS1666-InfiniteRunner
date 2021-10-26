@@ -470,14 +470,3 @@ impl<'a> Coin<'a>{
         &self.texture
     }
 }
-
-impl<'a> Collider<'a> for Coin<'a> {
-    fn hitbox(&self) -> Vec<Rect> {
-        Vec::new()
-        // TODO
-    }
-    fn collide(&mut self, other: &impl Collider<'a>) {
-        // TODO
-        todo!();
-    }
-}
