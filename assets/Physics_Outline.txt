@@ -1,0 +1,93 @@
+Physics 2 Outline
+
+1) General Physics Engine ?????
+
+    A)  ???
+        if we wanna talk about any general things,
+        seems like the first group is covering most of that ground
+        idk if we wanna hit on any concepts/theory that is applicable
+        to us in greater detail than they go into
+
+        Recap first presnetation stuff that is applicable to us
+
+
+
+2) Our Implementation
+
+    A) Detecting collisions
+
+        - Rigid Body collisions
+
+            detecting collsions with ground/terrain
+                based off of players y pos & terrain height
+
+            detecting collsions w/ other obstacles
+                rectangular hitboxes
+                player x position is fixed, so only need to check a certain line up & down the screen
+
+    B) Applying Forces
+
+        - General
+            could explain why we are doing it as a magnitude & angle or coupled (Fx,Fy)
+                when we know, lol
+
+        - Gravity
+            constant downward acceleration applied to player that when they are jumping
+
+        - Rotation
+            constant omega gets applied when user flips
+                toggle_omega/rotate
+
+            rotational_inertia (how I think well do it)
+                Treating all bodies as having uniform mass density (ie. a sphere) L = m*R^2
+                rot inert --> I = L/w
+            
+            torque applied during collisions (t = apply_force * R?)
+                depending on theta when collision occurs
+                (not as applicable if we treat player as sphere)
+            
+        - Collisions
+            
+            apply_force 
+                to player based on mass of obstacle
+
+            bounce
+                obstacles colliding with other obstacles, the terrain & player
+                all get unique trajectories
+
+
+        - Friction
+            apply force normal to terrain 
+                friction coefficent & angle of normal force determined by terrain
+
+        - Buoyancy & Fluid Dynamics
+
+            Water applies constant force normal to weight proportional
+            to volume of fluid displaced
+
+                player has set volume
+                we determine how far the player has collided into the water
+                Use this to determine how much volume has been displaced
+
+                player will also be experiencing "friction" from the water
+
+
+    C) Contstraints & Assumptions
+ 
+        - I think we should comment on things that we are "cheating" 
+          /simplifiying from real physics
+
+            - cheating things until it becomes harder to cheat (e.g. terrain clamping, gravity)
+
+        - we don't have air resistance/drag
+
+        - if we treat player/obstacle sphere for angular momentum & or torque
+
+        - uniform mass density
+
+        - treating objects as a collection of rectangular hit boxes are a simplification
+
+        - player's x position is bounded (always on the same location of screen)
+        
+        - buoyancy stuff not treating water as particles
+
