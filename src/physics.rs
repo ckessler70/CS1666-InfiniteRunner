@@ -439,3 +439,45 @@ impl<'a> Obstacle<'a> {
         &self.texture
     }
 }
+
+pub struct Coin<'a>{
+    pos: Rect,
+    texture: Texture<'a>,
+}
+
+impl<'a> Coin<'a>{
+    pub fn new(pos: Rect, texture: Texture<'a>) -> Coin{
+        Coin{
+            pos,
+            texture,
+        }
+    }
+
+    fn x(&self) -> i32 {
+        self.pos.x()
+    }
+
+    fn y(&self) -> i32 {
+        self.pos.y()
+    }
+
+    fn update_pos(&mut self, x: i32, y: i32) {
+        self.pos.set_x(x);
+        self.pos.set_y(y);
+    }
+
+    fn texture(&self) -> &Texture {
+        &self.texture
+    }
+}
+
+impl<'a> Collider<'a> for Coin<'a> {
+    fn hitbox(&self) -> Vec<Rect> {
+        Vec::new()
+        // TODO
+    }
+    fn collide(&mut self, other: &impl Collider<'a>) {
+        // TODO
+        todo!();
+    }
+}
