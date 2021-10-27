@@ -15,6 +15,7 @@ use inf_runner::Game;
 use inf_runner::GameState;
 use inf_runner::GameStatus;
 use inf_runner::SDLCore;
+use proceduralgen::StaticObject;
 
 // use std::collections::HashSet;
 use std::collections::LinkedList;
@@ -108,6 +109,9 @@ impl Game for Runner {
         let mut buff_1: usize = 0;
         let mut buff_2: usize = 0;
         let mut buff_3: usize = 0;
+        let mut object_spawn: usize = 0;
+
+        let mut object = None;
 
         // bg[0] = Front hills
         // bg[1] = Back hills
@@ -379,6 +383,16 @@ impl Game for Runner {
                     );
                     bg[BACK_HILL_INDEX][(SIZE - 1) as usize] = chunk_2;
                 }
+
+                if object_spawn == 0 {
+                    let breakdown =
+                        proceduralgen::ProceduralGen::spawn_object(SIZE as i32, (SIZE * 2) as i32);
+                    object = breakdown.0;
+                    object_spawn = breakdown.1;
+                } else {
+                    object_spawn -= 1;
+                }
+
                 if tick % 10 == 0 {
                     bg_buff -= 1;
                 }
@@ -430,6 +444,22 @@ impl Game for Runner {
                         CAM_H as i16 - bg[GROUND_INDEX][i],
                         CAM_W as usize / SIZE,
                         CAM_H as i16
+                    ))?;
+                }
+
+                //Object spawning
+                if object_spawn > 0 && object_spawn < SIZE {
+                    println!(
+                        "{:?} | {:?}",
+                        object_spawn * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
+                        CAM_H as i16 - bg[GROUND_INDEX][object_spawn]
+                    );
+                    core.wincan.set_draw_color(Color::RGBA(255, 0, 0, 255));
+                    core.wincan.fill_rect(rect!(
+                        object_spawn * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
+                        CAM_H as i16 - bg[GROUND_INDEX][object_spawn] - TILE_SIZE as i16,
+                        TILE_SIZE,
+                        TILE_SIZE
                     ))?;
                 }
 
