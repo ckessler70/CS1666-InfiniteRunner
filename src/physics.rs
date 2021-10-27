@@ -439,3 +439,34 @@ impl<'a> Obstacle<'a> {
         &self.texture
     }
 }
+
+pub struct Coin<'a>{
+    pos: Rect,
+    texture: Texture<'a>,
+}
+
+impl<'a> Coin<'a>{
+    pub fn new(pos: Rect, texture: Texture<'a>) -> Coin{
+        Coin{
+            pos,
+            texture,
+        }
+    }
+
+    fn x(&self) -> i32 {
+        self.pos.x()
+    }
+
+    fn y(&self) -> i32 {
+        self.pos.y()
+    }
+
+    fn update_pos(&mut self, x: i32, y: i32) {
+        self.pos.set_x(x);
+        self.pos.set_y(y);
+    }
+
+    fn texture(&self) -> &Texture {
+        &self.texture
+    }
+}
