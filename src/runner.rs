@@ -71,6 +71,8 @@ impl Game for Runner {
         let tex_bg = texture_creator.load_texture("assets/bg.png")?;
         let tex_sky = texture_creator.load_texture("assets/sky.png")?;
         let tex_grad = texture_creator.load_texture("assets/sunset_gradient.png")?;
+        let tex_farn = texture_creator.load_texture("assets/farnan.jpg")?;
+        let tex_ferris = texture_creator.load_texture("assets/ferris.png")?;
 
         let mut bg_buff = 0;
 
@@ -454,13 +456,40 @@ impl Game for Runner {
                         object_spawn * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
                         CAM_H as i16 - bg[GROUND_INDEX][object_spawn]
                     );
-                    core.wincan.set_draw_color(Color::RGBA(255, 0, 0, 255));
-                    core.wincan.fill_rect(rect!(
-                        object_spawn * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
-                        CAM_H as i16 - bg[GROUND_INDEX][object_spawn] - TILE_SIZE as i16,
-                        TILE_SIZE,
-                        TILE_SIZE
-                    ))?;
+
+                    match object {
+                        Some(proceduralgen::StaticObject::Coin) => {
+                            core.wincan.copy(
+                                &tex_farn,
+                                None,
+                                rect!(
+                                    object_spawn * CAM_W as usize / SIZE
+                                        + CAM_W as usize / SIZE / 2,
+                                    CAM_H as i16
+                                        - bg[GROUND_INDEX][object_spawn]
+                                        - TILE_SIZE as i16,
+                                    TILE_SIZE,
+                                    TILE_SIZE
+                                ),
+                            )?;
+                        }
+                        Some(proceduralgen::StaticObject::Statue) => {
+                            core.wincan.copy(
+                                &tex_ferris,
+                                None,
+                                rect!(
+                                    object_spawn * CAM_W as usize / SIZE
+                                        + CAM_W as usize / SIZE / 2,
+                                    CAM_H as i16
+                                        - bg[GROUND_INDEX][object_spawn]
+                                        - TILE_SIZE as i16,
+                                    TILE_SIZE,
+                                    TILE_SIZE
+                                ),
+                            )?;
+                        }
+                        _ => {}
+                    }
                 }
 
                 tick += 1;
