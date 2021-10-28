@@ -20,6 +20,14 @@ impl Physics {
         todo!();
     }
 
+    fn check_collection(player: &Player, coin: &Coin) -> bool {
+        // TODO
+        // Using Rect::has_intersection -> bool OR Rect::intersection -> Rect
+        // Apply collision to Player AND Coin 
+        // Collect coin if necessary and apply proper changes to player's coin counter
+        todo!();
+    }
+
     fn apply_friction() {
         // TODO
         // fn apply_friction(&player: Player, &surface:
@@ -440,16 +448,33 @@ impl<'a> Obstacle<'a> {
     }
 }
 
+pub trait Collectible<'a>{
+    /****************** Collision ******************** */
+
+    /// Returns the collision boundary of the object as a list of `Rect` stored
+    /// in a `Vec`
+    fn hitbox(&self) -> Vec<Rect>;
+    /// Applies a collision to the `Collectible` using the physical attributes of
+    /// it and another object that must be of type `Collider`
+    ///
+    /// # Arguments
+    ///
+    /// * `other`: the `Collider` object that is involved in the collision with `Collecible` object
+    fn collide(&mut self, other: &impl Collider<'a>);
+}
+
 pub struct Coin<'a>{
     pos: Rect,
     texture: Texture<'a>,
+    value: i32,
 }
 
 impl<'a> Coin<'a>{
-    pub fn new(pos: Rect, texture: Texture<'a>) -> Coin{
+    pub fn new(pos: Rect, texture: Texture<'a>, value: i32) -> Coin{
         Coin{
             pos,
             texture,
+            value,
         }
     }
 
@@ -468,5 +493,20 @@ impl<'a> Coin<'a>{
 
     fn texture(&self) -> &Texture {
         &self.texture
+    }
+
+    fn value(&self) -> i32{
+        self.value
+    }
+}
+
+impl<'a> Collectible<'a> for Coin<'a>{
+
+    fn hitbox(&self) -> Vec<Rect>{
+        Vec::new()
+    }
+
+    fn collide(&mut self, other: &impl Collider<'a>){
+        todo!()
     }
 }
