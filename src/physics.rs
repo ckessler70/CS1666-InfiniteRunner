@@ -463,10 +463,8 @@ pub trait Collectible<'a>{
     /// Applies a collision to the `Collectible` using the physical attributes of
     /// it and another object that must be of type `Collider`
     ///
-    /// # Arguments
-    ///
-    /// * `other`: the `Collider` object that is involved in the collision with `Collecible` object
-    fn collide(&mut self, other: &impl Collider<'a>);
+    // delete the `Collecible` after the player collides with and collects it
+    fn collected(&mut self) -> bool;
 }
 
 pub struct Coin<'a>{
@@ -509,10 +507,10 @@ impl<'a> Coin<'a>{
 impl<'a> Collectible<'a> for Coin<'a>{
 
     fn hitbox(&self) -> Rect{
-        todo!()
+        Rect::new(self.pos.x, self.pos.y, self.pos.width(), self.pos.height())
     }
 
-    fn collide(&mut self, other: &impl Collider<'a>){
+    fn collected(&mut self) -> bool{
         todo!()
     }
 }
