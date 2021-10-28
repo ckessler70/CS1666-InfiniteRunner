@@ -25,7 +25,14 @@ impl Physics {
         // Using Rect::has_intersection -> bool OR Rect::intersection -> Rect
         // Apply collision to Player AND Coin 
         // Collect coin if necessary and apply proper changes to player's coin counter
-        todo!();
+        // For collection, collsion including force and torque does not need to be accounted for
+        // If any of the player hitboxes intersect with a `Collectible`, the object will be aquired by the player
+        for h in player.hitbox().into_iter(){
+            if h.has_intersection(coin.hitbox()){
+                return true
+            }
+        }
+        return false
     }
 
     fn apply_friction() {
@@ -451,9 +458,8 @@ impl<'a> Obstacle<'a> {
 pub trait Collectible<'a>{
     /****************** Collision ******************** */
 
-    /// Returns the collision boundary of the object as a list of `Rect` stored
-    /// in a `Vec`
-    fn hitbox(&self) -> Vec<Rect>;
+    /// Returns the collision boundary of the object as a `Rect`
+    fn hitbox(&self) -> Rect;
     /// Applies a collision to the `Collectible` using the physical attributes of
     /// it and another object that must be of type `Collider`
     ///
@@ -502,8 +508,8 @@ impl<'a> Coin<'a>{
 
 impl<'a> Collectible<'a> for Coin<'a>{
 
-    fn hitbox(&self) -> Vec<Rect>{
-        Vec::new()
+    fn hitbox(&self) -> Rect{
+        todo!()
     }
 
     fn collide(&mut self, other: &impl Collider<'a>){
