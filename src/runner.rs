@@ -102,14 +102,14 @@ impl Game for Runner {
         //add some coins
 
         let mut coin1 = Coin::new(
-            rect!(0, 0, TILE_SIZE, TILE_SIZE),
+            rect!(0, 600, TILE_SIZE, TILE_SIZE),
             texture_creator.load_texture("assets/coin.gif")?,
-            20,
+            1000,
         );
         let mut coin2 = Coin::new(
-            rect!((CAM_W as i32) / 2, 0, TILE_SIZE, TILE_SIZE),
+            rect!((CAM_W as i32) / 2, 600, TILE_SIZE, TILE_SIZE),
             texture_creator.load_texture("assets/coin.gif")?,
-            20,
+            1000,
         );
         let mut coins: Vec<_> = vec![coin1, coin2];
 
@@ -367,10 +367,12 @@ impl Game for Runner {
                     //check collection
                     if Physics::check_collection(&mut player, c) {
                         //add these back once proc genned coins
-                        //c.collect();          //deletes the coin once collected (needs fully implemented)
-                        //score += c.value();   //increments the score based on the coins value
-
+                        c.collect();          //deletes the coin once collected (needs fully implemented)
+                        score += c.value();   //increments the score based on the coins value
+                        //print by score: "+ c.value()""
+                        //made val 1000 for now so u can see score noticably jump up
                         print!("collection!"); //for right now
+                        //bool::flag;
                         continue;
                     }
                 }
@@ -553,17 +555,19 @@ impl Game for Runner {
 
                 // Draw coins
                 for c in coins.iter() {
-                    core.wincan.copy_ex(
-                        c.texture(),
-                        rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
-                        rect!(c.x(), c.y(), TILE_SIZE, TILE_SIZE),
-                        0.0,
-                        None,
-                        false,
-                        false,
-                    )?;
-                    core.wincan.set_draw_color(Color::GREEN);
-                    core.wincan.draw_rect(c.hitbox())?;
+                    if !c.collected(){
+                        core.wincan.copy_ex(
+                            c.texture(),
+                            rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
+                            rect!(c.x(), c.y(), TILE_SIZE, TILE_SIZE),
+                            0.0,
+                            None,
+                            false,
+                            false,
+                        )?;
+                        core.wincan.set_draw_color(Color::GREEN);
+                        core.wincan.draw_rect(c.hitbox())?;
+                    }
                 }
 
                 let surface = font
