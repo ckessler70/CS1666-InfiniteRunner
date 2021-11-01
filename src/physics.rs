@@ -1,6 +1,9 @@
 // use crate::rect;
+use sdl2::rect::Point;
 use sdl2::rect::Rect;
 use sdl2::render::Texture;
+
+use crate::runner::TILE_SIZE;
 
 // use crate::ProceduralGen;
 
@@ -12,7 +15,7 @@ const OMEGA: f64 = 9.0;
 pub struct Physics;
 
 impl Physics {
-    fn check_collision(player: &Player, obstacle: &Obstacle) -> bool {
+    pub fn check_collision(player: &Player, obstacle: &Obstacle) -> bool {
         // TODO
         // Using Rect::has_intersection -> bool OR Rect::intersection -> Rect
         // Apply collision to Player AND Obstacle if necessary (i.e. spin out of control
@@ -20,22 +23,26 @@ impl Physics {
         todo!();
     }
 
-    fn check_collection(player: &Player, coin: &Coin) -> bool {
+    pub fn check_collection(player: &Player, coin: &Coin) -> bool {
         // TODO
         // Using Rect::has_intersection -> bool OR Rect::intersection -> Rect
-        // Apply collision to Player AND Coin 
+        // Apply collision to Player AND Coin
         // Collect coin if necessary and apply proper changes to player's coin counter
         // For collection, collsion including force and torque does not need to be accounted for
         // If any of the player hitboxes intersect with a `Collectible`, the object will be aquired by the player
-        for h in player.hitbox().into_iter(){
-            if h.has_intersection(coin.hitbox()){
-                return true
+        for h in player.hitbox().iter() {
+            if h.has_intersection(coin.hitbox()) {
+                return true;
             }
         }
-        return false
+        return false;
     }
 
-    fn apply_friction() {
+    pub fn apply_gravity<'a>(body: &mut impl Body<'a>) {
+        body.apply_force((0, -body.mass()));
+    }
+
+    pub fn apply_friction<'a>(body: &mut impl Body<'a>) {
         // TODO
         // fn apply_friction(&player: Player, &surface:
         // Option<Box<ProceduralGen::Surface>>) {      Completely made
@@ -55,7 +62,7 @@ impl Physics {
         //      }
         //
         // }
-        todo!();
+        body.apply_force((0, 0));
     }
 
     fn bounce(player: &Player, obstacle: &Obstacle) {
@@ -95,7 +102,7 @@ pub trait Entity<'a> {
     /// Returns the y position of the `Entity`'s top left corner
     fn y(&self) -> i32;
     /// Modifies the position of the `Entity`
-    fn update_pos(&mut self, ground_pos: i32, angle: f64);
+    fn update_pos(&mut self, ground: Point, angle: f64);
 
     /****************** Angular motion *************** */
 
@@ -139,6 +146,8 @@ pub trait Dynamic<'a>: Entity<'a> {
     fn accel_x(&self) -> i32;
     /// Returns the `Entitiy`'s y acceleration
     fn accel_y(&self) -> i32;
+    // Resets acceleration vector to be recalculated
+    fn reset_accel(&mut self);
 
     /****************** Angular motion *************** */
 
@@ -171,21 +180,21 @@ pub trait Body<'a>: Collider<'a> + Dynamic<'a> {
     ///     * `force.0` is the x-component
     ///     * `force.1` is the y-component
     fn apply_force(&mut self, force: (i32, i32));
-    /// Applies torque to the `Body`
-    ///
-    /// # Arguments
-    /// * `force`: the magnitude of the force being applied tangent to the
-    ///   object
-    /// * `radius`: the distance from the object's center of mass
+    // // / Applies torque to the `Body`
+    // // /
+    // // / # Arguments
+    // // / * `force`: the magnitude of the force being applied tangent to the
+    // // /   object
+    // // / * `radius`: the distance from the object's center of mass
     // fn apply_torque(&mut self, force: i32, radius: i32);
 
     /****************** Collision ******************** */
 
-    /// Applies a collision to the `Body` with the terrain
-    ///
-    /// # Arguments
-    /// * `terrain_type`: the name of the terrain type the `Body` collided with
-    fn collide_terrain(terrain_type: String);
+    // /// Applies a collision to the `Body` with the terrain
+    // ///
+    // /// # Arguments
+    // /// * `terrain_type`: the name of the terrain type the `Body` collided with
+    // fn collide_terrain(&mut self, ground: Point, angle: f64, terrain_type: String);
 }
 
 ///Represents the player character
@@ -214,7 +223,7 @@ impl<'a> Player<'a> {
         Player {
             pos,
             velocity: (3, 0),
-            accel: (0, -1),
+            accel: (0, 0),
             theta: 0.0,
             omega: 0.0,
             // alpha: 0.0,
@@ -234,27 +243,26 @@ impl<'a> Player<'a> {
     }
 
     pub fn stop_flipping(&mut self) {
-        self.flipping = false;
+        // self.flipping = false;
 
-        if self.theta() >= OMEGA * 3.0 {
-            self.theta = 0.0;
-        }
+        // if self.theta() >= OMEGA * 3.0 {
+        //     self.theta = 0.0;
+        // }
     }
 
     pub fn resume_flipping(&mut self) {
-        self.flipping = true;
-        self.rotate();
+        // self.flipping = true;
+        // self.rotate();
     }
 
     // Returns true if a jump was initiated
-    pub fn jump(&mut self, ground_pos: i32) -> bool {
-        if (self.pos.y() - ground_pos).abs() < 5 {
+    pub fn jump(&mut self, ground: Point) -> bool {
+        if self.pos.contains_point(ground) {
             self.velocity.1 += 23;
-            self.accel.1 = -1;
             self.jumping = true;
 
-            self.toggle_omega();
-            self.flipping = true;
+            // self.toggle_omega();
+            // self.flipping = true;
 
             true
         } else {
@@ -274,21 +282,23 @@ impl<'a> Player<'a> {
     //   - flat ground has angle 0
     //   - ground sloped DOWN has negative angle
     //   - ground sloped UP has positive angle
-    pub fn land(&mut self, ground_pos: i32, angle: f64) -> bool {
-        if self.is_jumping() && (self.pos.y() - ground_pos).abs() < 5 {
+    pub fn collide_terrain(&mut self, ground: Point, angle: f64, _terrain_type: String) -> bool {
+        if self.pos.contains_point(ground) {
+            self.pos.set_y(ground.y() - TILE_SIZE as i32);
             self.velocity.1 = 0;
-            self.accel.1 = 0;
             self.jumping = false;
+            self.apply_force((0, self.mass()));
 
-            self.toggle_omega();
-            if self.theta() > (-OMEGA * 3.0 - angle)
-                || self.theta() < ((-360.0 + OMEGA * 3.0 - angle) % 360.0)
-            {
-                self.theta = angle;
-                true
-            } else {
-                false
-            }
+            // self.omega = 0.0;
+            // if self.theta() > (-OMEGA * 3.0 - angle)
+            //     || self.theta() < ((-360.0 + OMEGA * 3.0 - angle) % 360.0)
+            // {
+            //     self.theta = angle;
+            //     true
+            // } else {
+            //     false
+            // }
+            true
         } else {
             true
         }
@@ -312,18 +322,9 @@ impl<'a> Entity<'a> for Player<'a> {
         self.theta
     }
 
-    fn update_pos(&mut self, ground_pos: i32, angle: f64) {
+    fn update_pos(&mut self, ground: Point, angle: f64) {
         // Player's x position is fixed
-        self.pos
-            .set_y((self.pos.y() - self.vel_y()).clamp(0, ground_pos));
-
-        if self.pos.y() == ground_pos {
-            self.accel.1 = 0;
-            self.velocity.1 = 0;
-            self.theta = angle * 3.0;
-        } else if self.accel.1 == 0 {
-            self.accel.1 = -5;
-        }
+        self.pos.set_y(self.pos.y() - self.vel_y());
     }
 
     fn rotate(&mut self) {
@@ -346,6 +347,10 @@ impl<'a> Dynamic<'a> for Player<'a> {
 
     fn accel_y(&self) -> i32 {
         self.accel.1
+    }
+
+    fn reset_accel(&mut self) {
+        self.accel = (0, 0);
     }
 
     fn omega(&self) -> f64 {
@@ -371,8 +376,7 @@ impl<'a> Dynamic<'a> for Player<'a> {
 
 impl<'a> Collider<'a> for Player<'a> {
     fn hitbox(&self) -> Vec<Rect> {
-        Vec::new()
-        // TODO
+        vec![self.pos]
     }
     fn collide(&mut self, other: &impl Collider<'a>) {
         // TODO
@@ -404,11 +408,6 @@ impl<'a> Body<'a> for Player<'a> {
     //     // TODO
     //     // Update_alpha (angular acceleration)
     // }
-
-    fn collide_terrain(terrain_type: String) {
-        // TODO
-        todo!();
-    }
 }
 
 pub struct Obstacle<'a> {
@@ -455,7 +454,17 @@ impl<'a> Obstacle<'a> {
     }
 }
 
-pub trait Collectible<'a>{
+// impl<'a> Collider<'a> for Obstacle<'a> {
+//     fn hitbox(&self) -> Vec<Rect> {
+//         self.pos
+//     }
+//     fn collide(&mut self, other: &impl Collider<'a>) {
+//         // TODO
+//         todo!();
+//     }
+// }
+
+pub trait Collectible<'a> {
     /****************** Collision ******************** */
 
     /// Returns the collision boundary of the object as a `Rect`
@@ -467,15 +476,15 @@ pub trait Collectible<'a>{
     fn collected(&mut self) -> bool;
 }
 
-pub struct Coin<'a>{
+pub struct Coin<'a> {
     pos: Rect,
     texture: Texture<'a>,
     value: i32,
 }
 
-impl<'a> Coin<'a>{
-    pub fn new(pos: Rect, texture: Texture<'a>, value: i32) -> Coin{
-        Coin{
+impl<'a> Coin<'a> {
+    pub fn new(pos: Rect, texture: Texture<'a>, value: i32) -> Coin {
+        Coin {
             pos,
             texture,
             value,
@@ -499,18 +508,17 @@ impl<'a> Coin<'a>{
         &self.texture
     }
 
-    fn value(&self) -> i32{
+    fn value(&self) -> i32 {
         self.value
     }
 }
 
-impl<'a> Collectible<'a> for Coin<'a>{
-
-    fn hitbox(&self) -> Rect{
+impl<'a> Collectible<'a> for Coin<'a> {
+    fn hitbox(&self) -> Rect {
         Rect::new(self.pos.x, self.pos.y, self.pos.width(), self.pos.height())
     }
 
-    fn collected(&mut self) -> bool{
+    fn collected(&mut self) -> bool {
         todo!()
     }
 }

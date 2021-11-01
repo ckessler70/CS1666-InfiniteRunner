@@ -1,9 +1,9 @@
-// use crate::physics::Physics;
-// use crate::physics::Body;
+use crate::physics::Body;
+use crate::physics::Physics;
 // use crate::physics::Collider;
 use crate::physics::Dynamic;
 use crate::physics::Entity;
-use crate::physics::Player as PhysPlayer;
+use crate::physics::Player;
 
 use crate::proceduralgen;
 // use crate::proceduralgen::ProceduralGen;
@@ -16,8 +16,6 @@ use inf_runner::GameState;
 use inf_runner::GameStatus;
 use inf_runner::SDLCore;
 
-// use std::collections::HashSet;
-use std::collections::LinkedList;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
@@ -25,6 +23,7 @@ use sdl2::event::Event;
 use sdl2::image::LoadTexture;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
+use sdl2::rect::Point;
 use sdl2::rect::Rect;
 // use sdl2::render::Texture;
 use sdl2::render::TextureQuery;
@@ -37,7 +36,7 @@ const FRAME_TIME: f64 = 1.0 / FPS as f64;
 const CAM_H: u32 = 720;
 const CAM_W: u32 = 1280;
 
-const TILE_SIZE: u32 = 100;
+pub const TILE_SIZE: u32 = 100;
 
 // Ensure that SIZE is not a decimal
 // 1, 2, 4, 5, 8, 10, 16, 20, 32, 40, 64, 80, 128, 160, 256, 320, 640
@@ -74,7 +73,7 @@ impl Game for Runner {
         let mut bg_buff = 0;
 
         // Create player at default position
-        let mut player = PhysPlayer::new(
+        let mut player = Player::new(
             rect!(
                 PLAYER_BOUNDS_H.1 / 2,
                 PLAYER_BOUNDS_V.0,
@@ -86,15 +85,13 @@ impl Game for Runner {
         );
 
         // Used to keep track of animation status
-        let mut frames: i32 = 0;
-        let mut src_x: i32 = 0;
+        let src_x: i32 = 0;
 
         let mut score: i32 = 0;
 
         let mut game_paused: bool = false;
         let mut initial_pause: bool = false;
         let mut game_over: bool = false;
-        let mut ct: i32 = 0;
 
         // FPS tracking
         let mut all_frames: i32 = 0;
@@ -272,16 +269,21 @@ impl Game for Runner {
                 }
             } else {
                 // Left ground position
-                let current_ground = CAM_H as i32
-                    - bg[2][(player.x() as usize) / (CAM_W / SIZE as u32) as usize] as i32
-                    - TILE_SIZE as i32;
+                let current_ground = Point::new(
+                    player.x(),
+                    CAM_H as i32
+                        - bg[2][(player.x() as usize) / (CAM_W / SIZE as u32) as usize] as i32,
+                );
                 // Right ground position
-                let next_ground = CAM_H as i32
-                    - bg[2][(((player.x() + TILE_SIZE as i32) as usize)
-                        / (CAM_W / SIZE as u32) as usize)] as i32
-                    - TILE_SIZE as i32;
+                let next_ground = Point::new(
+                    player.x() + TILE_SIZE as i32,
+                    CAM_H as i32
+                        - bg[2][(((player.x() + TILE_SIZE as i32) as usize)
+                            / (CAM_W / SIZE as u32) as usize)] as i32,
+                );
                 // Angle between (slightly dampened so angling the player doesn't look silly)
-                let angle = ((next_ground as f64 - current_ground as f64) / (TILE_SIZE as f64))
+                let angle = ((next_ground.y() as f64 - current_ground.y() as f64)
+                    / (TILE_SIZE as f64))
                     .atan()
                     * 120.0
                     / std::f64::consts::PI;
@@ -314,13 +316,14 @@ impl Game for Runner {
                     }
                 }
 
+                Physics::apply_gravity(&mut player);
+                Physics::apply_friction(&mut player);
+
                 player.update_pos(current_ground, angle);
                 player.update_vel();
-                if frames % 2 == 0 {
-                    player.flip();
-                }
+                player.flip();
 
-                if !player.land(current_ground, angle) {
+                if !player.collide_terrain(current_ground, angle, "".to_string()) {
                     game_over = true;
                     initial_pause = true;
                     continue;
@@ -384,7 +387,7 @@ impl Game for Runner {
                 }
 
                 core.wincan.set_draw_color(Color::RGBA(0, 0, 0, 255));
-                core.wincan.fill_rect(rect!(0, 470, CAM_W, CAM_H));
+                core.wincan.fill_rect(rect!(0, 470, CAM_W, CAM_H))?;
 
                 // Draw background
                 core.wincan
@@ -508,6 +511,8 @@ impl Game for Runner {
                 all_frames = 0;
                 last_measurement_time = Instant::now();
             }
+
+            player.reset_accel();
         }
 
         Ok(GameState {
