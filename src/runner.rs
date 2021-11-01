@@ -531,6 +531,10 @@ impl Game for Runner {
                     false,
                     false,
                 )?;
+                core.wincan.set_draw_color(Color::BLACK);
+                for h in player.hitbox().iter() {
+                    core.wincan.draw_rect(*h)?;
+                }
 
                 // Draw obstacles
                 for o in obstacles.iter() {
@@ -558,7 +562,7 @@ impl Game for Runner {
                         false,
                         false,
                     )?;
-                    core.wincan.set_draw_color(Color::RED);
+                    core.wincan.set_draw_color(Color::GREEN);
                     core.wincan.draw_rect(c.hitbox())?;
                 }
 
