@@ -3,6 +3,7 @@ use crate::physics::Physics;
 // use crate::physics::Collider;
 use crate::physics::Dynamic;
 use crate::physics::Entity;
+use crate::physics::Obstacle;
 use crate::physics::Player;
 
 use crate::proceduralgen;
@@ -83,6 +84,17 @@ impl Game for Runner {
             2,
             texture_creator.load_texture("assets/player.png")?,
         );
+        let mut ferris1 = Obstacle::new(
+            rect!(0, 0, TILE_SIZE, TILE_SIZE),
+            2,
+            texture_creator.load_texture("assets/ferris.png")?,
+        );
+        let mut ferris2 = Obstacle::new(
+            rect!((CAM_W as i32) / 2, 0, TILE_SIZE, TILE_SIZE),
+            2,
+            texture_creator.load_texture("assets/ferris.png")?,
+        );
+        let mut obstacles: Vec<_> = vec![ferris1, ferris2];
 
         // Used to keep track of animation status
         let src_x: i32 = 0;
@@ -316,18 +328,18 @@ impl Game for Runner {
                     }
                 }
 
-                if !player.collide_terrain(current_ground, angle) {
-                    game_over = true;
-                    initial_pause = true;
-                    continue;
-                }
-
                 Physics::apply_gravity(&mut player);
                 Physics::apply_friction(&mut player);
 
                 player.update_pos(current_ground, angle);
                 player.update_vel();
                 player.flip();
+
+                if !player.collide_terrain(current_ground, angle) {
+                    game_over = true;
+                    initial_pause = true;
+                    continue;
+                }
 
                 core.wincan.set_draw_color(Color::RGBA(3, 120, 206, 255));
                 core.wincan.clear();
@@ -472,6 +484,19 @@ impl Game for Runner {
                     false,
                     false,
                 )?;
+
+                // Draw obstacles
+                for o in obstacles.iter() {
+                    core.wincan.copy_ex(
+                        o.texture(),
+                        rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
+                        rect!(o.x(), o.y(), TILE_SIZE, TILE_SIZE),
+                        0.0,
+                        None,
+                        false,
+                        false,
+                    )?;
+                }
 
                 let surface = font
                     .render(&format!("{:08}", score))

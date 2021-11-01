@@ -431,24 +431,24 @@ impl<'a> Obstacle<'a> {
         }
     }
 
-    fn mass(&self) -> i32 {
+    pub fn mass(&self) -> i32 {
         self.mass
     }
 
-    fn x(&self) -> i32 {
+    pub fn x(&self) -> i32 {
         self.pos.x()
     }
 
-    fn y(&self) -> i32 {
+    pub fn y(&self) -> i32 {
         self.pos.y()
     }
 
-    fn update_pos(&mut self, x: i32, y: i32) {
+    pub fn update_pos(&mut self, x: i32, y: i32) {
         self.pos.set_x(x);
         self.pos.set_y(y);
     }
 
-    fn texture(&self) -> &Texture {
+    pub fn texture(&self) -> &Texture {
         &self.texture
     }
 }
