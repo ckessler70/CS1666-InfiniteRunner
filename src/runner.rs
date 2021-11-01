@@ -1,12 +1,12 @@
 // use crate::physics::Body;
 use crate::physics::Physics;
 // use crate::physics::Collider;
-use crate::physics::Dynamic;
-use crate::physics::Entity;
-use crate::physics::Obstacle;
 use crate::physics::Coin;
 use crate::physics::Collectible;
 use crate::physics::Collider;
+use crate::physics::Dynamic;
+use crate::physics::Entity;
+use crate::physics::Obstacle;
 use crate::physics::Player;
 
 use crate::proceduralgen;
@@ -88,7 +88,7 @@ impl Game for Runner {
             texture_creator.load_texture("assets/player.png")?,
         );
         let mut ferris1 = Obstacle::new(
-            rect!(0,500, TILE_SIZE, TILE_SIZE),
+            rect!(0, 500, TILE_SIZE, TILE_SIZE),
             2,
             texture_creator.load_texture("assets/ferris.png")?,
         );
@@ -98,10 +98,9 @@ impl Game for Runner {
             texture_creator.load_texture("assets/ferris.png")?,
         );
         let mut obstacles: Vec<_> = vec![ferris1, ferris2];
-        
-        
+
         //add some coins
-        
+
         let mut coin1 = Coin::new(
             rect!(0, 0, TILE_SIZE, TILE_SIZE),
             texture_creator.load_texture("assets/coin.gif")?,
@@ -349,8 +348,9 @@ impl Game for Runner {
                 //in the future when obstacles & coins are proc genned we will probs wanna
                 //only check for obstacles/coins based on their location relative to players x cord
                 //(also: idt this can be a for loop bc it moves the obstacles values?)
-                for o in obstacles.iter_mut(){  //.filter(|near by obstacles|).collect()
-                    if Physics::check_collision(&mut player,o){
+                for o in obstacles.iter_mut() {
+                    //.filter(|near by obstacles|).collect()
+                    if Physics::check_collision(&mut player, o) {
                         //Temp option: can add these 2 lines to end game upon obstacle collsions
                         //game_over = true;
                         //initial_pause = true;
@@ -361,6 +361,18 @@ impl Game for Runner {
                         //obstacle.update_pos();
                         continue;
                     };
+                }
+
+                for c in coins.iter_mut() {
+                    //check collection
+                    if Physics::check_collection(&mut player, c) {
+                        //add these back once proc genned coins
+                        //c.collect();          //deletes the coin once collected (needs fully implemented)
+                        //score += c.value();   //increments the score based on the coins value
+
+                        print!("collection!"); //for right now
+                        continue;
+                    }
                 }
 
                 Physics::apply_gravity(&mut player);
@@ -378,30 +390,6 @@ impl Game for Runner {
 
                 core.wincan.set_draw_color(Color::RGBA(3, 120, 206, 255));
                 core.wincan.clear();
-
-                //I put this down here bc I wanted to draw coin hitboxes
-                //(I also don't think that it matters bc coin collsion won't effect any player entity attributes)
-                for c in coins.iter_mut(){
-                    //draw hitbox (once we have a set coin we should modify what we consider the hitbox)
-                    core.wincan.set_draw_color(Color::RED);
-                    core.wincan.draw_rect(c.hitbox())?;
-                    //check collection
-                    if Physics::check_collection(&mut player,c){
-                        //add these back once proc genned coins
-                        //c.collect();          //deletes the coin once collected (needs fully implemented)
-                        //score += c.value();   //increments the score based on the coins value
-
-                        print!("collection!");  //for right now
-                        continue;
-                    }
-                } 
-
-                //I wanna draw obstacle hit boxes, but their value gets moved in the collision detection for loop
-                //so this does nothing :(
-                for o in obstacles.iter(){
-                    core.wincan.set_draw_color(Color::RED);
-                    core.wincan.draw_rect(o.hitbox())?;
-                }
 
                 core.wincan
                     .copy(&tex_grad, None, rect!(0, -128, CAM_W, CAM_H))?;
@@ -544,7 +532,6 @@ impl Game for Runner {
                     false,
                 )?;
 
-
                 // Draw obstacles
                 for o in obstacles.iter() {
                     core.wincan.copy_ex(
@@ -556,6 +543,8 @@ impl Game for Runner {
                         false,
                         false,
                     )?;
+                    core.wincan.set_draw_color(Color::RED);
+                    core.wincan.draw_rect(o.hitbox())?;
                 }
 
                 // Draw coins
@@ -569,6 +558,8 @@ impl Game for Runner {
                         false,
                         false,
                     )?;
+                    core.wincan.set_draw_color(Color::RED);
+                    core.wincan.draw_rect(c.hitbox())?;
                 }
 
                 let surface = font

@@ -20,7 +20,7 @@ impl Physics {
         // Using Rect::has_intersection -> bool OR Rect::intersection -> Rect
         // Apply collision to Player AND Obstacle if necessary (i.e. spin out of control
         // and break object or whatever) This includes force and torque
-        
+
         for h in player.hitbox().iter() {
             if h.has_intersection(obstacle.hitbox()) {
                 return true;
@@ -442,7 +442,7 @@ impl<'a> Obstacle<'a> {
     //This is gonna need a better implementation
     //right now: just detects collision w/ image Rect
     //future: need tighter hitboxes, per obstacle
-    pub fn hitbox(&self) -> Rect{
+    pub fn hitbox(&self) -> Rect {
         self.pos
     }
 
@@ -508,7 +508,6 @@ impl<'a> Collider<'a> for Obstacle<'a> {
     }
 }
 
-
 pub trait Collectible<'a> {
     /****************** Collection ******************** */
 
@@ -559,9 +558,9 @@ impl<'a> Coin<'a> {
         self.value
     }
 
-    pub fn collected(&self) -> bool{
+    pub fn collected(&self) -> bool {
         self.collected
-    } 
+    }
     //if we delete coin by dropping them from mem (once collected)
     //pub fn drop(&mut self) { }
 }
@@ -575,7 +574,6 @@ impl<'a> Collectible<'a> for Coin<'a> {
     fn collect(&mut self) {
         self.collected = true;
         //need to delete the collectible here somehow (maybe by dropping it from mem)
-    
     }
 }
 
