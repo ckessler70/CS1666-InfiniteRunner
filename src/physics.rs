@@ -157,8 +157,8 @@ pub trait Dynamic<'a>: Entity<'a> {
     fn omega(&self) -> f64;
     /// Modifies the velocity of the `Dynamic` `Entity`
     fn update_vel(&mut self);
-    /// Modifies the rotation speed of the `Dynamic` `Entity`
-    fn toggle_omega(&mut self);
+    // /// Modifies the rotation speed of the `Dynamic` `Entity`
+    // fn update_omega(&mut self);
 }
 
 /// Object has mass and rotational inertia. Object responds to forces and
@@ -243,7 +243,7 @@ impl<'a> Player<'a> {
     }
 
     pub fn stop_flipping(&mut self) {
-        // self.flipping = false;
+        self.flipping = false;
 
         // if self.theta() >= OMEGA * 3.0 {
         //     self.theta = 0.0;
@@ -251,8 +251,8 @@ impl<'a> Player<'a> {
     }
 
     pub fn resume_flipping(&mut self) {
-        // self.flipping = true;
-        // self.rotate();
+        self.flipping = true;
+        self.rotate();
     }
 
     // Returns true if a jump was initiated
@@ -261,8 +261,8 @@ impl<'a> Player<'a> {
             self.velocity.1 += 23;
             self.jumping = true;
 
-            // self.toggle_omega();
-            // self.flipping = true;
+            self.omega = OMEGA;
+            self.flipping = true;
 
             true
         } else {
@@ -282,23 +282,22 @@ impl<'a> Player<'a> {
     //   - flat ground has angle 0
     //   - ground sloped DOWN has negative angle
     //   - ground sloped UP has positive angle
-    pub fn collide_terrain(&mut self, ground: Point, angle: f64, _terrain_type: String) -> bool {
-        if self.pos.contains_point(ground) {
-            self.pos.set_y(ground.y() - TILE_SIZE as i32);
+    pub fn collide_terrain(&mut self, ground: Point, angle: f64) -> bool {
+        if self.vel_y() < 0 && self.pos.contains_point(ground) {
+            self.pos.set_y(ground.y() - 95 * (TILE_SIZE as i32) / 100);
             self.velocity.1 = 0;
             self.jumping = false;
             self.apply_force((0, self.mass()));
 
-            // self.omega = 0.0;
-            // if self.theta() > (-OMEGA * 3.0 - angle)
-            //     || self.theta() < ((-360.0 + OMEGA * 3.0 - angle) % 360.0)
-            // {
-            //     self.theta = angle;
-            //     true
-            // } else {
-            //     false
-            // }
-            true
+            self.omega = 0.0;
+            if self.theta() > (-OMEGA * 3.0 - angle)
+                || self.theta() < ((-360.0 + OMEGA * 3.0 - angle) % 360.0)
+            {
+                self.theta = angle;
+                true
+            } else {
+                false
+            }
         } else {
             true
         }
@@ -323,6 +322,10 @@ impl<'a> Entity<'a> for Player<'a> {
     }
 
     fn update_pos(&mut self, ground: Point, angle: f64) {
+        if self.pos.contains_point(ground) {
+            self.theta = angle;
+        }
+
         // Player's x position is fixed
         self.pos.set_y(self.pos.y() - self.vel_y());
     }
@@ -367,10 +370,6 @@ impl<'a> Dynamic<'a> for Player<'a> {
         // diagonally
         self.velocity.0 = (self.velocity.0 + self.accel.0).clamp(LOWER_SPEED, UPPER_SPEED);
         self.velocity.1 = (self.velocity.1 + self.accel.1).clamp(-10, 1000);
-    }
-
-    fn toggle_omega(&mut self) {
-        self.omega = if self.omega > 0.0 { 0.0 } else { OMEGA };
     }
 }
 

@@ -1,4 +1,4 @@
-use crate::physics::Body;
+// use crate::physics::Body;
 use crate::physics::Physics;
 // use crate::physics::Collider;
 use crate::physics::Dynamic;
@@ -316,18 +316,18 @@ impl Game for Runner {
                     }
                 }
 
+                if !player.collide_terrain(current_ground, angle) {
+                    game_over = true;
+                    initial_pause = true;
+                    continue;
+                }
+
                 Physics::apply_gravity(&mut player);
                 Physics::apply_friction(&mut player);
 
                 player.update_pos(current_ground, angle);
                 player.update_vel();
                 player.flip();
-
-                if !player.collide_terrain(current_ground, angle, "".to_string()) {
-                    game_over = true;
-                    initial_pause = true;
-                    continue;
-                }
 
                 core.wincan.set_draw_color(Color::RGBA(3, 120, 206, 255));
                 core.wincan.clear();
