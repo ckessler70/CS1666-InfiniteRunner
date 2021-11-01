@@ -20,7 +20,13 @@ impl Physics {
         // Using Rect::has_intersection -> bool OR Rect::intersection -> Rect
         // Apply collision to Player AND Obstacle if necessary (i.e. spin out of control
         // and break object or whatever) This includes force and torque
-        todo!();
+        
+        for o in player.hitbox().iter() {
+            if o.has_intersection(obstacle.hitbox()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     pub fn check_collection(player: &Player, coin: &Coin) -> bool {
@@ -435,6 +441,10 @@ impl<'a> Obstacle<'a> {
         self.mass
     }
 
+    pub fn hitbox(&self) -> Rect{
+        self.pos
+    }
+
     pub fn x(&self) -> i32 {
         self.pos.x()
     }
@@ -471,14 +481,15 @@ pub trait Collectible<'a> {
     /// Applies a collision to the `Collectible` using the physical attributes of
     /// it and another object that must be of type `Collider`
     ///
-    // delete the `Collecible` after the player collides with and collects it
-    fn collected(&mut self) -> bool;
+    // collect the collectible (set its collected field to true & delete it)
+    fn collect(&mut self);
 }
 
 pub struct Coin<'a> {
     pos: Rect,
     texture: Texture<'a>,
     value: i32,
+    collected: bool,
 }
 
 impl<'a> Coin<'a> {
@@ -487,14 +498,15 @@ impl<'a> Coin<'a> {
             pos,
             texture,
             value,
+            collected: false,
         }
     }
 
-    fn x(&self) -> i32 {
+    pub fn x(&self) -> i32 {
         self.pos.x()
     }
 
-    fn y(&self) -> i32 {
+    pub fn y(&self) -> i32 {
         self.pos.y()
     }
 
@@ -503,13 +515,17 @@ impl<'a> Coin<'a> {
         self.pos.set_y(y);
     }
 
-    fn texture(&self) -> &Texture {
+    pub fn texture(&self) -> &Texture {
         &self.texture
     }
 
-    fn value(&self) -> i32 {
+    pub fn value(&self) -> i32 {
         self.value
     }
+
+    pub fn collected(&self) -> bool{
+        self.collected
+    } 
 }
 
 impl<'a> Collectible<'a> for Coin<'a> {
@@ -517,7 +533,11 @@ impl<'a> Collectible<'a> for Coin<'a> {
         Rect::new(self.pos.x, self.pos.y, self.pos.width(), self.pos.height())
     }
 
-    fn collected(&mut self) -> bool {
-        todo!()
+    fn collect(&mut self) {
+        self.collected = true;
+        //need to delete the collectible here 
+        //so score doesnt keep going up after initial collection
+        //(ie. it will keep collecting thought the entire collectible hit box
+        //instead of just once)
     }
 }

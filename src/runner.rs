@@ -4,6 +4,8 @@ use crate::physics::Physics;
 use crate::physics::Dynamic;
 use crate::physics::Entity;
 use crate::physics::Obstacle;
+use crate::physics::Coin;
+use crate::physics::Collectible;
 use crate::physics::Player;
 
 use crate::proceduralgen;
@@ -85,16 +87,31 @@ impl Game for Runner {
             texture_creator.load_texture("assets/player.png")?,
         );
         let mut ferris1 = Obstacle::new(
-            rect!(0, 0, TILE_SIZE, TILE_SIZE),
+            rect!(0,500, TILE_SIZE, TILE_SIZE),
             2,
             texture_creator.load_texture("assets/ferris.png")?,
         );
         let mut ferris2 = Obstacle::new(
-            rect!((CAM_W as i32) / 2, 0, TILE_SIZE, TILE_SIZE),
+            rect!((CAM_W as i32) / 2, 500, TILE_SIZE, TILE_SIZE),
             2,
             texture_creator.load_texture("assets/ferris.png")?,
         );
         let mut obstacles: Vec<_> = vec![ferris1, ferris2];
+        
+        
+        //add some coins
+        
+        let mut coin1 = Coin::new(
+            rect!(0, 0, TILE_SIZE, TILE_SIZE),
+            texture_creator.load_texture("assets/coin.gif")?,
+            20,
+        );
+        let mut coin2 = Coin::new(
+            rect!((CAM_W as i32) / 2, 0, TILE_SIZE, TILE_SIZE),
+            texture_creator.load_texture("assets/coin.gif")?,
+            20,
+        );
+        let mut coins: Vec<_> = vec![coin1, coin2];
 
         // Used to keep track of animation status
         let src_x: i32 = 0;
@@ -328,6 +345,32 @@ impl Game for Runner {
                     }
                 }
 
+                //in the future when obstacles & coins are proc genned we will probs wanna
+                //only check for obstacles/coins based on their location relative to players x cord
+                //or something
+                for o in obstacles.iter(){
+                    if Physics::check_collision(&mut player,o){
+                        //add these back / resolve collision once proc genned obstacles
+                        //game_over = true;
+                        //initial_pause = true;
+                        print!("collision!");
+                        continue;
+                    };
+                }
+
+                
+                for c in coins.iter_mut(){  //also wromg type of 
+                    if Physics::check_collection(&mut player,c){
+                        //add these back once proc genned coins
+                        //c.collect();
+                        //score += c.value();
+                        print!("collection!");
+                        continue;
+                    }
+                } 
+               
+
+
                 Physics::apply_gravity(&mut player);
                 Physics::apply_friction(&mut player);
 
@@ -340,6 +383,10 @@ impl Game for Runner {
                     initial_pause = true;
                     continue;
                 }
+
+                /*if player.collide_obstacle(){
+
+                }*/
 
                 core.wincan.set_draw_color(Color::RGBA(3, 120, 206, 255));
                 core.wincan.clear();
@@ -491,6 +538,19 @@ impl Game for Runner {
                         o.texture(),
                         rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
                         rect!(o.x(), o.y(), TILE_SIZE, TILE_SIZE),
+                        0.0,
+                        None,
+                        false,
+                        false,
+                    )?;
+                }
+
+                // Draw coins
+                for c in coins.iter() {
+                    core.wincan.copy_ex(
+                        c.texture(),
+                        rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
+                        rect!(c.x(), c.y(), TILE_SIZE, TILE_SIZE),
                         0.0,
                         None,
                         false,
