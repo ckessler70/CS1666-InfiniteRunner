@@ -6,6 +6,7 @@ use crate::physics::Entity;
 use crate::physics::Obstacle;
 use crate::physics::Coin;
 use crate::physics::Collectible;
+use crate::physics::Collider;
 use crate::physics::Player;
 
 use crate::proceduralgen;
@@ -347,29 +348,20 @@ impl Game for Runner {
 
                 //in the future when obstacles & coins are proc genned we will probs wanna
                 //only check for obstacles/coins based on their location relative to players x cord
-                //or something
-                for o in obstacles.iter(){
+                //(also: idt this can be a for loop bc it moves the obstacles values?)
+                for o in obstacles.iter_mut(){  //.filter(|near by obstacles|).collect()
                     if Physics::check_collision(&mut player,o){
-                        //add these back / resolve collision once proc genned obstacles
+                        //Temp option: can add these 2 lines to end game upon obstacle collsions
                         //game_over = true;
                         //initial_pause = true;
                         print!("collision!");
+                        //Real Solution: need to actually resolve the collision, should go something like this
+                        //player.collide(o);
+                        //Physics::apply_gravity(&mut obstacle);    //maybe...
+                        //obstacle.update_pos();
                         continue;
                     };
                 }
-
-                
-                for c in coins.iter_mut(){  //also wromg type of 
-                    if Physics::check_collection(&mut player,c){
-                        //add these back once proc genned coins
-                        //c.collect();
-                        //score += c.value();
-                        print!("collection!");
-                        continue;
-                    }
-                } 
-               
-
 
                 Physics::apply_gravity(&mut player);
                 Physics::apply_friction(&mut player);
@@ -384,12 +376,32 @@ impl Game for Runner {
                     continue;
                 }
 
-                /*if player.collide_obstacle(){
-
-                }*/
-
                 core.wincan.set_draw_color(Color::RGBA(3, 120, 206, 255));
                 core.wincan.clear();
+
+                //I put this down here bc I wanted to draw coin hitboxes
+                //(I also don't think that it matters bc coin collsion won't effect any player entity attributes)
+                for c in coins.iter_mut(){
+                    //draw hitbox (once we have a set coin we should modify what we consider the hitbox)
+                    core.wincan.set_draw_color(Color::RED);
+                    core.wincan.draw_rect(c.hitbox())?;
+                    //check collection
+                    if Physics::check_collection(&mut player,c){
+                        //add these back once proc genned coins
+                        //c.collect();          //deletes the coin once collected (needs fully implemented)
+                        //score += c.value();   //increments the score based on the coins value
+
+                        print!("collection!");  //for right now
+                        continue;
+                    }
+                } 
+
+                //I wanna draw obstacle hit boxes, but their value gets moved in the collision detection for loop
+                //so this does nothing :(
+                for o in obstacles.iter(){
+                    core.wincan.set_draw_color(Color::RED);
+                    core.wincan.draw_rect(o.hitbox())?;
+                }
 
                 core.wincan
                     .copy(&tex_grad, None, rect!(0, -128, CAM_W, CAM_H))?;
@@ -531,6 +543,7 @@ impl Game for Runner {
                     false,
                     false,
                 )?;
+
 
                 // Draw obstacles
                 for o in obstacles.iter() {

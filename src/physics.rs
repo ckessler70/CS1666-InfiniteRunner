@@ -21,8 +21,8 @@ impl Physics {
         // Apply collision to Player AND Obstacle if necessary (i.e. spin out of control
         // and break object or whatever) This includes force and torque
         
-        for o in player.hitbox().iter() {
-            if o.has_intersection(obstacle.hitbox()) {
+        for h in player.hitbox().iter() {
+            if h.has_intersection(obstacle.hitbox()) {
                 return true;
             }
         }
@@ -30,10 +30,6 @@ impl Physics {
     }
 
     pub fn check_collection(player: &Player, coin: &Coin) -> bool {
-        // TODO
-        // Using Rect::has_intersection -> bool OR Rect::intersection -> Rect
-        // Apply collision to Player AND Coin
-        // Collect coin if necessary and apply proper changes to player's coin counter
         // For collection, collsion including force and torque does not need to be accounted for
         // If any of the player hitboxes intersect with a `Collectible`, the object will be aquired by the player
         for h in player.hitbox().iter() {
@@ -420,6 +416,7 @@ pub struct Obstacle<'a> {
     mass: i32,
     texture: Texture<'a>,
     bouncy: bool,
+    theta: f64,
 }
 
 /// #TODO
@@ -434,6 +431,7 @@ impl<'a> Obstacle<'a> {
             texture,
             mass, // maybe randomize? idk @procedural gen team
             bouncy: false,
+            theta: 0.0,
         }
     }
 
@@ -441,6 +439,9 @@ impl<'a> Obstacle<'a> {
         self.mass
     }
 
+    //This is gonna need a better implementation
+    //right now: just detects collision w/ image Rect
+    //future: need tighter hitboxes, per obstacle
     pub fn hitbox(&self) -> Rect{
         self.pos
     }
@@ -463,22 +464,57 @@ impl<'a> Obstacle<'a> {
     }
 }
 
-// impl<'a> Collider<'a> for Obstacle<'a> {
-//     fn hitbox(&self) -> Vec<Rect> {
-//         self.pos
-//     }
-//     fn collide(&mut self, other: &impl Collider<'a>) {
-//         // TODO
-//         todo!();
-//     }
-// }
+//a lot of these need overwriten this is copied from player impl of entity
+impl<'a> Entity<'a> for Obstacle<'a> {
+    fn texture(&self) -> &Texture<'a> {
+        &self.texture
+    }
+
+    fn x(&self) -> i32 {
+        self.pos.x()
+    }
+
+    fn y(&self) -> i32 {
+        self.pos.y()
+    }
+
+    fn theta(&self) -> f64 {
+        self.theta
+    }
+
+    fn update_pos(&mut self, ground: Point, angle: f64) {
+        todo!();
+        /*if self.pos.contains_point(ground) {
+            self.theta = angle;
+        }
+
+        self.pos.set_y(self.pos.y() - self.vel_y());
+        */
+    }
+
+    fn rotate(&mut self) {
+        todo!();
+        //self.theta = (self.theta - self.omega) % 360.0;
+    }
+}
+//same with this
+impl<'a> Collider<'a> for Obstacle<'a> {
+    fn hitbox(&self) -> Vec<Rect> {
+        vec![self.pos]
+    }
+    fn collide(&mut self, other: &impl Collider<'a>) {
+        // TODO
+        todo!();
+    }
+}
+
 
 pub trait Collectible<'a> {
-    /****************** Collision ******************** */
+    /****************** Collection ******************** */
 
-    /// Returns the collision boundary of the object as a `Rect`
+    /// Returns the collection boundary of the object as a `Rect`
     fn hitbox(&self) -> Rect;
-    /// Applies a collision to the `Collectible` using the physical attributes of
+    /// Applies a collection to the `Collectible` using the physical attributes of
     /// it and another object that must be of type `Collider`
     ///
     // collect the collectible (set its collected field to true & delete it)
@@ -526,18 +562,26 @@ impl<'a> Coin<'a> {
     pub fn collected(&self) -> bool{
         self.collected
     } 
+    //if we delete coin by dropping them from mem (once collected)
+    //pub fn drop(&mut self) { }
 }
 
 impl<'a> Collectible<'a> for Coin<'a> {
+    //for now (honestly not a horrible long term soln)
     fn hitbox(&self) -> Rect {
         Rect::new(self.pos.x, self.pos.y, self.pos.width(), self.pos.height())
     }
 
     fn collect(&mut self) {
         self.collected = true;
-        //need to delete the collectible here 
-        //so score doesnt keep going up after initial collection
-        //(ie. it will keep collecting thought the entire collectible hit box
-        //instead of just once)
+        //need to delete the collectible here somehow (maybe by dropping it from mem)
+    
     }
 }
+
+//I think this is how we'll delete the coin
+/*impl Drop for Coin{
+    fn drop(&mut self){
+        println!("dropping coin");
+    }
+}*/
