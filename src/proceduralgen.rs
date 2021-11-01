@@ -15,6 +15,11 @@ pub struct TerrainSegment<'a> {
     texture: &'a Texture<'a>,
 }
 
+pub enum StaticObject {
+    Coin,
+    Statue,
+}
+
 #[allow(dead_code)]
 impl<'a> TerrainSegment<'a> {
     pub fn new(pos: Rect, texture: &'a Texture<'a>) -> TerrainSegment {
@@ -127,6 +132,35 @@ impl ProceduralGen {
             ),
             &texture,
         )
+    }
+
+    pub fn spawn_object(min_length: i32, max_length: i32) -> (Option<StaticObject>, usize) {
+        let mut rng = rand::thread_rng();
+
+        let freq = rng.gen::<f64>() * 256.0 + 32.0;
+        let amp = rng.gen::<f64>();
+
+        let map_size = 128;
+        let point_mod: f64 = gen_point_mod(
+            (
+                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
+                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
+            ),
+            freq,
+            amp,
+        );
+
+        let object = if amp > 0.5 {
+            StaticObject::Coin
+        } else {
+            StaticObject::Statue
+        };
+
+        let length = (point_mod * max_length as f64 + min_length as f64)
+            .clamp(min_length as f64, max_length as f64)
+            .floor() as usize;
+
+        (Some(object), length)
     }
 
     pub fn test_mapper(&mut self) -> Result<(), String> {
