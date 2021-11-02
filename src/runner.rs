@@ -99,6 +99,7 @@ impl Game for Runner {
         let src_x: i32 = 0;
 
         let mut score: i32 = 0;
+        let mut coin_count: i32 = 0;
 
         let mut game_paused: bool = false;
         let mut initial_pause: bool = false;
@@ -355,6 +356,7 @@ impl Game for Runner {
                     //check collection
                     if Physics::check_collection(&mut player, c) {
                         c.collect();          //deletes the coin once collected (but takes too long)
+                        coin_count += 1;
                         score += c.value();   //increments the score based on the coins value
                         //maybe print next to score: "+ c.value()""
                         continue;
@@ -658,6 +660,19 @@ impl Game for Runner {
 
                 core.wincan.present();
                 score += 1;
+
+                /*let other_surface = font
+                    .render(&format!("{:03}", coin_count))
+                    .blended(Color::RGBA(100, 0, 200, 100))
+                    .map_err(|e| e.to_string())?;
+                let coin_count_texture = texture_creator
+                    .create_texture_from_surface(&other_surface)
+                    .map_err(|e| e.to_string())?;
+
+                core.wincan
+                    .copy(&coin_count_texture, None, Some(rect!(160, 10, 80, 50)))?;
+
+                core.wincan.present();*/
             }
 
             // FPS Calculation
