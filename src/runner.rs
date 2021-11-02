@@ -342,6 +342,7 @@ impl Game for Runner {
                         if !player.collide(o, collision_boxes) {
                             game_over = true;
                             initial_pause = true;
+                            continue 'gameloop;
                         }
                         //print!("collision!");
                         //Real Solution: need to actually resolve the collision, should go something like this
@@ -355,16 +356,16 @@ impl Game for Runner {
                 for c in coins.iter_mut() {
                     //check collection
                     if Physics::check_collection(&mut player, c) {
-                        c.collect();          //deletes the coin once collected (but takes too long)
+                        c.collect(); //deletes the coin once collected (but takes too long)
                         coin_count += 1;
-                        score += c.value();   //increments the score based on the coins value
-                        //maybe print next to score: "+ c.value()""
+                        score += c.value(); //increments the score based on the coins value
+                                            //maybe print next to score: "+ c.value()""
                         continue;
                     }
                 }
 
                 Physics::apply_gravity(&mut player);
-                Physics::apply_friction(&mut player);
+                Physics::apply_friction(&mut player, 1.0);
 
                 player.update_pos(current_ground, angle);
                 player.update_vel();
@@ -435,8 +436,8 @@ impl Game for Runner {
                         proceduralgen::ProceduralGen::spawn_object(SIZE as i32, (SIZE * 2) as i32);
                     object = breakdown.0;
                     object_spawn = breakdown.1;
-                   
-                    object_count += 1;  //for now...
+
+                    object_count += 1; //for now...
                 } else {
                     object_spawn -= 1;
                 }
@@ -498,31 +499,30 @@ impl Game for Runner {
                 //creates a single obstacle/coin or overwrites the old one
                 //everytime one a new one is spawned & adds it to corresponding vector
                 //not a good impl bc will not work when > 1 obstacle/coin spawned at a time
-                if(object_count > 0){
+                if (object_count > 0) {
                     match object {
                         Some(proceduralgen::StaticObject::Statue) => {
                             let mut obstacle = Obstacle::new(
-                                rect!(0,0,0,0), 
+                                rect!(0, 0, 0, 0),
                                 2,
                                 texture_creator.load_texture("assets/statue.png")?,
                             );
                             obstacles.push(obstacle);
-                            object_count -=1;
+                            object_count -= 1;
                         }
                         Some(proceduralgen::StaticObject::Coin) => {
                             let mut coin = Coin::new(
-                                rect!(0,0,0,0), 
+                                rect!(0, 0, 0, 0),
                                 texture_creator.load_texture("assets/coin.gif")?,
                                 1000,
                             );
                             coins.push(coin);
-                            object_count -=1;
+                            object_count -= 1;
                         }
                         _ => {}
                     }
-
                 }
-               
+
                 //Object spawning
                 if object_spawn > 0 && object_spawn < SIZE {
                     println!(
@@ -534,7 +534,8 @@ impl Game for Runner {
                     match object {
                         Some(proceduralgen::StaticObject::Statue) => {
                             //update physics obstacle position
-                            for s in obstacles.iter_mut(){  //this is hacky & dumb (will only work if one obstacle spawned at a time)
+                            for s in obstacles.iter_mut() {
+                                //this is hacky & dumb (will only work if one obstacle spawned at a time)
                                 s.pos = rect!(
                                     object_spawn * CAM_W as usize / SIZE
                                         + CAM_W as usize / SIZE / 2,
@@ -544,12 +545,13 @@ impl Game for Runner {
                                     TILE_SIZE,
                                     TILE_SIZE
                                 );
-                            }   
+                            }
                         }
                         Some(proceduralgen::StaticObject::Coin) => {
                             //update physics coins position
-                            for s in coins.iter_mut(){  //hacky "soln" part 2
-                            s.pos = rect!(
+                            for s in coins.iter_mut() {
+                                //hacky "soln" part 2
+                                s.pos = rect!(
                                     object_spawn * CAM_W as usize / SIZE
                                         + CAM_W as usize / SIZE / 2,
                                     CAM_H as i16
@@ -558,12 +560,11 @@ impl Game for Runner {
                                     TILE_SIZE,
                                     TILE_SIZE
                                 );
-                            }  
+                            }
                         }
                         _ => {}
                     }
                 }
-        
 
                 tick += 1;
 
@@ -608,10 +609,11 @@ impl Game for Runner {
 
                 // Draw obstacles
                 for o in obstacles.iter() {
-                    if(o.x() > 50){     //hacky - will not work if more than one obstacle spawned
+                    if (o.x() > 50) {
+                        //hacky - will not work if more than one obstacle spawned
                         core.wincan.copy_ex(
                             o.texture(),
-                            None,  
+                            None,
                             rect!(o.x(), o.y(), TILE_SIZE, TILE_SIZE),
                             0.0,
                             None,
@@ -630,7 +632,8 @@ impl Game for Runner {
                         coins.retain(|x| x != c.collected);
                     }*/
 
-                    if !c.collected() && c.x() > 50{ //hacky - will not work if more than one coin spawned
+                    if !c.collected() && c.x() > 50 {
+                        //hacky - will not work if more than one coin spawned
                         core.wincan.copy_ex(
                             c.texture(),
                             rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
@@ -639,13 +642,11 @@ impl Game for Runner {
                             None,
                             false,
                             false,
-                        )?; 
+                        )?;
                         core.wincan.set_draw_color(Color::GREEN);
                         core.wincan.draw_rect(c.hitbox())?;
                     }
-                        
-                    
-                } 
+                }
 
                 let surface = font
                     .render(&format!("{:08}", score))

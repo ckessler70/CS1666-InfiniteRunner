@@ -7,7 +7,7 @@ use crate::runner::TILE_SIZE;
 
 // use crate::ProceduralGen;
 
-const LOWER_SPEED: i32 = 1;
+const LOWER_SPEED: i32 = 3;
 const UPPER_SPEED: i32 = 5;
 // const GRAVITY: f64 = 9.80665;
 const OMEGA: f64 = 9.0;
@@ -44,7 +44,7 @@ impl Physics {
         body.apply_force((0, -body.mass()));
     }
 
-    pub fn apply_friction<'a>(body: &mut impl Body<'a>) {
+    pub fn apply_friction<'a>(body: &mut impl Body<'a>, coeff: f64) {
         // TODO
         // fn apply_friction(&player: Player, &surface:
         // Option<Box<ProceduralGen::Surface>>) {      Completely made
@@ -64,7 +64,7 @@ impl Physics {
         //      }
         //
         // }
-        body.apply_force((0, 0));
+        body.apply_force(((-coeff * body.mass() as f64) as i32, 0));
     }
 
     fn bounce(player: &Player, obstacle: &Obstacle) {
@@ -103,6 +103,8 @@ pub trait Entity<'a> {
     fn x(&self) -> i32;
     /// Returns the y position of the `Entity`'s top left corner
     fn y(&self) -> i32;
+    /// Returns the center position of the `Entity`
+    fn center(&self) -> Point;
     /// Modifies the position of the `Entity`
     fn update_pos(&mut self, ground: Point, angle: f64);
 
@@ -127,17 +129,16 @@ pub trait Collider<'a>: Entity<'a> {
     /// in a `Vec`
     fn hitbox(&self) -> Vec<Rect>;
     /// Checks for collision between two objects that can collide by iterating through all of their hitboxes
-    /// 
+    ///
     /// # Arguments
     /// * `other`: the `Collider` object that may collide with the current object
-    /// 
+    ///
     /// # Return
     /// * If objects are colliding, return `tuple` as follows:
     ///     1. `Rect`: the hitbox belonging to this object that collided with the other object
     ///     2. `Rect`: the hitbox belonging to the other object that collided with this object
     /// * If the objects are not colliding, return `None`
-    fn check_collision(&mut self, other: &impl Collider<'a>) -> Option<(Rect, Rect)>
-    {
+    fn check_collision(&mut self, other: &impl Collider<'a>) -> Option<(Rect, Rect)> {
         // TODO
         // Using Rect::has_intersection -> bool OR Rect::intersection -> Rect
         // Apply collision to Player AND Obstacle if necessary (i.e. spin out of control
@@ -157,12 +158,13 @@ pub trait Collider<'a>: Entity<'a> {
     /// # Arguments
     ///
     /// * `other`: the other `Collider` object that is involved in the collision
-    fn collide(&mut self, other: &impl Collider<'a>, hitboxes: (Rect, Rect)) -> bool
-    {
+    fn collide(&mut self, other: &impl Collider<'a>, hitboxes: (Rect, Rect)) -> bool {
         // if the intersection area is vertical, then the collision was from the side
-        if(hitboxes.0.intersection(hitboxes.1).unwrap().height() > hitboxes.0.intersection(hitboxes.1).unwrap().width()) {
+        if (hitboxes.0.intersection(hitboxes.1).unwrap().height()
+            > hitboxes.0.intersection(hitboxes.1).unwrap().width())
+        {
             println!("Side collision");
-        //otherwise it the collision was on the top or bottom
+            //otherwise it the collision was on the top or bottom
             true
         } else {
             println!("Top/bottom Collision");
@@ -355,6 +357,10 @@ impl<'a> Entity<'a> for Player<'a> {
         self.pos.y()
     }
 
+    fn center(&self) -> Point {
+        self.pos.center()
+    }
+
     fn theta(&self) -> f64 {
         self.theta
     }
@@ -417,30 +423,61 @@ impl<'a> Collider<'a> for Player<'a> {
     }
 
     fn collide(&mut self, other: &impl Collider<'a>, hitboxes: (Rect, Rect)) -> bool {
+        let mut result = false;
+
         // if the collision box is taller than it is wide, the player hit the side of the object
-        if(hitboxes.0.intersection(hitboxes.1).unwrap().height() > hitboxes.0.intersection(hitboxes.1).unwrap().width()) {
+        if (hitboxes.0.intersection(hitboxes.1).unwrap().height()
+            > hitboxes.0.intersection(hitboxes.1).unwrap().width())
+        {
+            println!("collided with side of obstacle");
+
+            /********** ELASTIC COLLISION CALCULATION **********/
+            // Assumed object has velocity (0,0) and mass of 7
+            // Assumed player has velocity (v,0)
+            let angle = ((self.center().y() - other.center().y()) as f64
+                / (self.center().x() - other.center().x()) as f64)
+                .atan();
+            let p_mass = self.mass() as f64;
+            let o_mass = 7.0;
+            let p_vx = (self.vel_x() as f64) * angle.cos();
+            let p_vy = (self.vel_x() as f64) * angle.sin();
+            let p_vx_f = (p_mass - o_mass) * (p_vx as f64) / (p_mass + o_mass);
+            let p_vy_f = (p_mass - o_mass) * (p_vy as f64) / (p_mass + o_mass);
+            let o_vx_f = (2.0 * p_mass) * (p_vx as f64) / (p_mass + o_mass);
+            let o_vy_f = (2.0 * p_mass) * (p_vy as f64) / (p_mass + o_mass);
+
+            println!("INTENDED TRAJECTORIES: ELASTIC COLLISION: ");
+            println!("\tplayer mass: {}", p_mass);
+            println!("\tobject mass: {}", o_mass);
+            println!("\tplayer initial velocity: ({},{})", p_vx, p_vy);
+            println!("\tobject initial velocity: ({},{})", 0, 0);
+            println!("\tangle from player to object in rads: {}", angle);
+            println!("\tplayer final velocity({},{})", p_vx_f, p_vy_f);
+            println!("\tobject final velocity({},{})", o_vx_f, o_vy_f);
+            /***************************************************/
+
             self.pos.set_x(other.x() - 95 * (TILE_SIZE as i32) / 100);
             self.velocity.0 = 0;
             self.apply_force((self.mass(), 0));
-            println!("collided with side of obstacle");
+
             // for now (week 5), end the game when the player hits the side of an object
             // alternately, set this value to true to cause the player to stop when they run into the object
             // the screen does not follow the player when they stop
+
             false
         }
         // if the collision box is wider than it is tall, the player hit the top of the object
         // don't apply the collision to the top of an object if the player is moving upward, otherwise they will "stick" to the top on the way up
-        else if(self.vel_y() < 0) {
+        else if (self.vel_y() < 0) {
             self.pos.set_y(other.y() - 95 * (TILE_SIZE as i32) / 100);
             self.velocity.1 = 0;
             self.jumping = false;
             self.apply_force((0, self.mass()));
             println!("collided with top of obstacle");
             self.omega = 0.0;
-            if self.theta() > (-OMEGA * 10.0)
-                || self.theta() < ((-360.0 + OMEGA * 10.0) % 360.0)
-            {
+            if self.theta() > (-OMEGA * 10.0) || self.theta() < ((-360.0 + OMEGA * 10.0) % 360.0) {
                 self.theta = 0.0;
+                // Add Hooke's law bounce here
                 true
             } else {
                 false
@@ -478,7 +515,7 @@ impl<'a> Body<'a> for Player<'a> {
 }
 
 pub struct Obstacle<'a> {
-   pub pos: Rect,
+    pub pos: Rect,
     mass: i32,
     texture: Texture<'a>,
     bouncy: bool,
@@ -542,6 +579,10 @@ impl<'a> Entity<'a> for Obstacle<'a> {
 
     fn y(&self) -> i32 {
         self.pos.y()
+    }
+
+    fn center(&self) -> Point {
+        self.pos.center()
     }
 
     fn theta(&self) -> f64 {
@@ -628,7 +669,7 @@ impl<'a> Coin<'a> {
         self.collected
     }
     //if we delete coin by dropping them from mem (once collected)
-    pub fn drop(&mut self) { }
+    pub fn drop(&mut self) {}
 }
 
 impl<'a> Collectible<'a> for Coin<'a> {
@@ -644,8 +685,8 @@ impl<'a> Collectible<'a> for Coin<'a> {
 }
 
 //I think this is how we'll delete the coin
-impl Drop for Coin<'_>{
-    fn drop(&mut self){
+impl Drop for Coin<'_> {
+    fn drop(&mut self) {
         println!("dropping coin");
     }
 }
