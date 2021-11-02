@@ -412,7 +412,7 @@ impl<'a> Body<'a> for Player<'a> {
 }
 
 pub struct Obstacle<'a> {
-    pos: Rect,
+   pub pos: Rect,
     mass: i32,
     texture: Texture<'a>,
     bouncy: bool,
@@ -521,10 +521,10 @@ pub trait Collectible<'a> {
 }
 
 pub struct Coin<'a> {
-    pos: Rect,
+    pub pos: Rect,
     texture: Texture<'a>,
     value: i32,
-    collected: bool,
+    pub collected: bool,
 }
 
 impl<'a> Coin<'a> {
@@ -562,7 +562,7 @@ impl<'a> Coin<'a> {
         self.collected
     }
     //if we delete coin by dropping them from mem (once collected)
-    //pub fn drop(&mut self) { }
+    pub fn drop(&mut self) { }
 }
 
 impl<'a> Collectible<'a> for Coin<'a> {
@@ -573,13 +573,13 @@ impl<'a> Collectible<'a> for Coin<'a> {
 
     fn collect(&mut self) {
         self.collected = true;
-        //need to delete the collectible here somehow (maybe by dropping it from mem)
+        drop(self);
     }
 }
 
 //I think this is how we'll delete the coin
-/*impl Drop for Coin{
+impl Drop for Coin<'_>{
     fn drop(&mut self){
         println!("dropping coin");
     }
-}*/
+}
