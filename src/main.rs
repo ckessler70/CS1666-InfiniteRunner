@@ -1,6 +1,11 @@
 // University of Pittsburgh
 // CS 1666 - Fall 2021
 // Infinite Runner
+
+#![allow(dead_code)]
+#![allow(unused_variables)]
+#![allow(unused_parens)]
+
 mod credits;
 mod physics;
 mod proceduralgen;

@@ -1,9 +1,13 @@
-// use crate::physics::Physics;
 // use crate::physics::Body;
+use crate::physics::Physics;
 // use crate::physics::Collider;
+use crate::physics::Coin;
+use crate::physics::Collectible;
+use crate::physics::Collider;
 use crate::physics::Dynamic;
 use crate::physics::Entity;
-use crate::physics::Player as PhysPlayer;
+use crate::physics::Obstacle;
+use crate::physics::Player;
 
 use crate::proceduralgen;
 // use crate::proceduralgen::ProceduralGen;
@@ -15,9 +19,8 @@ use inf_runner::Game;
 use inf_runner::GameState;
 use inf_runner::GameStatus;
 use inf_runner::SDLCore;
+use proceduralgen::StaticObject;
 
-// use std::collections::HashSet;
-use std::collections::LinkedList;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
@@ -25,6 +28,7 @@ use sdl2::event::Event;
 use sdl2::image::LoadTexture;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
+use sdl2::rect::Point;
 use sdl2::rect::Rect;
 // use sdl2::render::Texture;
 use sdl2::render::TextureQuery;
@@ -37,7 +41,7 @@ const FRAME_TIME: f64 = 1.0 / FPS as f64;
 const CAM_H: u32 = 720;
 const CAM_W: u32 = 1280;
 
-const TILE_SIZE: u32 = 100;
+pub const TILE_SIZE: u32 = 100;
 
 // Ensure that SIZE is not a decimal
 // 1, 2, 4, 5, 8, 10, 16, 20, 32, 40, 64, 80, 128, 160, 256, 320, 640
@@ -70,11 +74,13 @@ impl Game for Runner {
         let tex_bg = texture_creator.load_texture("assets/bg.png")?;
         let tex_sky = texture_creator.load_texture("assets/sky.png")?;
         let tex_grad = texture_creator.load_texture("assets/sunset_gradient.png")?;
+        let tex_statue = texture_creator.load_texture("assets/statue.png")?;
+        let tex_coin = texture_creator.load_texture("assets/coin.gif")?;
 
         let mut bg_buff = 0;
 
         // Create player at default position
-        let mut player = PhysPlayer::new(
+        let mut player = Player::new(
             rect!(
                 PLAYER_BOUNDS_H.1 / 2,
                 PLAYER_BOUNDS_V.0,
@@ -85,16 +91,19 @@ impl Game for Runner {
             texture_creator.load_texture("assets/player.png")?,
         );
 
+        //empty obstacle & coin vectors
+        let mut obstacles: Vec<_> = Vec::new();
+        let mut coins: Vec<_> = Vec::new();
+
         // Used to keep track of animation status
-        let mut frames: i32 = 0;
-        let mut src_x: i32 = 0;
+        let src_x: i32 = 0;
 
         let mut score: i32 = 0;
+        let mut coin_count: i32 = 0;
 
         let mut game_paused: bool = false;
         let mut initial_pause: bool = false;
         let mut game_over: bool = false;
-        let mut ct: i32 = 0;
 
         // FPS tracking
         let mut all_frames: i32 = 0;
@@ -108,6 +117,10 @@ impl Game for Runner {
         let mut buff_1: usize = 0;
         let mut buff_2: usize = 0;
         let mut buff_3: usize = 0;
+        let mut object_spawn: usize = 0;
+        let mut object_count: i32 = 0;
+
+        let mut object = None;
 
         // bg[0] = Front hills
         // bg[1] = Back hills
@@ -272,16 +285,21 @@ impl Game for Runner {
                 }
             } else {
                 // Left ground position
-                let current_ground = CAM_H as i32
-                    - bg[2][(player.x() as usize) / (CAM_W / SIZE as u32) as usize] as i32
-                    - TILE_SIZE as i32;
+                let current_ground = Point::new(
+                    player.x(),
+                    CAM_H as i32
+                        - bg[2][(player.x() as usize) / (CAM_W / SIZE as u32) as usize] as i32,
+                );
                 // Right ground position
-                let next_ground = CAM_H as i32
-                    - bg[2][(((player.x() + TILE_SIZE as i32) as usize)
-                        / (CAM_W / SIZE as u32) as usize)] as i32
-                    - TILE_SIZE as i32;
+                let next_ground = Point::new(
+                    player.x() + TILE_SIZE as i32,
+                    CAM_H as i32
+                        - bg[2][(((player.x() + TILE_SIZE as i32) as usize)
+                            / (CAM_W / SIZE as u32) as usize)] as i32,
+                );
                 // Angle between (slightly dampened so angling the player doesn't look silly)
-                let angle = ((next_ground as f64 - current_ground as f64) / (TILE_SIZE as f64))
+                let angle = ((next_ground.y() as f64 - current_ground.y() as f64)
+                    / (TILE_SIZE as f64))
                     .atan()
                     * 120.0
                     / std::f64::consts::PI;
@@ -314,13 +332,46 @@ impl Game for Runner {
                     }
                 }
 
-                player.update_pos(current_ground, angle);
-                player.update_vel();
-                if frames % 2 == 0 {
-                    player.flip();
+                //in the future when obstacles & coins are proc genned we will probs wanna
+                //only check for obstacles/coins based on their location relative to players x cord
+                //(also: idt this can be a for loop bc it moves the obstacles values?)
+                for o in obstacles.iter() {
+                    //.filter(|near by obstacles|).collect()
+                    if let Some(collision_boxes) = player.check_collision(o) {
+                        //Temp option: can add these 2 lines to end game upon obstacle collsions
+                        if !player.collide(o, collision_boxes) {
+                            game_over = true;
+                            initial_pause = true;
+                            continue 'gameloop;
+                        }
+                        //print!("collision!");
+                        //Real Solution: need to actually resolve the collision, should go something like this
+                        //player.collide(o);
+                        //Physics::apply_gravity(&mut obstacle);    //maybe...
+                        //obstacle.update_pos();
+                        continue;
+                    };
                 }
 
-                if !player.land(current_ground, angle) {
+                for c in coins.iter_mut() {
+                    //check collection
+                    if Physics::check_collection(&mut player, c) {
+                        c.collect(); //deletes the coin once collected (but takes too long)
+                        coin_count += 1;
+                        score += c.value(); //increments the score based on the coins value
+                                            //maybe print next to score: "+ c.value()""
+                        continue;
+                    }
+                }
+
+                Physics::apply_gravity(&mut player);
+                Physics::apply_friction(&mut player, 1.0);
+
+                player.update_pos(current_ground, angle);
+                player.update_vel();
+                player.flip();
+
+                if !player.collide_terrain(current_ground, angle) {
                     game_over = true;
                     initial_pause = true;
                     continue;
@@ -379,12 +430,24 @@ impl Game for Runner {
                     );
                     bg[BACK_HILL_INDEX][(SIZE - 1) as usize] = chunk_2;
                 }
+
+                if object_spawn == 0 {
+                    let breakdown =
+                        proceduralgen::ProceduralGen::spawn_object(SIZE as i32, (SIZE * 2) as i32);
+                    object = breakdown.0;
+                    object_spawn = breakdown.1;
+
+                    object_count += 1; //for now...
+                } else {
+                    object_spawn -= 1;
+                }
+
                 if tick % 10 == 0 {
                     bg_buff -= 1;
                 }
 
                 core.wincan.set_draw_color(Color::RGBA(0, 0, 0, 255));
-                core.wincan.fill_rect(rect!(0, 470, CAM_W, CAM_H));
+                core.wincan.fill_rect(rect!(0, 470, CAM_W, CAM_H))?;
 
                 // Draw background
                 core.wincan
@@ -433,6 +496,76 @@ impl Game for Runner {
                     ))?;
                 }
 
+                //creates a single obstacle/coin or overwrites the old one
+                //everytime one a new one is spawned & adds it to corresponding vector
+                //not a good impl bc will not work when > 1 obstacle/coin spawned at a time
+                if (object_count > 0) {
+                    match object {
+                        Some(proceduralgen::StaticObject::Statue) => {
+                            let mut obstacle = Obstacle::new(
+                                rect!(0, 0, 0, 0),
+                                2,
+                                texture_creator.load_texture("assets/statue.png")?,
+                            );
+                            obstacles.push(obstacle);
+                            object_count -= 1;
+                        }
+                        Some(proceduralgen::StaticObject::Coin) => {
+                            let mut coin = Coin::new(
+                                rect!(0, 0, 0, 0),
+                                texture_creator.load_texture("assets/coin.gif")?,
+                                1000,
+                            );
+                            coins.push(coin);
+                            object_count -= 1;
+                        }
+                        _ => {}
+                    }
+                }
+
+                //Object spawning
+                if object_spawn > 0 && object_spawn < SIZE {
+                    println!(
+                        "{:?} | {:?}",
+                        object_spawn * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
+                        CAM_H as i16 - bg[GROUND_INDEX][object_spawn]
+                    );
+
+                    match object {
+                        Some(proceduralgen::StaticObject::Statue) => {
+                            //update physics obstacle position
+                            for s in obstacles.iter_mut() {
+                                //this is hacky & dumb (will only work if one obstacle spawned at a time)
+                                s.pos = rect!(
+                                    object_spawn * CAM_W as usize / SIZE
+                                        + CAM_W as usize / SIZE / 2,
+                                    CAM_H as i16
+                                        - bg[GROUND_INDEX][object_spawn]
+                                        - TILE_SIZE as i16,
+                                    TILE_SIZE,
+                                    TILE_SIZE
+                                );
+                            }
+                        }
+                        Some(proceduralgen::StaticObject::Coin) => {
+                            //update physics coins position
+                            for s in coins.iter_mut() {
+                                //hacky "soln" part 2
+                                s.pos = rect!(
+                                    object_spawn * CAM_W as usize / SIZE
+                                        + CAM_W as usize / SIZE / 2,
+                                    CAM_H as i16
+                                        - bg[GROUND_INDEX][object_spawn]
+                                        - TILE_SIZE as i16,
+                                    TILE_SIZE,
+                                    TILE_SIZE
+                                );
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+
                 tick += 1;
 
                 score += 1;
@@ -469,6 +602,51 @@ impl Game for Runner {
                     false,
                     false,
                 )?;
+                core.wincan.set_draw_color(Color::BLACK);
+                for h in player.hitbox().iter() {
+                    core.wincan.draw_rect(*h)?;
+                }
+
+                // Draw obstacles
+                for o in obstacles.iter() {
+                    if (o.x() > 50) {
+                        //hacky - will not work if more than one obstacle spawned
+                        core.wincan.copy_ex(
+                            o.texture(),
+                            None,
+                            rect!(o.x(), o.y(), TILE_SIZE, TILE_SIZE),
+                            0.0,
+                            None,
+                            false,
+                            false,
+                        )?;
+                        core.wincan.set_draw_color(Color::RED);
+                        core.wincan.draw_rect(o.hitbox())?;
+                    }
+                }
+
+                //Draw coins
+                for c in coins.iter() {
+                    //need a method to delete it from vector, possibly somwthing like this
+                    /*if c.collected(){
+                        coins.retain(|x| x != c.collected);
+                    }*/
+
+                    if !c.collected() && c.x() > 50 {
+                        //hacky - will not work if more than one coin spawned
+                        core.wincan.copy_ex(
+                            c.texture(),
+                            rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
+                            rect!(c.x(), c.y(), TILE_SIZE, TILE_SIZE),
+                            0.0,
+                            None,
+                            false,
+                            false,
+                        )?;
+                        core.wincan.set_draw_color(Color::GREEN);
+                        core.wincan.draw_rect(c.hitbox())?;
+                    }
+                }
 
                 let surface = font
                     .render(&format!("{:08}", score))
@@ -483,6 +661,19 @@ impl Game for Runner {
 
                 core.wincan.present();
                 score += 1;
+
+                /*let other_surface = font
+                    .render(&format!("{:03}", coin_count))
+                    .blended(Color::RGBA(100, 0, 200, 100))
+                    .map_err(|e| e.to_string())?;
+                let coin_count_texture = texture_creator
+                    .create_texture_from_surface(&other_surface)
+                    .map_err(|e| e.to_string())?;
+
+                core.wincan
+                    .copy(&coin_count_texture, None, Some(rect!(160, 10, 80, 50)))?;
+
+                core.wincan.present();*/
             }
 
             // FPS Calculation
@@ -508,6 +699,8 @@ impl Game for Runner {
                 all_frames = 0;
                 last_measurement_time = Instant::now();
             }
+
+            player.reset_accel();
         }
 
         Ok(GameState {
