@@ -354,7 +354,7 @@ impl Game for Runner {
                 //in the future when obstacles & coins are proc genned we will probs wanna
                 //only check for obstacles/coins based on their location relative to players x cord
                 //(also: idt this can be a for loop bc it moves the obstacles values?)
-                for o in obstacles.iter_mut() {
+                for o in obstacles.iter() {
                     //.filter(|near by obstacles|).collect()
                     if Physics::check_collision(&mut player, o) {
                         //Temp option: can add these 2 lines to end game upon obstacle collsions
