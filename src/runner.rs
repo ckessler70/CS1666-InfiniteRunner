@@ -336,10 +336,12 @@ impl Game for Runner {
                 //(also: idt this can be a for loop bc it moves the obstacles values?)
                 for o in obstacles.iter_mut() {
                     //.filter(|near by obstacles|).collect()
-                    if Physics::check_collision(&mut player, o) {
+                    if let Some(collision_boxes) = player.check_collision(o) {
                         //Temp option: can add these 2 lines to end game upon obstacle collsions
-                        game_over = true;
-                        initial_pause = true;
+                        if !player.collide(o, collision_boxes) {
+                            game_over = true;
+                            initial_pause = true;
+                        }
                         //print!("collision!");
                         //Real Solution: need to actually resolve the collision, should go something like this
                         //player.collide(o);

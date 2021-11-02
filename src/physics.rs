@@ -15,19 +15,19 @@ const OMEGA: f64 = 9.0;
 pub struct Physics;
 
 impl Physics {
-    pub fn check_collision(player: &Player, obstacle: &Obstacle) -> bool {
-        // TODO
-        // Using Rect::has_intersection -> bool OR Rect::intersection -> Rect
-        // Apply collision to Player AND Obstacle if necessary (i.e. spin out of control
-        // and break object or whatever) This includes force and torque
+    // pub fn check_collision(player: &Player, obstacle: &Obstacle) -> bool {
+    //     // TODO
+    //     // Using Rect::has_intersection -> bool OR Rect::intersection -> Rect
+    //     // Apply collision to Player AND Obstacle if necessary (i.e. spin out of control
+    //     // and break object or whatever) This includes force and torque
 
-        for h in player.hitbox().iter() {
-            if h.has_intersection(obstacle.hitbox()) {
-                return true;
-            }
-        }
-        return false;
-    }
+    //     for h in player.hitbox().iter() {
+    //         if h.has_intersection(obstacle.hitbox()) {
+    //             return true;
+    //         }
+    //     }
+    //     return false;
+    // }
 
     pub fn check_collection(player: &Player, coin: &Coin) -> bool {
         // For collection, collsion including force and torque does not need to be accounted for
@@ -126,13 +126,49 @@ pub trait Collider<'a>: Entity<'a> {
     /// Returns the collision boundary of the object as a list of `Rect` stored
     /// in a `Vec`
     fn hitbox(&self) -> Vec<Rect>;
+    /// Checks for collision between two objects that can collide by iterating through all of their hitboxes
+    /// 
+    /// # Arguments
+    /// * `other`: the `Collider` object that may collide with the current object
+    /// 
+    /// # Return
+    /// * If objects are colliding, return `tuple` as follows:
+    ///     1. `Rect`: the hitbox belonging to this object that collided with the other object
+    ///     2. `Rect`: the hitbox belonging to the other object that collided with this object
+    /// * If the objects are not colliding, return `None`
+    fn check_collision(&mut self, other: &impl Collider<'a>) -> Option<(Rect, Rect)>
+    {
+        // TODO
+        // Using Rect::has_intersection -> bool OR Rect::intersection -> Rect
+        // Apply collision to Player AND Obstacle if necessary (i.e. spin out of control
+        // and break object or whatever) This includes force and torque
+        for h in self.hitbox().iter() {
+            for i in other.hitbox().iter() {
+                if h.has_intersection(*i) {
+                    return Some((*h, *i));
+                }
+            }
+        }
+        (None)
+    }
     /// Applies a collision to the `Collider` using the physical attributes of
     /// it and a second `Collider`
     ///
     /// # Arguments
     ///
     /// * `other`: the other `Collider` object that is involved in the collision
-    fn collide(&mut self, other: &impl Collider<'a>);
+    fn collide(&mut self, other: &impl Collider<'a>, hitboxes: (Rect, Rect)) -> bool
+    {
+        // if the intersection area is vertical, then the collision was from the side
+        if(hitboxes.0.intersection(hitboxes.1).unwrap().height() > hitboxes.0.intersection(hitboxes.1).unwrap().width()) {
+            println!("Side collision");
+        //otherwise it the collision was on the top or bottom
+            true
+        } else {
+            println!("Top/bottom Collision");
+            true
+        }
+    }
 }
 
 /// Object can change its linear velocity and acceleration as well as rotation
@@ -292,8 +328,8 @@ impl<'a> Player<'a> {
             self.apply_force((0, self.mass()));
 
             self.omega = 0.0;
-            if self.theta() > (-OMEGA * 3.0 - angle)
-                || self.theta() < ((-360.0 + OMEGA * 3.0 - angle) % 360.0)
+            if self.theta() > (-OMEGA * 10.0 - angle)
+                || self.theta() < ((-360.0 + OMEGA * 10.0 - angle) % 360.0)
             {
                 self.theta = angle;
                 true
@@ -379,9 +415,39 @@ impl<'a> Collider<'a> for Player<'a> {
     fn hitbox(&self) -> Vec<Rect> {
         vec![self.pos]
     }
-    fn collide(&mut self, other: &impl Collider<'a>) {
-        // TODO
-        todo!();
+
+    fn collide(&mut self, other: &impl Collider<'a>, hitboxes: (Rect, Rect)) -> bool {
+        // if the collision box is taller than it is wide, the player hit the side of the object
+        if(hitboxes.0.intersection(hitboxes.1).unwrap().height() > hitboxes.0.intersection(hitboxes.1).unwrap().width()) {
+            self.pos.set_x(other.x() - 95 * (TILE_SIZE as i32) / 100);
+            self.velocity.0 = 0;
+            self.apply_force((self.mass(), 0));
+            println!("collided with side of obstacle");
+            // for now (week 5), end the game when the player hits the side of an object
+            // alternately, set this value to true to cause the player to stop when they run into the object
+            // the screen does not follow the player when they stop
+            false
+        }
+        // if the collision box is wider than it is tall, the player hit the top of the object
+        // don't apply the collision to the top of an object if the player is moving upward, otherwise they will "stick" to the top on the way up
+        else if(self.vel_y() < 0) {
+            self.pos.set_y(other.y() - 95 * (TILE_SIZE as i32) / 100);
+            self.velocity.1 = 0;
+            self.jumping = false;
+            self.apply_force((0, self.mass()));
+            println!("collided with top of obstacle");
+            self.omega = 0.0;
+            if self.theta() > (-OMEGA * 10.0)
+                || self.theta() < ((-360.0 + OMEGA * 10.0) % 360.0)
+            {
+                self.theta = 0.0;
+                true
+            } else {
+                false
+            }
+        } else {
+            true
+        }
     }
 }
 
@@ -429,7 +495,7 @@ impl<'a> Obstacle<'a> {
         Obstacle {
             pos,
             texture,
-            mass, // maybe randomize? idk @procedural gen team
+            mass: 1, // maybe randomize? idk @procedural gen team
             bouncy: false,
             theta: 0.0,
         }
@@ -502,7 +568,7 @@ impl<'a> Collider<'a> for Obstacle<'a> {
     fn hitbox(&self) -> Vec<Rect> {
         vec![self.pos]
     }
-    fn collide(&mut self, other: &impl Collider<'a>) {
+    fn collide(&mut self, other: &impl Collider<'a>, hitboxes: (Rect, Rect)) -> bool {
         // TODO
         todo!();
     }
