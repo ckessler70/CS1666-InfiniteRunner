@@ -90,32 +90,8 @@ impl Game for Runner {
             2,
             texture_creator.load_texture("assets/player.png")?,
         );
-        /*
-        let mut ferris1 = Obstacle::new(
-            rect!(0, 500, TILE_SIZE, TILE_SIZE),
-            2,
-            texture_creator.load_texture("assets/ferris.png")?,
-        );
-        let mut ferris2 = Obstacle::new(
-            rect!((CAM_W as i32) / 2, 500, TILE_SIZE, TILE_SIZE),
-            2,
-            texture_creator.load_texture("assets/ferris.png")?,
-        );
-        let mut obstacles: Vec<_> = vec![ferris1, ferris2];
 
-        //add some coins
-
-        let mut coin1 = Coin::new(
-            rect!(0, 600, TILE_SIZE, TILE_SIZE),
-            texture_creator.load_texture("assets/coin.gif")?,
-            1000,
-        );
-        let mut coin2 = Coin::new(
-            rect!((CAM_W as i32) / 2, 600, TILE_SIZE, TILE_SIZE),
-            texture_creator.load_texture("assets/coin.gif")?,
-            1000,
-        );
-        let mut coins: Vec<_> = vec![coin1, coin2]; */
+        //empty obstacle & coin vectors
         let mut obstacles: Vec<_> = Vec::new();
         let mut coins: Vec<_> = Vec::new();
 
@@ -141,6 +117,7 @@ impl Game for Runner {
         let mut buff_2: usize = 0;
         let mut buff_3: usize = 0;
         let mut object_spawn: usize = 0;
+        let mut object_count: i32 = 0;
 
         let mut object = None;
 
@@ -359,10 +336,12 @@ impl Game for Runner {
                 //(also: idt this can be a for loop bc it moves the obstacles values?)
                 for o in obstacles.iter() {
                     //.filter(|near by obstacles|).collect()
-                    if Physics::check_collision(&mut player, o) {
+                    if let Some(collision_boxes) = player.check_collision(o) {
                         //Temp option: can add these 2 lines to end game upon obstacle collsions
-                        game_over = true;
-                        initial_pause = true;
+                        if !player.collide(o, collision_boxes) {
+                            game_over = true;
+                            initial_pause = true;
+                        }
                         //print!("collision!");
                         //Real Solution: need to actually resolve the collision, should go something like this
                         //player.collide(o);
@@ -375,11 +354,9 @@ impl Game for Runner {
                 for c in coins.iter_mut() {
                     //check collection
                     if Physics::check_collection(&mut player, c) {
-                        c.collect();          //deletes the coin once collected (needs fully implemented)
+                        c.collect();          //deletes the coin once collected (but takes too long)
                         score += c.value();   //increments the score based on the coins value
-                        //print by score: "+ c.value()""
-                        //made val 1000 for now so u can see score noticably jump up
-                        //print!("collection!"); //for right now
+                        //maybe print next to score: "+ c.value()""
                         continue;
                     }
                 }
@@ -456,6 +433,8 @@ impl Game for Runner {
                         proceduralgen::ProceduralGen::spawn_object(SIZE as i32, (SIZE * 2) as i32);
                     object = breakdown.0;
                     object_spawn = breakdown.1;
+                   
+                    object_count += 1;  //for now...
                 } else {
                     object_spawn -= 1;
                 }
@@ -514,6 +493,34 @@ impl Game for Runner {
                     ))?;
                 }
 
+                //creates a single obstacle/coin or overwrites the old one
+                //everytime one a new one is spawned & adds it to corresponding vector
+                //not a good impl bc will not work when > 1 obstacle/coin spawned at a time
+                if(object_count > 0){
+                    match object {
+                        Some(proceduralgen::StaticObject::Statue) => {
+                            let mut obstacle = Obstacle::new(
+                                rect!(0,0,0,0), 
+                                2,
+                                texture_creator.load_texture("assets/statue.png")?,
+                            );
+                            obstacles.push(obstacle);
+                            object_count -=1;
+                        }
+                        Some(proceduralgen::StaticObject::Coin) => {
+                            let mut coin = Coin::new(
+                                rect!(0,0,0,0), 
+                                texture_creator.load_texture("assets/coin.gif")?,
+                                1000,
+                            );
+                            coins.push(coin);
+                            object_count -=1;
+                        }
+                        _ => {}
+                    }
+
+                }
+               
                 //Object spawning
                 if object_spawn > 0 && object_spawn < SIZE {
                     println!(
@@ -524,9 +531,9 @@ impl Game for Runner {
 
                     match object {
                         Some(proceduralgen::StaticObject::Statue) => {
-                            //create physics Obstacle
-                            let mut obstacle = Obstacle::new(
-                                rect!(
+                            //update physics obstacle position
+                            for s in obstacles.iter_mut(){  //this is hacky & dumb (will only work if one obstacle spawned at a time)
+                                s.pos = rect!(
                                     object_spawn * CAM_W as usize / SIZE
                                         + CAM_W as usize / SIZE / 2,
                                     CAM_H as i16
@@ -534,32 +541,13 @@ impl Game for Runner {
                                         - TILE_SIZE as i16,
                                     TILE_SIZE,
                                     TILE_SIZE
-                                ),
-                                2,
-                                texture_creator.load_texture("assets/statue.png")?,
-                            );
-                            //add to obstacles vector
-                            obstacles.push(obstacle);
-                            
-                            /*
-                            core.wincan.copy(
-                                &tex_coin,
-                                None,
-                                rect!(
-                                    object_spawn * CAM_W as usize / SIZE
-                                        + CAM_W as usize / SIZE / 2,
-                                    CAM_H as i16
-                                        - bg[GROUND_INDEX][object_spawn]
-                                        - TILE_SIZE as i16,
-                                    TILE_SIZE,
-                                    TILE_SIZE
-                                ),
-                            )?;*/
+                                );
+                            }   
                         }
                         Some(proceduralgen::StaticObject::Coin) => {
-                            //create physics coin
-                            let mut coin = Coin::new(
-                                rect!(
+                            //update physics coins position
+                            for s in coins.iter_mut(){  //hacky "soln" part 2
+                            s.pos = rect!(
                                     object_spawn * CAM_W as usize / SIZE
                                         + CAM_W as usize / SIZE / 2,
                                     CAM_H as i16
@@ -567,26 +555,8 @@ impl Game for Runner {
                                         - TILE_SIZE as i16,
                                     TILE_SIZE,
                                     TILE_SIZE
-                                ),
-                                texture_creator.load_texture("assets/coin.gif")?,
-                                1000,
-                            );
-                            //add to coins vector
-                            coins.push(coin);
-                            /*
-                            core.wincan.copy(
-                                &tex_statue,
-                                None,
-                                rect!(
-                                    object_spawn * CAM_W as usize / SIZE
-                                        + CAM_W as usize / SIZE / 2,
-                                    CAM_H as i16
-                                        - bg[GROUND_INDEX][object_spawn]
-                                        - TILE_SIZE as i16,
-                                    TILE_SIZE,
-                                    TILE_SIZE
-                                ),
-                            )?; */
+                                );
+                            }  
                         }
                         _ => {}
                     }
@@ -636,22 +606,29 @@ impl Game for Runner {
 
                 // Draw obstacles
                 for o in obstacles.iter() {
-                    core.wincan.copy_ex(
-                        o.texture(),
-                        rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
-                        rect!(o.x(), o.y(), TILE_SIZE, TILE_SIZE),
-                        0.0,
-                        None,
-                        false,
-                        false,
-                    )?;
-                    core.wincan.set_draw_color(Color::RED);
-                    core.wincan.draw_rect(o.hitbox())?;
+                    if(o.x() > 50){     //hacky - will not work if more than one obstacle spawned
+                        core.wincan.copy_ex(
+                            o.texture(),
+                            None,  
+                            rect!(o.x(), o.y(), TILE_SIZE, TILE_SIZE),
+                            0.0,
+                            None,
+                            false,
+                            false,
+                        )?;
+                        core.wincan.set_draw_color(Color::RED);
+                        core.wincan.draw_rect(o.hitbox())?;
+                    }
                 }
 
-                // Draw coins
+                //Draw coins
                 for c in coins.iter() {
-                    if !c.collected(){
+                    //need a method to delete it from vector, possibly somwthing like this
+                    /*if c.collected(){
+                        coins.retain(|x| x != c.collected);
+                    }*/
+
+                    if !c.collected() && c.x() > 50{ //hacky - will not work if more than one coin spawned
                         core.wincan.copy_ex(
                             c.texture(),
                             rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
@@ -660,11 +637,13 @@ impl Game for Runner {
                             None,
                             false,
                             false,
-                        )?;
+                        )?; 
                         core.wincan.set_draw_color(Color::GREEN);
                         core.wincan.draw_rect(c.hitbox())?;
                     }
-                }
+                        
+                    
+                } 
 
                 let surface = font
                     .render(&format!("{:08}", score))
