@@ -91,23 +91,9 @@ impl Game for Runner {
             texture_creator.load_texture("assets/player.png")?,
         );
 
-        /*let mut obstacle = Obstacle::new(
-            rect!(0,0,0,0), 
-            2,
-            texture_creator.load_texture("assets/statue.png")?,
-        );
-
-        let mut coin = Coin::new(
-            rect!(0,0,0,0), 
-            texture_creator.load_texture("assets/coin.gif")?,
-            1000,
-        );*/
-
+        //empty obstacle & coin vectors
         let mut obstacles: Vec<_> = Vec::new();
         let mut coins: Vec<_> = Vec::new();
-
-        //obstacles.push(obstacle);
-        //coins.push(coin);
 
         // Used to keep track of animation status
         let src_x: i32 = 0;
@@ -368,7 +354,7 @@ impl Game for Runner {
                     if Physics::check_collection(&mut player, c) {
                         c.collect();          //deletes the coin once collected (but takes too long)
                         score += c.value();   //increments the score based on the coins value
-                        //print by score: "+ c.value()""
+                        //maybe print next to score: "+ c.value()""
                         continue;
                     }
                 }
@@ -446,7 +432,7 @@ impl Game for Runner {
                     object = breakdown.0;
                     object_spawn = breakdown.1;
                    
-                    object_count += 1; //maybe useless
+                    object_count += 1;  //for now...
                 } else {
                     object_spawn -= 1;
                 }
@@ -505,7 +491,9 @@ impl Game for Runner {
                     ))?;
                 }
 
-                //creates an obstacle/coin everytime one is spawned & adds it to corresponding vector
+                //creates a single obstacle/coin or overwrites the old one
+                //everytime one a new one is spawned & adds it to corresponding vector
+                //not a good impl bc will not work when > 1 obstacle/coin spawned at a time
                 if(object_count > 0){
                     match object {
                         Some(proceduralgen::StaticObject::Statue) => {
@@ -542,7 +530,7 @@ impl Game for Runner {
                     match object {
                         Some(proceduralgen::StaticObject::Statue) => {
                             //update physics obstacle position
-                            for s in obstacles.iter_mut(){  //this is dumb, I know
+                            for s in obstacles.iter_mut(){  //this is hacky & dumb (will only work if one obstacle spawned at a time)
                                 s.pos = rect!(
                                     object_spawn * CAM_W as usize / SIZE
                                         + CAM_W as usize / SIZE / 2,
@@ -616,10 +604,10 @@ impl Game for Runner {
 
                 // Draw obstacles
                 for o in obstacles.iter() {
-                    if(o.x() > 50){
+                    if(o.x() > 50){     //hacky - will not work if more than one obstacle spawned
                         core.wincan.copy_ex(
                             o.texture(),
-                            None,    //best guess
+                            None,  
                             rect!(o.x(), o.y(), TILE_SIZE, TILE_SIZE),
                             0.0,
                             None,
@@ -632,14 +620,13 @@ impl Game for Runner {
                 }
 
                 //Draw coins
-                //can comment this out later
                 for c in coins.iter() {
                     //need a method to delete it from vector, possibly somwthing like this
                     /*if c.collected(){
                         coins.retain(|x| x != c.collected);
                     }*/
 
-                    if !c.collected() && c.x() > 50{
+                    if !c.collected() && c.x() > 50{ //hacky - will not work if more than one coin spawned
                         core.wincan.copy_ex(
                             c.texture(),
                             rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
