@@ -248,7 +248,7 @@ impl Game for TestBezier {
         thread::sleep(Duration::from_millis(TIMEOUT));
 
         Ok(GameState {
-            status: Some(GameStatus::BezierSim),
+            status: Some(GameStatus::Main),
             score: 0,
         })
     }
