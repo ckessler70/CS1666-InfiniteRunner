@@ -42,6 +42,11 @@ const CAM_H: u32 = 720;
 const CAM_W: u32 = 1280;
 const TILE_SIZE: u32 = 100;
 
+// Ensure that SIZE is not a decimal
+// 1, 2, 4, 5, 8, 10, 16, 20, 32, 40, 64, 80, 128, 160, 256, 320, 640
+const SIZE: usize = CAM_W as usize / 10;
+const BUFF_LENGTH: usize = CAM_W as usize / 4;
+
 const TITLE: &str = "Testing Bezier";
 
 const TIMEOUT: u64 = 10000;
@@ -138,11 +143,11 @@ impl Game for TestBezier {
         core.wincan
             .fill_rect(Rect::new(p2.0 as i32, p2.1 as i32, 30, 30))?;
 
-        let group_of_points: [(f64, f64); 64] =
+        let group_of_points: [(f64, f64); BUFF_LENGTH] =
             proceduralgen::gen_quadratic_bezier_curve_points(p0, p1, p2);
 
         core.wincan.set_draw_color(g);
-        for t in 0..64 {
+        for t in 0..CAM_W as usize {
             core.wincan.fill_rect(Rect::new(
                 group_of_points[t].0 as i32,
                 group_of_points[t].1 as i32,
@@ -165,12 +170,12 @@ impl Game for TestBezier {
         core.wincan
             .fill_rect(Rect::new(p2.0 as i32, p2.1 as i32, 30, 30))?;
 
-        let group_of_points: [(f64, f64); 64] =
+        let group_of_points: [(f64, f64); BUFF_LENGTH] =
             proceduralgen::gen_quadratic_bezier_curve_points(p0, p1, p2);
 
         core.wincan.set_draw_color(g);
 
-        for t in 0..64 {
+        for t in 0..CAM_W as usize {
             core.wincan.fill_rect(Rect::new(
                 group_of_points[t].0 as i32,
                 group_of_points[t].1 as i32,
@@ -193,11 +198,11 @@ impl Game for TestBezier {
         core.wincan
             .fill_rect(Rect::new(p2.0 as i32, p2.1 as i32, 30, 30))?;
 
-        let group_of_points: [(f64, f64); 64] =
+        let group_of_points: [(f64, f64); BUFF_LENGTH] =
             proceduralgen::gen_quadratic_bezier_curve_points(p0, p1, p2);
 
         core.wincan.set_draw_color(g);
-        for t in 0..64 {
+        for t in 0..CAM_W as usize {
             core.wincan.fill_rect(Rect::new(
                 group_of_points[t].0 as i32,
                 group_of_points[t].1 as i32,
