@@ -147,7 +147,7 @@ impl Game for TestBezier {
             proceduralgen::gen_quadratic_bezier_curve_points(p0, p1, p2);
 
         core.wincan.set_draw_color(g);
-        for t in 0..CAM_W as usize {
+        for t in 0..BUFF_LENGTH {
             core.wincan.fill_rect(Rect::new(
                 group_of_points[t].0 as i32,
                 group_of_points[t].1 as i32,
@@ -175,7 +175,7 @@ impl Game for TestBezier {
 
         core.wincan.set_draw_color(g);
 
-        for t in 0..CAM_W as usize {
+        for t in 0..BUFF_LENGTH {
             core.wincan.fill_rect(Rect::new(
                 group_of_points[t].0 as i32,
                 group_of_points[t].1 as i32,
@@ -202,7 +202,7 @@ impl Game for TestBezier {
             proceduralgen::gen_quadratic_bezier_curve_points(p0, p1, p2);
 
         core.wincan.set_draw_color(g);
-        for t in 0..CAM_W as usize {
+        for t in 0..BUFF_LENGTH {
             core.wincan.fill_rect(Rect::new(
                 group_of_points[t].0 as i32,
                 group_of_points[t].1 as i32,
