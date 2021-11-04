@@ -139,7 +139,8 @@ impl ProceduralGen {
         );
 
         // Extract x and y point from last terrain segment
-        // let curve = gen_bezier_curve((x, y), cam_w, cam_h, (point_mod_1a, point_mod_1b), point_mod_2, 100);
+        // let curve = gen_bezier_curve((x, y), cam_w, cam_h, (point_mod_1a,
+        // point_mod_1b), point_mod_2, 100);
 
         //prev_point - Last point of the previouly generated bit of land
         //length - length of next batch of generated land
@@ -495,6 +496,41 @@ fn quadratic_bezier_curve_point(
     let x_value = (1.0 - t) * ((1.0 - t) * p0.0 + t * p1.0) + t * ((1.0 - t) * p1.0 + t * p2.0);
 
     let y_value = (1.0 - t) * ((1.0 - t) * p0.1 + t * p1.1) + t * ((1.0 - t) * p1.1 + t * p2.1);
+
+    return (x_value, y_value);
+}
+
+pub fn gen_cubic_bezier_curve_points(
+    p0: (f64, f64),
+    p1: (f64, f64),
+    p2: (f64, f64),
+    p3: (f64, f64),
+) -> [(f64, f64); BUFF_LENGTH] {
+    let mut points: [(f64, f64); BUFF_LENGTH] = [(-1.0, -1.0); BUFF_LENGTH];
+
+    for t in 0..BUFF_LENGTH {
+        let point = t as f64;
+        //points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / 32.0);
+        points[t] = cubic_bezier_curve_point(p0, p1, p2, p3, point / BUFF_LENGTH as f64);
+    }
+    return points;
+}
+
+fn cubic_bezier_curve_point(
+    p0: (f64, f64),
+    p1: (f64, f64),
+    p2: (f64, f64),
+    p3: (f64, f64),
+    t: f64,
+) -> (f64, f64) {
+    let x_value = (1.0 - t) * (1.0 - t) * (1.0 - t) * p0.0
+        + 3.0 * (1.0 - t) * (1.0 - t) * t * p1.0
+        + 3.0 * (1.0 - t) * t * t * p2.0
+        + t * t * t * p3.0;
+    let y_value = (1.0 - t) * (1.0 - t) * (1.0 - t) * p0.1
+        + 3.0 * (1.0 - t) * (1.0 - t) * t * p1.1
+        + 3.0 * (1.0 - t) * t * t * p2.1
+        + t * t * t * p3.1;
 
     return (x_value, y_value);
 }
