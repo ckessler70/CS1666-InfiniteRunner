@@ -209,7 +209,31 @@ impl ProceduralGen {
             freq,
             amp,
         );
-        let point_mod_2: f64 = gen_point_mod(
+        let point_mod_2a: f64 = gen_point_mod(
+            (
+                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
+                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
+            ),
+            freq,
+            amp,
+        );
+        let point_mod_2b: f64 = gen_point_mod(
+            (
+                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
+                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
+            ),
+            freq,
+            amp,
+        );
+        let point_mod_3a: f64 = gen_point_mod(
+            (
+                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
+                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
+            ),
+            freq,
+            amp,
+        );
+        let point_mod_3b: f64 = gen_point_mod(
             (
                 ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
                 ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
@@ -230,7 +254,8 @@ impl ProceduralGen {
             cam_w,
             cam_h,
             (point_mod_1a, point_mod_1b),
-            point_mod_2,
+            (point_mod_2a, point_mod_2b),
+            (point_mod_3a, point_mod_3b),
             100,
         );
 
@@ -446,24 +471,60 @@ fn gen_bezier_curve(
     length: i32, // Needs to be static which is stupid so 1280
     height: i32,
     point_mod_1: (f64, f64),
-    point_mod_2: f64,
+    point_mod_2: (f64, f64),
+    point_mod_3: (f64, f64),
     buffer: i32,
 ) -> [(f64, f64); BUFF_LENGTH] {
     //TODO
     //Bezier curve
 
-    let p1: (f64, f64) = (
-        (point_mod_1.0 * (length - buffer) as f64 + p0.0 + buffer as f64)
-            .clamp(p0.0 + buffer as f64, (length - buffer) as f64),
-        (point_mod_1.1 * p0.1 - p0.1).clamp(p0.1 - buffer as f64, height as f64),
-    );
-    let p2: (f64, f64) = (length as f64 + p0.0, point_mod_2 * (height / 3) as f64);
+    let mut rng = rand::thread_rng();
 
-    println!("{:?} {:?} {:?}", p0, p1, p2);
+    if rng.gen::<f64>() < 0.5 {
+        //Quadratic
+        let p1: (f64, f64) = (
+            (point_mod_1.0 * (length - buffer) as f64 + p0.0 + buffer as f64)
+                .clamp(p0.0 + buffer as f64, (length - buffer) as f64),
+            (point_mod_1.1 * p0.1 - p0.1).clamp(p0.1 - buffer as f64, height as f64),
+        );
 
-    let group_of_points: [(f64, f64); BUFF_LENGTH] = gen_quadratic_bezier_curve_points(p0, p1, p2);
+        let p2: (f64, f64) = (length as f64 + p0.0, point_mod_2.1 * (height / 3) as f64);
 
-    return group_of_points;
+        println!("Quadratic");
+
+        let group_of_points: [(f64, f64); BUFF_LENGTH] =
+            gen_quadratic_bezier_curve_points(p0, p1, p2);
+
+        return group_of_points;
+    } else {
+        //Cubic
+        let p1: (f64, f64) = (
+            (point_mod_1.0 * (length / 2 + buffer) as f64
+                + p0.0
+                + buffer as f64
+                + (length / 2) as f64)
+                .clamp(
+                    p0.0 + buffer as f64 + (length / 2) as f64,
+                    (length - buffer) as f64,
+                ),
+            (point_mod_1.1 * p0.1 * 2.0 - p0.1).clamp(p0.1 - buffer as f64, height as f64),
+        );
+
+        let p2: (f64, f64) = (
+            (point_mod_2.0 * (length / 2 - buffer) as f64 + p0.0 + buffer as f64)
+                .clamp(p0.0 + buffer as f64, (length / 2 - buffer) as f64),
+            (point_mod_2.1 * p0.1 * 2.0 - p0.1).clamp(p0.1 - buffer as f64, height as f64),
+        );
+
+        let p3: (f64, f64) = (length as f64 + p0.0, point_mod_3.1 * (height / 3) as f64);
+
+        println!("Cubic");
+
+        let group_of_points: [(f64, f64); BUFF_LENGTH] =
+            gen_cubic_bezier_curve_points(p0, p1, p2, p3);
+
+        return group_of_points;
+    }
 }
 
 //p0 is start point, p1 is the mid point, p2 is the end Point
