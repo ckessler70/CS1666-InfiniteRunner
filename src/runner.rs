@@ -547,12 +547,6 @@ impl Game for Runner {
 
                 //Object spawning
                 if object_spawn > 0 && object_spawn < SIZE {
-                    println!(
-                        "{:?} | {:?}",
-                        object_spawn * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
-                        CAM_H as i16 - bg[GROUND_INDEX][object_spawn]
-                    );
-
                     match object {
                         Some(proceduralgen::StaticObject::Statue) => {
                             //update physics obstacle position
@@ -589,8 +583,6 @@ impl Game for Runner {
                 }
 
                 tick += 1;
-
-                score += 1;
 
                 if tick % 3 == 0 && tick % 5 == 0 {
                     tick = 0;
