@@ -356,10 +356,14 @@ impl Game for Runner {
                 for c in coins.iter_mut() {
                     //check collection
                     if Physics::check_collection(&mut player, c) {
-                        c.collect(); //deletes the coin once collected (but takes too long)
-                        coin_count += 1;
-                        score += c.value(); //increments the score based on the coins value
-                                            //maybe print next to score: "+ c.value()""
+                        if !c.collected() {//so you only collect each coin once
+                            c.collect(); //deletes the coin once collected (but takes too long)
+                            coin_count += 1;
+                            
+                            score += c.value(); //increments the score based on the coins value
+                                                //maybe print next to score: "+ c.value()""
+                        }
+                    
                         continue;
                     }
                 }
