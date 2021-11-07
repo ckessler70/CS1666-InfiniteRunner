@@ -1,10 +1,16 @@
 // University of Pittsburgh
 // CS 1666 - Fall 2021
 // Infinite Runner
+
+#![allow(dead_code)]
+#![allow(unused_variables)]
+#![allow(unused_parens)]
+
 mod credits;
 mod physics;
 mod proceduralgen;
 mod runner;
+mod testbezier;
 mod title;
 mod utils;
 
@@ -23,6 +29,7 @@ pub struct UrbanOdyssey {
     runner: runner::Runner,
     credits: credits::Credits,
     proceduralgen: proceduralgen::ProceduralGen,
+    testbezier: testbezier::TestBezier,
     /* physics?
      * procedural generation? */
 }
@@ -101,6 +108,20 @@ fn main() {
                             }
                         };
                     }
+                    Some(GameStatus::BezierSim) => {
+                        println!("\nTesting Bezier Simulation:");
+                        println!("\tRunning...");
+
+                        match contents.testbezier.run(&mut (contents.core)) {
+                            Err(e) => {
+                                println!("\n\t\tEncountered error while running: {}", e)
+                            }
+                            Ok(game_status) => {
+                                game_manager = game_status;
+                                println!("DONE\nExiting cleanly");
+                            }
+                        };
+                    }
                     None => {
                         break;
                     }
@@ -119,6 +140,7 @@ fn init() -> Result<UrbanOdyssey, String> {
     // physics?
     let proceduralgen = proceduralgen::ProceduralGen::init()?;
     // procedural generation?
+    let testbezier = testbezier::TestBezier::init()?;
 
     Ok(UrbanOdyssey {
         core,
@@ -126,5 +148,6 @@ fn init() -> Result<UrbanOdyssey, String> {
         runner,
         credits,
         proceduralgen,
+        testbezier,
     })
 }
