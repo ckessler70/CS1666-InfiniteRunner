@@ -367,13 +367,23 @@ impl Game for Runner {
                         continue;
                     }
                 }
+                //applies gravity, normal & friction now
+                //friciton is currently way OP (stronger than grav) bc cast to i32 in apply_force
+                //so to ever have an effect, it needs to be set > 1 for now...
+                Physics::apply_gravity(&mut player, angle, 3.0);
 
-                Physics::apply_gravity(&mut player);
-                Physics::apply_friction(&mut player, 1.0);
+                //apply friction
+                //Physics::apply_friction(&mut player, 1.0);
 
                 player.update_pos(current_ground, angle);
                 player.update_vel();
                 player.flip();
+
+                //kinematics change, scroll speed does not :(
+                //can see best when super curvy map generated
+                println!("px:{}  vx:{} ax:{}",player.x(),player.vel_x(),player.accel_x());
+                //println!("py:{}  vy:{} ay:{}",player.y(),player.vel_y(),player.accel_y());
+                //println!("{}", angle);
 
                 if !player.collide_terrain(current_ground, angle) {
                     game_over = true;
@@ -529,11 +539,11 @@ impl Game for Runner {
 
                 //Object spawning
                 if object_spawn > 0 && object_spawn < SIZE {
-                    println!(
+                   /* println!(
                         "{:?} | {:?}",
                         object_spawn * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
                         CAM_H as i16 - bg[GROUND_INDEX][object_spawn]
-                    );
+                    );*/
 
                     match object {
                         Some(proceduralgen::StaticObject::Statue) => {

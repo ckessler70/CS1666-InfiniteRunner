@@ -7,7 +7,7 @@ use crate::runner::TILE_SIZE;
 
 // use crate::ProceduralGen;
 
-const LOWER_SPEED: i32 = 3;
+const LOWER_SPEED: i32 = -5;     //
 const UPPER_SPEED: i32 = 5;
 // const GRAVITY: f64 = 9.80665;
 const OMEGA: f64 = 9.0;
@@ -39,9 +39,38 @@ impl Physics {
         }
         return false;
     }
-
-    pub fn apply_gravity<'a>(body: &mut impl Body<'a>) {
-        body.apply_force((0, -body.mass()));
+    //applies gravity, normal & friction forces
+    //depends on whether or not player is on ground
+    pub fn apply_gravity<'a>(body: &mut impl Body<'a>, angle: f64, coeff: f64) {
+        //onground --> apply gravity in x & y direction based on angle of the ground
+        //Note: "angle" is positive going downhill & negative going uphill
+        //---- but we always need a negative force in y direction...
+        
+        if body.is_onground(){
+            //going uphill
+            if(angle < 0.0){ // -angle
+                //apply gravity in -x & -y
+                body.apply_force((body.mass() * angle.sin() as i32, body.mass() * angle.cos() as i32));
+                //apply normal (force positive)
+                body.apply_force((0,-body.mass() * angle.cos() as i32));
+                //apply friction (same as gravity in -x)
+                body.apply_force(((body.mass() as f64 * angle.sin() * coeff) as i32, 0));
+            }
+            //flat or going downhill
+            else { // 0 or +angle
+                //apply gravity in +x & -y 
+                body.apply_force((body.mass() * angle.sin() as i32, -body.mass() * angle.cos() as i32));
+                //apply normal (automatically positive)
+                body.apply_force((0,body.mass() * angle.cos() as i32));
+                //apply friciton (opposite to gravity in -x)
+                body.apply_force(((-body.mass() as f64 * angle.sin() * coeff) as i32, 0));
+            }
+        }
+        else{   //player in the air
+            //apply entirity of gravity force in -y direction (bc player not on ground)
+            body.apply_force((0, -body.mass()));
+            //no normal, no friction, bc in air
+        }
     }
 
     pub fn apply_friction<'a>(body: &mut impl Body<'a>, coeff: f64) {
@@ -210,6 +239,10 @@ pub trait Body<'a>: Collider<'a> + Dynamic<'a> {
     fn mass(&self) -> i32;
     /// Returns the `Body`'s rotational inertia (i.e. moment of inertia)
     fn rotational_inertia(&self) -> i32;
+    //Returns true when play is on the terrain & not in the air 
+    fn is_onground(&self) -> bool;
+    
+
 
     /****************** Forces *********************** */
 
@@ -227,6 +260,11 @@ pub trait Body<'a>: Collider<'a> + Dynamic<'a> {
     // // /   object
     // // / * `radius`: the distance from the object's center of mass
     // fn apply_torque(&mut self, force: i32, radius: i32);
+    
+    
+    
+    //set the normal force acting on the player
+    //fn set_normal(&mut self,normal: i32);
 
     /****************** Collision ******************** */
 
@@ -256,6 +294,7 @@ pub struct Player<'a> {
     texture: Texture<'a>,
     jumping: bool,
     flipping: bool,
+    onground: bool,
 }
 
 impl<'a> Player<'a> {
@@ -271,7 +310,13 @@ impl<'a> Player<'a> {
             mass,
             jumping: false,
             flipping: false,
+            onground: false,
+            //normal: 0,
         }
+    }
+
+    pub fn is_onground(&self) -> bool{
+        self.onground
     }
 
     pub fn is_jumping(&self) -> bool {
@@ -300,6 +345,7 @@ impl<'a> Player<'a> {
         if self.pos.contains_point(ground) {
             self.velocity.1 += 23;
             self.jumping = true;
+            self.onground = false;
 
             self.omega = OMEGA;
             self.flipping = true;
@@ -323,10 +369,11 @@ impl<'a> Player<'a> {
     //   - ground sloped DOWN has negative angle
     //   - ground sloped UP has positive angle
     pub fn collide_terrain(&mut self, ground: Point, angle: f64) -> bool {
-        if self.vel_y() < 0 && self.pos.contains_point(ground) {
+        if self.vel_y() <= 0 && self.pos.contains_point(ground) {
             self.pos.set_y(ground.y() - 95 * (TILE_SIZE as i32) / 100);
             self.velocity.1 = 0;
             self.jumping = false;
+            self.onground = true;
             self.apply_force((0, self.mass()));
 
             self.omega = 0.0;
@@ -372,6 +419,7 @@ impl<'a> Entity<'a> for Player<'a> {
 
         // Player's x position is fixed
         self.pos.set_y(self.pos.y() - self.vel_y());
+    
     }
 
     fn rotate(&mut self) {
@@ -492,6 +540,14 @@ impl<'a> Body<'a> for Player<'a> {
     fn mass(&self) -> i32 {
         self.mass
     }
+
+    fn is_onground(&self)-> bool{
+        self.onground
+    }
+    
+    /*fn set_normal(&mut self, normal: i32){
+        self.normal = normal
+    }*/
 
     fn rotational_inertia(&self) -> i32 {
         // TODO:
@@ -676,6 +732,7 @@ impl<'a> Collectible<'a> for Coin<'a> {
     //for now (honestly not a horrible long term soln)
     fn hitbox(&self) -> Rect {
         Rect::new(self.pos.x, self.pos.y, self.pos.width(), self.pos.height())
+        
     }
 
     fn collect(&mut self) {
