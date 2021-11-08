@@ -51,19 +51,35 @@ impl Physics {
             if(angle < 0.0){ // -angle
                 //apply gravity in -x & -y
                 body.apply_force((body.mass() * angle.sin() as i32, body.mass() * angle.cos() as i32));
+                //apply grav in -y
+                //body.apply_force((0,-body.mass())); 
+
                 //apply normal (force positive)
                 body.apply_force((0,-body.mass() * angle.cos() as i32));
+                //apply normal in -x & +y
+                //body.apply_force((body.mass()* angle.sin() as i32 * angle.cos() as i32,-body.mass()*angle.cos()as i32*angle.cos()as i32));
+
                 //apply friction (same as gravity in -x)
                 body.apply_force(((body.mass() as f64 * angle.sin() * coeff) as i32, 0));
+                //apply fricition in -x & -y
+                //body.apply_force((coeff as i32 * body.mass() * angle.cos() as i32 * angle.cos() as i32, coeff as i32 * body.mass() * angle.cos() as i32 * angle.sin() as i32));
             }
             //flat or going downhill
             else { // 0 or +angle
                 //apply gravity in +x & -y 
                 body.apply_force((body.mass() * angle.sin() as i32, -body.mass() * angle.cos() as i32));
+                //apply grav in -y
+                //body.apply_force((0,-body.mass()));
+
                 //apply normal (automatically positive)
                 body.apply_force((0,body.mass() * angle.cos() as i32));
+                //apply normal in +x & +y
+                //body.apply_force((body.mass()* angle.sin() as i32 * angle.cos() as i32,-body.mass()*angle.cos()as i32*angle.cos()as i32));
+
                 //apply friciton (opposite to gravity in -x)
                 body.apply_force(((-body.mass() as f64 * angle.sin() * coeff) as i32, 0));
+                //apply fricition in -x & +y
+                //body.apply_force((coeff as i32 * -body.mass() * angle.cos() as i32 * angle.cos() as i32, coeff as i32 * body.mass() * angle.cos() as i32 * angle.sin() as i32));
             }
         }
         else{   //player in the air
