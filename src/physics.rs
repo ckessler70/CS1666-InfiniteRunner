@@ -254,7 +254,7 @@ pub trait Body<'a>: Collider<'a> + Dynamic<'a> {
     /// Returns the `Body`'s mass
     fn mass(&self) -> i32;
     /// Returns the `Body`'s rotational inertia (i.e. moment of inertia)
-    fn rotational_inertia(&self) -> i32;
+    fn rotational_inertia(&self) -> f64;
     //Returns true when play is on the terrain & not in the air 
     fn is_onground(&self) -> bool;
     
@@ -319,6 +319,7 @@ impl<'a> Player<'a> {
             pos,
             velocity: (3, 0),
             accel: (0, 0),
+            
             theta: 0.0,
             omega: 0.0,
             // alpha: 0.0,
@@ -565,12 +566,23 @@ impl<'a> Body<'a> for Player<'a> {
         self.normal = normal
     }*/
 
-    fn rotational_inertia(&self) -> i32 {
+    fn rotational_inertia(&self) -> f64 {
         // TODO:
         // Rotaional inertia -- I = L/omega
         // I think we'll wanna use L = mass*R^2     (ie. angular momentum for a sphere/thing with effective radius R)
         // Torque (if we need it) tau = I * alpha
-        todo!();
+        if !self.jumping {
+            return 0.0
+        }
+        let mut effective_radius: f64;
+        if self.flipping{
+            effective_radius = (TILE_SIZE as f64)/2.0;
+        } else {
+            effective_radius = TILE_SIZE as f64;
+        }
+        let mut L: f64 = (self.mass as f64)*(effective_radius*effective_radius);
+        let mut rot_inertia: f64 = L/self.omega;
+        return rot_inertia
     }
 
     // Should we take in force as a magnitude and an angle? Makes the friction
