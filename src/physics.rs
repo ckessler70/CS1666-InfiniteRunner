@@ -7,7 +7,7 @@ use crate::runner::TILE_SIZE;
 
 // use crate::ProceduralGen;
 
-const LOWER_SPEED: i32 = -5;     //
+const LOWER_SPEED: i32 = 1;     //
 const UPPER_SPEED: i32 = 5;
 // const GRAVITY: f64 = 9.80665;
 const OMEGA: f64 = 9.0;
