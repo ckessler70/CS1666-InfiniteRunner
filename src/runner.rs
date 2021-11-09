@@ -46,6 +46,7 @@ pub const TILE_SIZE: u32 = 100;
 // Ensure that SIZE is not a decimal
 // 1, 2, 4, 5, 8, 10, 16, 20, 32, 40, 64, 80, 128, 160, 256, 320, 640
 const SIZE: usize = CAM_W as usize / 10;
+const BUFF_LENGTH: usize = CAM_W as usize / 4;
 
 const FRONT_HILL_INDEX: usize = 0;
 const BACK_HILL_INDEX: usize = 1;
@@ -127,6 +128,9 @@ impl Game for Runner {
         // bg[2] = Ground
         let mut bg: [[i16; SIZE]; 3] = [[0; SIZE]; 3];
 
+        let mut ground_buffer: [(f64, f64); BUFF_LENGTH] = [(0.0, 0.0); BUFF_LENGTH];
+        let mut buff_idx = 0;
+
         let mut rng = rand::thread_rng();
 
         let freq: f32 = rng.gen::<f32>() * 1000.0 + 100.0;
@@ -135,14 +139,25 @@ impl Game for Runner {
         let amp_2: f32 = rng.gen::<f32>() * 2.0 + amp_1;
         let amp_3: f32 = rng.gen::<f32>() * 2.0 + 1.0;
 
+        ct = 0;
+        let p0 = (0.0, (CAM_H / 3) as f64);
+        ground_buffer = proceduralgen::ProceduralGen::gen_bezier_land(
+            p0,
+            CAM_W as i32,
+            CAM_H as i32,
+            false,
+            false,
+            false,
+        );
+
         while ct < SIZE as usize {
             bg[FRONT_HILL_INDEX][ct] =
                 proceduralgen::gen_perlin_hill_point((ct + buff_1), freq, amp_1, 0.5, 600.0);
             bg[BACK_HILL_INDEX][ct] =
                 proceduralgen::gen_perlin_hill_point((ct + buff_2), freq, amp_2, 1.0, 820.0);
-            bg[GROUND_INDEX][ct] =
-                proceduralgen::gen_perlin_hill_point((ct + buff_3), freq, amp_3, 1.5, 256.0);
+            bg[GROUND_INDEX][ct] = ground_buffer[buff_idx].1 as i16;
             ct += 1;
+            buff_idx += 1;
         }
 
         'gameloop: loop {
@@ -399,18 +414,25 @@ impl Game for Runner {
 
                 // Every tick, build a new ground segment
                 if tick % 1 == 0 {
+                    if buff_idx == BUFF_LENGTH {
+                        ground_buffer = proceduralgen::ProceduralGen::gen_bezier_land(
+                            (0.0, bg[GROUND_INDEX][(SIZE - 1) as usize] as f64),
+                            CAM_W as i32,
+                            CAM_H as i32,
+                            false,
+                            false,
+                            false,
+                        );
+                        buff_idx = 0;
+                    }
+
                     for i in 0..(SIZE as usize - 1) {
                         bg[GROUND_INDEX][i] = bg[GROUND_INDEX][i + 1];
                     }
-                    buff_3 += 1;
-                    let chunk_3 = proceduralgen::gen_perlin_hill_point(
-                        ((SIZE - 1) as usize + buff_3),
-                        freq,
-                        amp_3,
-                        1.5,
-                        256.0,
-                    );
-                    bg[GROUND_INDEX][(SIZE - 1) as usize] = chunk_3;
+
+                    bg[GROUND_INDEX][(SIZE - 1) as usize] = ground_buffer[buff_idx].1 as i16;
+
+                    buff_idx += 1;
                 }
 
                 // Every 3 ticks, build a new front mountain segment
@@ -539,6 +561,7 @@ impl Game for Runner {
 
                 //Object spawning
                 if object_spawn > 0 && object_spawn < SIZE {
+                  
                    /* println!(
                         "{:?} | {:?}",
                         object_spawn * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
@@ -581,8 +604,6 @@ impl Game for Runner {
                 }
 
                 tick += 1;
-
-                score += 1;
 
                 if tick % 3 == 0 && tick % 5 == 0 {
                     tick = 0;
