@@ -13,6 +13,8 @@ use crate::proceduralgen;
 // use crate::proceduralgen::ProceduralGen;
 // use crate::proceduralgen::TerrainSegment;
 
+use crate::powers;
+
 use crate::rect;
 
 use inf_runner::Game;
@@ -371,14 +373,15 @@ impl Game for Runner {
                 for c in coins.iter_mut() {
                     //check collection
                     if Physics::check_collection(&mut player, c) {
-                        if !c.collected() {//so you only collect each coin once
+                        if !c.collected() {
+                            //so you only collect each coin once
                             c.collect(); //deletes the coin once collected (but takes too long)
                             coin_count += 1;
-                            
+
                             score += c.value(); //increments the score based on the coins value
                                                 //maybe print next to score: "+ c.value()""
                         }
-                    
+
                         continue;
                     }
                 }
@@ -396,7 +399,12 @@ impl Game for Runner {
 
                 //kinematics change, scroll speed does not :(
                 //can see best when super curvy map generated
-                println!("px:{}  vx:{} ax:{}",player.x(),player.vel_x(),player.accel_x());
+                println!(
+                    "px:{}  vx:{} ax:{}",
+                    player.x(),
+                    player.vel_x(),
+                    player.accel_x()
+                );
                 //println!("py:{}  vy:{} ay:{}",player.y(),player.vel_y(),player.accel_y());
                 //println!("{}", angle);
 
@@ -555,14 +563,18 @@ impl Game for Runner {
                             coins.push(coin);
                             object_count -= 1;
                         }
+                        Some(proceduralgen::StaticObject::Power) => {
+                            let mut power = powers::pickup_power();
+                            //Physics object for loading it in and maybe that is where the handler will be called?
+                            object_count -= 1;
+                        }
                         _ => {}
                     }
                 }
 
                 //Object spawning
                 if object_spawn > 0 && object_spawn < SIZE {
-                  
-                   /* println!(
+                    /* println!(
                         "{:?} | {:?}",
                         object_spawn * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
                         CAM_H as i16 - bg[GROUND_INDEX][object_spawn]

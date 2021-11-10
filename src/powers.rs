@@ -1,5 +1,13 @@
 use rand::Rng;
 
+pub struct powers;
+
+impl powers {
+    pub fn init() -> Result<Self, String> {
+        Ok(powers {})
+    }
+}
+
 pub enum PowerUps {
     SpeedBoost,
     ScoreMultiplier,
@@ -31,19 +39,19 @@ pub fn pickup_power() -> Option<PowerUps> {
 
 pub fn handler(power: Option<PowerUps>) -> bool {
     match power {
-        PowerUps::SpeedBoost => {
+        Some(PowerUps::SpeedBoost) => {
             return speed_boost();
         }
-        PowerUps::ScoreMultiplier => {
+        Some(PowerUps::ScoreMultiplier) => {
             return score_mul();
         }
-        PowerUps::BouncyShoes => {
+        Some(PowerUps::BouncyShoes) => {
             return bouncy_shoes();
         }
-        PowerUps::LowerGravity => {
+        Some(PowerUps::LowerGravity) => {
             return lower_gravity();
         }
-        PowerUps::Shield => {
+        Some(PowerUps::Shield) => {
             return shield();
         }
         _ => return false,
