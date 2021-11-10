@@ -24,6 +24,7 @@ pub struct TerrainSegment<'a> {
 pub enum StaticObject {
     Coin,
     Statue,
+    Power,
 }
 
 #[allow(dead_code)]
@@ -278,10 +279,12 @@ impl ProceduralGen {
             amp,
         );
 
-        let object = if amp > 0.5 {
+        let object = if amp > 0.66 {
             StaticObject::Coin
-        } else {
+        } else if amp > 0.33 {
             StaticObject::Statue
+        } else {
+            StaticObject::Power
         };
 
         let length = (point_mod * max_length as f64 + min_length as f64)
