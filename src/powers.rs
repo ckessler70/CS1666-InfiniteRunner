@@ -1,4 +1,7 @@
-use rand::Rng;
+use rand::{
+    distributions::{Distribution, Standard},
+    Rng,
+};
 
 pub struct powers;
 
@@ -8,24 +11,7 @@ impl powers {
     }
 
     pub fn pickup_power() -> Option<PowerUps> {
-        let mut rng = rand::thread_rng();
-
-        //There is some better way to use rand to explicilty choose one but its annoying
-        let check = rng.gen::<f64>();
-        let val = 1.0 / 5.0; //1.0 / number of possible powers
-
-        if check < val {
-            return Some(PowerUps::SpeedBoost);
-        } else if check < val * 2.0 {
-            return Some(PowerUps::ScoreMultiplier);
-        } else if check < val * 3.0 {
-            return Some(PowerUps::BouncyShoes);
-        } else if check < val * 4.0 {
-            return Some(PowerUps::LowerGravity);
-        } else if check < val * 5.0 {
-            return Some(PowerUps::Shield);
-        }
-        return Some(PowerUps::SpeedBoost);
+        return Some(rand::random());
     }
 
     pub fn handler(power: Option<PowerUps>) -> bool {
@@ -81,4 +67,18 @@ pub fn lower_gravity() -> bool {
 pub fn shield() -> bool {
     //Every tick active, player cannot crash due to bad flip or hitting an obstacle
     return false;
+}
+
+impl Distribution<PowerUps> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> PowerUps {
+        // match rng.gen_range(0, 3) { // rand 0.5, 0.6, 0.7
+        match rng.gen_range(0..=4) {
+            // rand 0.8
+            0 => PowerUps::SpeedBoost,
+            1 => PowerUps::ScoreMultiplier,
+            2 => PowerUps::BouncyShoes,
+            3 => PowerUps::LowerGravity,
+            _ => PowerUps::Shield,
+        }
+    }
 }
