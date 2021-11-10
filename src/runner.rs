@@ -13,7 +13,7 @@ use crate::proceduralgen;
 // use crate::proceduralgen::ProceduralGen;
 // use crate::proceduralgen::TerrainSegment;
 
-use crate::powers;
+use crate::powers::powers;
 
 use crate::rect;
 

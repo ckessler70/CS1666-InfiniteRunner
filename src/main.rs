@@ -8,6 +8,7 @@
 
 mod credits;
 mod physics;
+mod powers;
 mod proceduralgen;
 mod runner;
 mod testbezier;
