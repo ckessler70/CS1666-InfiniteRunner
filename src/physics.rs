@@ -52,7 +52,7 @@ impl Physics {
     }
     //applies gravity, normal & friction forces
     //depends on whether or not player is on ground
-    pub fn apply_gravity<'a>(body: &mut impl Body<'a>, angle: f64, coeff: f64) {
+    pub fn apply_gravity<'a>(body: &mut impl Body<'a>, angle: f64, coeff: f64, mass: i32) {
         //onground --> apply gravity in x & y direction based on angle of the ground
         //Note: "angle" is positive going downhill & negative going uphill
         //---- but we always need a negative force in y direction...
@@ -103,7 +103,7 @@ impl Physics {
         } else {
             //player in the air
             //apply entirity of gravity force in -y direction (bc player not on ground)
-            body.apply_force((0, -body.mass()));
+            body.apply_force((0, -mass));
             //no normal, no friction, bc in air
         }
     }

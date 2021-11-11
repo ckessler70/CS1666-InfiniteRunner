@@ -142,6 +142,8 @@ impl Game for Runner {
         let mut power: Option<powers::PowerUps> = None;
         let mut next_power: Option<powers::PowerUps> = None;
 
+        let mut player_mass: i32 = 2;
+
         // bg[0] = Front hills
         // bg[1] = Back hills
         // bg[2] = Ground
@@ -443,10 +445,78 @@ impl Game for Runner {
                     }
                 }
 
+                player_mass = 2;
+
+                //Power handling
+                if power_tick > 0 {
+                    power_tick -= 1;
+                    match power {
+                        Some(powers::PowerUps::SpeedBoost) => {
+                            println!("SpeedBoost: Not Implemented");
+                            speed_boost(); //Basically result will need to do something weird with the physics engine
+                            core.wincan.copy(
+                                &tex_speed,
+                                None,
+                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
+                            )?;
+                        }
+                        Some(powers::PowerUps::ScoreMultiplier) => {
+                            println!("ScoreMultiplier");
+                            tick_score = score_mul(tick_score);
+                            core.wincan.copy(
+                                &tex_multiplier,
+                                None,
+                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
+                            )?;
+                        }
+                        Some(powers::PowerUps::BouncyShoes) => {
+                            println!("BouncyShoes");
+                            player.jump(current_ground, true); //Basically result will need to do something weird with the physics engine
+                            core.wincan.copy(
+                                &tex_bouncy,
+                                None,
+                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
+                            )?;
+                        }
+                        Some(powers::PowerUps::LowerGravity) => {
+                            println!("LowerGravity: Not Implemented");
+                            player_mass = 1;
+                            core.wincan.copy(
+                                &tex_floaty,
+                                None,
+                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
+                            )?;
+                        }
+                        Some(powers::PowerUps::Shield) => {
+                            println!("Shield: Not fully Implemented");
+                            power_override = true;
+                            core.wincan.copy(
+                                &tex_shield,
+                                None,
+                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
+                            )?;
+                        }
+                        _ => {}
+                    }
+                } else if power_tick == 0 {
+                    power_tick -= 1;
+                    match power {
+                        // Stop any power from going
+                        Some(powers::PowerUps::SpeedBoost) => {}
+                        Some(powers::PowerUps::ScoreMultiplier) => {}
+                        Some(powers::PowerUps::BouncyShoes) => {}
+                        Some(powers::PowerUps::LowerGravity) => {}
+                        Some(powers::PowerUps::Shield) => {
+                            power_override = false;
+                        }
+                        _ => {}
+                    }
+                }
+
                 //applies gravity, normal & friction now
                 //friciton is currently way OP (stronger than grav) bc cast to i32 in apply_force
                 //so to ever have an effect, it needs to be set > 1 for now...
-                Physics::apply_gravity(&mut player, angle, 3.0);
+                Physics::apply_gravity(&mut player, angle, 3.0, player_mass);
 
                 //apply friction
                 //Physics::apply_friction(&mut player, 1.0);
@@ -693,13 +763,10 @@ impl Game for Runner {
                     }
                 }
 
-                //Power handling
+                //Power drawing handling
                 if power_tick > 0 {
-                    power_tick -= 1;
                     match power {
                         Some(powers::PowerUps::SpeedBoost) => {
-                            println!("SpeedBoost: Not Implemented");
-                            speed_boost(); //Basically result will need to do something weird with the physics engine
                             core.wincan.copy(
                                 &tex_speed,
                                 None,
@@ -707,8 +774,6 @@ impl Game for Runner {
                             )?;
                         }
                         Some(powers::PowerUps::ScoreMultiplier) => {
-                            println!("ScoreMultiplier");
-                            tick_score = score_mul(tick_score);
                             core.wincan.copy(
                                 &tex_multiplier,
                                 None,
@@ -716,8 +781,6 @@ impl Game for Runner {
                             )?;
                         }
                         Some(powers::PowerUps::BouncyShoes) => {
-                            println!("BouncyShoes");
-                            player.jump(current_ground, true); //Basically result will need to do something weird with the physics engine
                             core.wincan.copy(
                                 &tex_bouncy,
                                 None,
@@ -725,8 +788,6 @@ impl Game for Runner {
                             )?;
                         }
                         Some(powers::PowerUps::LowerGravity) => {
-                            println!("LowerGravity: Not Implemented");
-                            lower_gravity(); //Basically result will need to do something weird with the physics engine
                             core.wincan.copy(
                                 &tex_floaty,
                                 None,
@@ -734,26 +795,11 @@ impl Game for Runner {
                             )?;
                         }
                         Some(powers::PowerUps::Shield) => {
-                            println!("Shield: Not fully Implemented");
-                            power_override = true;
                             core.wincan.copy(
                                 &tex_shield,
                                 None,
                                 rect!(10, 100, TILE_SIZE, TILE_SIZE),
                             )?;
-                        }
-                        _ => {}
-                    }
-                } else if power_tick == 0 {
-                    power_tick -= 1;
-                    match power {
-                        // Stop any power from going
-                        Some(powers::PowerUps::SpeedBoost) => {}
-                        Some(powers::PowerUps::ScoreMultiplier) => {}
-                        Some(powers::PowerUps::BouncyShoes) => {}
-                        Some(powers::PowerUps::LowerGravity) => {}
-                        Some(powers::PowerUps::Shield) => {
-                            power_override = false;
                         }
                         _ => {}
                     }
