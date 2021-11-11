@@ -337,7 +337,7 @@ impl Game for Runner {
                             keycode: Some(k), ..
                         } => match k {
                             Keycode::W | Keycode::Up | Keycode::Space => {
-                                player.jump(current_ground);
+                                player.jump(current_ground, false);
                                 player.resume_flipping();
                             }
                             Keycode::Escape => {
@@ -664,20 +664,35 @@ impl Game for Runner {
                     power_tick -= 1;
                     match power {
                         Some(powers::PowerUps::SpeedBoost) => {
+                            println!("SpeedBoost: Not Implemented");
                             speed_boost(); //Basically result will need to do something weird with the physics engine
                         }
                         Some(powers::PowerUps::ScoreMultiplier) => {
+                            println!("ScoreMultiplier");
                             tick_score = score_mul(tick_score);
                         }
                         Some(powers::PowerUps::BouncyShoes) => {
-                            bouncy_shoes(); //Basically result will need to do something weird with the physics engine
+                            println!("BouncyShoes");
+                            player.jump(current_ground, true); //Basically result will need to do something weird with the physics engine
                         }
                         Some(powers::PowerUps::LowerGravity) => {
+                            println!("LowerGravity: Not Implemented");
                             lower_gravity(); //Basically result will need to do something weird with the physics engine
                         }
                         Some(powers::PowerUps::Shield) => {
+                            println!("Shield: Not Implemented");
                             shield(); //Basically result will need to do something weird with the physics engine
                         }
+                        _ => {}
+                    }
+                } else if power_tick == 0 {
+                    match power {
+                        // Stop any power from going
+                        Some(powers::PowerUps::SpeedBoost) => {}
+                        Some(powers::PowerUps::ScoreMultiplier) => {}
+                        Some(powers::PowerUps::BouncyShoes) => {}
+                        Some(powers::PowerUps::LowerGravity) => {}
+                        Some(powers::PowerUps::Shield) => {}
                         _ => {}
                     }
                 }
@@ -853,17 +868,11 @@ impl Distribution<powers::PowerUps> for Standard {
         // match rng.gen_range(0, 3) { // rand 0.5, 0.6, 0.7
         match rng.gen_range(0..=4) {
             // rand 0.8
-            // 0 => powers::PowerUps::SpeedBoost,
-            // 1 => powers::PowerUps::ScoreMultiplier,
-            // 2 => powers::PowerUps::BouncyShoes,
-            // 3 => powers::PowerUps::LowerGravity,
-            // _ => powers::PowerUps::Shield,
-            //Force multiplier for testing
-            0 => powers::PowerUps::ScoreMultiplier,
+            0 => powers::PowerUps::SpeedBoost,
             1 => powers::PowerUps::ScoreMultiplier,
-            2 => powers::PowerUps::ScoreMultiplier,
-            3 => powers::PowerUps::ScoreMultiplier,
-            _ => powers::PowerUps::ScoreMultiplier,
+            2 => powers::PowerUps::BouncyShoes,
+            3 => powers::PowerUps::LowerGravity,
+            _ => powers::PowerUps::Shield,
         }
     }
 }
@@ -878,11 +887,6 @@ fn score_mul(tick_score: i32) -> i32 {
     //Every tick active, take however many points obtained and apply a multiplier
     println!("{:?}", tick_score);
     return tick_score * 2;
-}
-
-fn bouncy_shoes() -> bool {
-    //Every tick active, if player lands on ground or obstacle, start another jump to a lesser height if possible
-    return false;
 }
 
 fn lower_gravity() -> bool {
