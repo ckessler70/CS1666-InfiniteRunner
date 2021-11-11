@@ -373,10 +373,10 @@ impl<'a> Player<'a> {
     }
 
     // Returns true if a jump was initiated
-    pub fn jump(&mut self, ground: Point, bouncy: bool) -> bool {
+    pub fn jump(&mut self, ground: Point, bouncy: bool, change: i32) -> bool {
         if bouncy {
             if self.pos.contains_point(ground) {
-                self.velocity.1 += 23;
+                self.velocity.1 += change;
                 self.jumping = true;
                 self.onground = false;
 

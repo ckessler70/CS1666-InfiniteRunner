@@ -347,7 +347,7 @@ impl Game for Runner {
                             keycode: Some(k), ..
                         } => match k {
                             Keycode::W | Keycode::Up | Keycode::Space => {
-                                player.jump(current_ground, false);
+                                player.jump(current_ground, false, 0);
                                 player.resume_flipping();
                             }
                             Keycode::Escape => {
@@ -471,7 +471,7 @@ impl Game for Runner {
                         }
                         Some(powers::PowerUps::BouncyShoes) => {
                             println!("BouncyShoes");
-                            player.jump(current_ground, true); //Basically result will need to do something weird with the physics engine
+                            player.jump(current_ground, true, 30); //Basically result will need to do something weird with the physics engine
                             core.wincan.copy(
                                 &tex_bouncy,
                                 None,
