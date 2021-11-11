@@ -113,6 +113,7 @@ impl Game for Runner {
         let mut game_paused: bool = false;
         let mut initial_pause: bool = false;
         let mut game_over: bool = false;
+        let mut power_override: bool = false;
 
         // FPS tracking
         let mut all_frames: i32 = 0;
@@ -366,6 +367,10 @@ impl Game for Runner {
                 for o in obstacles.iter() {
                     //.filter(|near by obstacles|).collect()
                     if let Some(collision_boxes) = player.check_collision(o) {
+                        //Bad way to ignore collision with a shield
+                        if power_override {
+                            continue;
+                        }
                         //Temp option: can add these 2 lines to end game upon obstacle collsions
                         if !player.collide(o, collision_boxes) {
                             game_over = true;
@@ -680,19 +685,23 @@ impl Game for Runner {
                             lower_gravity(); //Basically result will need to do something weird with the physics engine
                         }
                         Some(powers::PowerUps::Shield) => {
-                            println!("Shield: Not Implemented");
+                            println!("Shield: Not fully Implemented");
+                            power_override = true;
                             shield(); //Basically result will need to do something weird with the physics engine
                         }
                         _ => {}
                     }
                 } else if power_tick == 0 {
+                    power_tick -= 1;
                     match power {
                         // Stop any power from going
                         Some(powers::PowerUps::SpeedBoost) => {}
                         Some(powers::PowerUps::ScoreMultiplier) => {}
                         Some(powers::PowerUps::BouncyShoes) => {}
                         Some(powers::PowerUps::LowerGravity) => {}
-                        Some(powers::PowerUps::Shield) => {}
+                        Some(powers::PowerUps::Shield) => {
+                            power_override = false;
+                        }
                         _ => {}
                     }
                 }
