@@ -84,6 +84,12 @@ impl Game for Runner {
         let tex_statue = texture_creator.load_texture("assets/statue.png")?;
         let tex_coin = texture_creator.load_texture("assets/coin.gif")?;
 
+        let tex_speed = texture_creator.load_texture("assets/speed.png")?;
+        let tex_multiplier = texture_creator.load_texture("assets/multiplier.png")?;
+        let tex_bouncy = texture_creator.load_texture("assets/bouncy.png")?;
+        let tex_floaty = texture_creator.load_texture("assets/floaty.png")?;
+        let tex_shield = texture_creator.load_texture("assets/shield.png")?;
+
         let mut bg_buff = 0;
 
         // Create player at default position
@@ -595,7 +601,7 @@ impl Game for Runner {
                             power = Some(rand::random());
                             let mut pow = Power::new(
                                 rect!(0, 0, 0, 0),
-                                texture_creator.load_texture("assets/pattyg.jpg")?,
+                                texture_creator.load_texture("assets/powerup.png")?,
                             );
                             powers.push(pow);
                             //Physics object for loading it in and maybe that is where the handler will be called?
@@ -671,23 +677,48 @@ impl Game for Runner {
                         Some(powers::PowerUps::SpeedBoost) => {
                             println!("SpeedBoost: Not Implemented");
                             speed_boost(); //Basically result will need to do something weird with the physics engine
+                            core.wincan.copy(
+                                &tex_speed,
+                                None,
+                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
+                            )?;
                         }
                         Some(powers::PowerUps::ScoreMultiplier) => {
                             println!("ScoreMultiplier");
                             tick_score = score_mul(tick_score);
+                            core.wincan.copy(
+                                &tex_multiplier,
+                                None,
+                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
+                            )?;
                         }
                         Some(powers::PowerUps::BouncyShoes) => {
                             println!("BouncyShoes");
                             player.jump(current_ground, true); //Basically result will need to do something weird with the physics engine
+                            core.wincan.copy(
+                                &tex_bouncy,
+                                None,
+                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
+                            )?;
                         }
                         Some(powers::PowerUps::LowerGravity) => {
                             println!("LowerGravity: Not Implemented");
                             lower_gravity(); //Basically result will need to do something weird with the physics engine
+                            core.wincan.copy(
+                                &tex_floaty,
+                                None,
+                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
+                            )?;
                         }
                         Some(powers::PowerUps::Shield) => {
                             println!("Shield: Not fully Implemented");
                             power_override = true;
                             shield(); //Basically result will need to do something weird with the physics engine
+                            core.wincan.copy(
+                                &tex_shield,
+                                None,
+                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
+                            )?;
                         }
                         _ => {}
                     }
