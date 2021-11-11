@@ -736,7 +736,6 @@ impl Game for Runner {
                         Some(powers::PowerUps::Shield) => {
                             println!("Shield: Not fully Implemented");
                             power_override = true;
-                            shield(); //Basically result will need to do something weird with the physics engine
                             core.wincan.copy(
                                 &tex_shield,
                                 None,

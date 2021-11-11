@@ -4,7 +4,10 @@ use crate::rect;
 use sdl2::rect::Rect;
 use sdl2::render::Texture;
 
-use rand::Rng;
+use rand::{
+    distributions::{Distribution, Standard},
+    Rng,
+};
 
 const CAM_W: u32 = 1280;
 // Ensure that SIZE is not a decimal
@@ -279,13 +282,7 @@ impl ProceduralGen {
             amp,
         );
 
-        let object = if amp > 0.66 {
-            StaticObject::Coin
-        } else if amp > 0.33 {
-            StaticObject::Statue
-        } else {
-            StaticObject::Power
-        };
+        let object = rand::random();
 
         let length = (point_mod * max_length as f64 + min_length as f64)
             .clamp(min_length as f64, max_length as f64)
@@ -640,4 +637,16 @@ fn noise_1d(p: f32) -> f32 {
     let g1 = grad_1d(p1);
 
     return ((1.0 - fade_t) * g0 * (p - p0) + fade_t * g1 * (p - p1));
+}
+
+impl Distribution<StaticObject> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> StaticObject {
+        // match rng.gen_range(0, 3) { // rand 0.5, 0.6, 0.7
+        match rng.gen_range(0..=2) {
+            // rand 0.8
+            0 => StaticObject::Coin,
+            1 => StaticObject::Statue,
+            _ => StaticObject::Power,
+        }
+    }
 }
