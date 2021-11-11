@@ -144,6 +144,7 @@ impl Game for Runner {
 
         let mut player_accel_rate: i32 = -10;
         let mut player_jump_change: i32 = 0;
+        let mut player_speed_adjust: i32 = 0;
 
         // bg[0] = Front hills
         // bg[1] = Back hills
@@ -448,6 +449,7 @@ impl Game for Runner {
 
                 player_accel_rate = -10;
                 player_jump_change = 0;
+                player_speed_adjust = 0;
 
                 //Power handling
                 if power_tick > 0 {
@@ -455,7 +457,7 @@ impl Game for Runner {
                     match power {
                         Some(powers::PowerUps::SpeedBoost) => {
                             println!("SpeedBoost: Not Implemented");
-                            speed_boost(); //Basically result will need to do something weird with the physics engine
+                            player_speed_adjust = 1;
                             core.wincan.copy(
                                 &tex_speed,
                                 None,
@@ -525,17 +527,17 @@ impl Game for Runner {
                 //Physics::apply_friction(&mut player, 1.0);
 
                 player.update_pos(current_ground, angle);
-                player.update_vel(player_accel_rate);
+                player.update_vel(player_accel_rate, player_speed_adjust);
                 player.flip();
 
                 //kinematics change, scroll speed does not :(
                 //can see best when super curvy map generated
-                // println!(
-                //     "px:{}  vx:{} ax:{}",
-                //     player.x(),
-                //     player.vel_x(),
-                //     player.accel_x()
-                // );
+                println!(
+                    "px:{}  vx:{} ax:{}",
+                    player.x(),
+                    player.vel_x(),
+                    player.accel_x()
+                );
                 //println!("py:{}  vy:{} ay:{}",player.y(),player.vel_y(),player.accel_y());
                 //println!("{}", angle);
 

@@ -260,7 +260,7 @@ pub trait Dynamic<'a>: Entity<'a> {
     /// Returns the `Body`'s rate of rotation
     fn omega(&self) -> f64;
     /// Modifies the velocity of the `Dynamic` `Entity`
-    fn update_vel(&mut self, rate: i32);
+    fn update_vel(&mut self, fall_rate: i32, speed_adjust: i32);
     // /// Modifies the rotation speed of the `Dynamic` `Entity`
     // fn update_omega(&mut self);
 }
@@ -502,12 +502,13 @@ impl<'a> Dynamic<'a> for Player<'a> {
     //     self.alpha
     // }
 
-    fn update_vel(&mut self, rate: i32) {
+    fn update_vel(&mut self, fall_rate: i32, speed_adjust: i32) {
         // Update to make the TOTAL MAX VELOCITY constant
         // Right now it's UPPER_SPEED in one direction and UPPER_SPEED*sqrt(2)
         // diagonally
-        self.velocity.0 = (self.velocity.0 + self.accel.0).clamp(LOWER_SPEED, UPPER_SPEED);
-        self.velocity.1 = (self.velocity.1 + self.accel.1).clamp(rate, 1000);
+        self.velocity.0 =
+            (self.velocity.0 + self.accel.0 + speed_adjust).clamp(LOWER_SPEED, UPPER_SPEED);
+        self.velocity.1 = (self.velocity.1 + self.accel.1).clamp(fall_rate, 1000);
     }
 }
 
