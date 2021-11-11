@@ -376,6 +376,9 @@ impl Game for Runner {
                     if let Some(collision_boxes) = player.check_collision(o) {
                         //Bad way to ignore collision with a shield
                         if power_override {
+                            // if !player.collide(o, collision_boxes) {
+                            //     Apply some simulation/annimation on the obstacle knocking it over
+                            // }
                             continue;
                         }
                         //Temp option: can add these 2 lines to end game upon obstacle collsions
@@ -675,7 +678,6 @@ impl Game for Runner {
                         Some(proceduralgen::StaticObject::Power) => {
                             //update physics power position
                             for p in powers.iter_mut() {
-                                //hacky "soln" part 2
                                 p.pos = rect!(
                                     object_spawn * CAM_W as usize / SIZE
                                         + CAM_W as usize / SIZE / 2,
@@ -952,10 +954,5 @@ fn score_mul(tick_score: i32) -> i32 {
 
 fn lower_gravity() -> bool {
     //Every tick active, make the gravity force lower so the player is more "floaty"
-    return false;
-}
-
-fn shield() -> bool {
-    //Every tick active, player cannot crash due to bad flip or hitting an obstacle
     return false;
 }
