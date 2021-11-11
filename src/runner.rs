@@ -8,12 +8,13 @@ use crate::physics::Dynamic;
 use crate::physics::Entity;
 use crate::physics::Obstacle;
 use crate::physics::Player;
+use crate::physics::Power;
 
 use crate::proceduralgen;
 // use crate::proceduralgen::ProceduralGen;
 // use crate::proceduralgen::TerrainSegment;
 
-use crate::powers::powers;
+use crate::powers;
 
 use crate::rect;
 
@@ -35,7 +36,10 @@ use sdl2::rect::Rect;
 // use sdl2::render::Texture;
 use sdl2::render::TextureQuery;
 
-use rand::Rng;
+use rand::{
+    distributions::{Distribution, Standard},
+    Rng,
+};
 
 const FPS: f64 = 60.0;
 const FRAME_TIME: f64 = 1.0 / FPS as f64;
@@ -97,11 +101,13 @@ impl Game for Runner {
         //empty obstacle & coin vectors
         let mut obstacles: Vec<_> = Vec::new();
         let mut coins: Vec<_> = Vec::new();
+        let mut powers: Vec<_> = Vec::new();
 
         // Used to keep track of animation status
         let src_x: i32 = 0;
 
         let mut score: i32 = 0;
+        let mut tick_score: i32 = 0;
         let mut coin_count: i32 = 0;
 
         let mut game_paused: bool = false;
@@ -117,6 +123,7 @@ impl Game for Runner {
 
         let mut ct: usize = 0;
         let mut tick = 0;
+        let mut power_tick = 0;
         let mut buff_1: usize = 0;
         let mut buff_2: usize = 0;
         let mut buff_3: usize = 0;
@@ -124,6 +131,8 @@ impl Game for Runner {
         let mut object_count: i32 = 0;
 
         let mut object = None;
+
+        let mut power: Option<powers::PowerUps> = None;
 
         // bg[0] = Front hills
         // bg[1] = Back hills
@@ -349,6 +358,8 @@ impl Game for Runner {
                     }
                 }
 
+                tick_score = 1;
+
                 //in the future when obstacles & coins are proc genned we will probs wanna
                 //only check for obstacles/coins based on their location relative to players x cord
                 //(also: idt this can be a for loop bc it moves the obstacles values?)
@@ -378,13 +389,25 @@ impl Game for Runner {
                             c.collect(); //deletes the coin once collected (but takes too long)
                             coin_count += 1;
 
-                            score += c.value(); //increments the score based on the coins value
-                                                //maybe print next to score: "+ c.value()""
+                            tick_score += c.value(); //increments the score based on the coins value
+                                                     //maybe print next to score: "+ c.value()""
                         }
 
                         continue;
                     }
                 }
+
+                // Roughly the code needed for collecting power objects as it should follow the coin idea closely.
+                for p in powers.iter_mut() {
+                    if Physics::check_power(&mut player, p) {
+                        if !p.collected() {
+                            p.collect();
+                            power_tick = 360;
+                        }
+                        continue;
+                    }
+                }
+
                 //applies gravity, normal & friction now
                 //friciton is currently way OP (stronger than grav) bc cast to i32 in apply_force
                 //so to ever have an effect, it needs to be set > 1 for now...
@@ -564,8 +587,14 @@ impl Game for Runner {
                             object_count -= 1;
                         }
                         Some(proceduralgen::StaticObject::Power) => {
-                            let mut power = powers::pickup_power();
+                            power = Some(rand::random());
+                            let mut pow = Power::new(
+                                rect!(0, 0, 0, 0),
+                                texture_creator.load_texture("assets/pattyg.jpg")?,
+                            );
+                            powers.push(pow);
                             //Physics object for loading it in and maybe that is where the handler will be called?
+                            //When it is collected, it should set `power_tick` to like 360 which is the active time.
                             object_count -= 1;
                         }
                         _ => {}
@@ -611,11 +640,50 @@ impl Game for Runner {
                                 );
                             }
                         }
+                        Some(proceduralgen::StaticObject::Power) => {
+                            //update physics power position
+                            for p in powers.iter_mut() {
+                                //hacky "soln" part 2
+                                p.pos = rect!(
+                                    object_spawn * CAM_W as usize / SIZE
+                                        + CAM_W as usize / SIZE / 2,
+                                    CAM_H as i16
+                                        - bg[GROUND_INDEX][object_spawn]
+                                        - TILE_SIZE as i16,
+                                    TILE_SIZE,
+                                    TILE_SIZE
+                                );
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+
+                //Power handling
+                if power_tick > 0 {
+                    power_tick -= 1;
+                    match power {
+                        Some(powers::PowerUps::SpeedBoost) => {
+                            speed_boost(); //Basically result will need to do something weird with the physics engine
+                        }
+                        Some(powers::PowerUps::ScoreMultiplier) => {
+                            tick_score = score_mul(tick_score);
+                        }
+                        Some(powers::PowerUps::BouncyShoes) => {
+                            bouncy_shoes(); //Basically result will need to do something weird with the physics engine
+                        }
+                        Some(powers::PowerUps::LowerGravity) => {
+                            lower_gravity(); //Basically result will need to do something weird with the physics engine
+                        }
+                        Some(powers::PowerUps::Shield) => {
+                            shield(); //Basically result will need to do something weird with the physics engine
+                        }
                         _ => {}
                     }
                 }
 
                 tick += 1;
+                score += tick_score;
 
                 if tick % 3 == 0 && tick % 5 == 0 {
                     tick = 0;
@@ -695,6 +763,29 @@ impl Game for Runner {
                     }
                 }
 
+                //Draw power
+                for p in powers.iter() {
+                    //need a method to delete it from vector, possibly somwthing like this
+                    /*if p.collected(){
+                        powers.retain(|x| x != p.collected);
+                    }*/
+
+                    if !p.collected() && p.x() > 50 {
+                        //hacky - will not work if more than one coin spawned
+                        core.wincan.copy_ex(
+                            p.texture(),
+                            rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
+                            rect!(p.x(), p.y(), TILE_SIZE, TILE_SIZE),
+                            0.0,
+                            None,
+                            false,
+                            false,
+                        )?;
+                        core.wincan.set_draw_color(Color::YELLOW);
+                        core.wincan.draw_rect(p.hitbox())?;
+                    }
+                }
+
                 let surface = font
                     .render(&format!("{:08}", score))
                     .blended(Color::RGBA(255, 0, 0, 100))
@@ -707,7 +798,6 @@ impl Game for Runner {
                     .copy(&score_texture, None, Some(rect!(10, 10, 100, 50)))?;
 
                 core.wincan.present();
-                score += 1;
 
                 /*let other_surface = font
                     .render(&format!("{:03}", coin_count))
@@ -755,4 +845,52 @@ impl Game for Runner {
             score: score,
         })
     }
+}
+
+//Remaking rand::random() to fit with powers.
+impl Distribution<powers::PowerUps> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> powers::PowerUps {
+        // match rng.gen_range(0, 3) { // rand 0.5, 0.6, 0.7
+        match rng.gen_range(0..=4) {
+            // rand 0.8
+            // 0 => powers::PowerUps::SpeedBoost,
+            // 1 => powers::PowerUps::ScoreMultiplier,
+            // 2 => powers::PowerUps::BouncyShoes,
+            // 3 => powers::PowerUps::LowerGravity,
+            // _ => powers::PowerUps::Shield,
+            //Force multiplier for testing
+            0 => powers::PowerUps::ScoreMultiplier,
+            1 => powers::PowerUps::ScoreMultiplier,
+            2 => powers::PowerUps::ScoreMultiplier,
+            3 => powers::PowerUps::ScoreMultiplier,
+            _ => powers::PowerUps::ScoreMultiplier,
+        }
+    }
+}
+
+//Power helper functions
+fn speed_boost() -> bool {
+    //Every tick active, Apply faster static increase to velocity or acceleration
+    return false;
+}
+
+fn score_mul(tick_score: i32) -> i32 {
+    //Every tick active, take however many points obtained and apply a multiplier
+    println!("{:?}", tick_score);
+    return tick_score * 2;
+}
+
+fn bouncy_shoes() -> bool {
+    //Every tick active, if player lands on ground or obstacle, start another jump to a lesser height if possible
+    return false;
+}
+
+fn lower_gravity() -> bool {
+    //Every tick active, make the gravity force lower so the player is more "floaty"
+    return false;
+}
+
+fn shield() -> bool {
+    //Every tick active, player cannot crash due to bad flip or hitting an obstacle
+    return false;
 }

@@ -7,7 +7,7 @@ use crate::runner::TILE_SIZE;
 
 // use crate::ProceduralGen;
 
-const LOWER_SPEED: i32 = 1;     //
+const LOWER_SPEED: i32 = 1; //
 const UPPER_SPEED: i32 = 5;
 // const GRAVITY: f64 = 9.80665;
 const OMEGA: f64 = 9.0;
@@ -39,23 +39,38 @@ impl Physics {
         }
         return false;
     }
+
+    pub fn check_power(player: &Player, power: &Power) -> bool {
+        // For collection, collsion including force and torque does not need to be accounted for
+        // If any of the player hitboxes intersect with a `Collectible`, the object will be aquired by the player
+        for h in player.hitbox().iter() {
+            if h.has_intersection(power.hitbox()) {
+                return true;
+            }
+        }
+        return false;
+    }
     //applies gravity, normal & friction forces
     //depends on whether or not player is on ground
     pub fn apply_gravity<'a>(body: &mut impl Body<'a>, angle: f64, coeff: f64) {
         //onground --> apply gravity in x & y direction based on angle of the ground
         //Note: "angle" is positive going downhill & negative going uphill
         //---- but we always need a negative force in y direction...
-        
-        if body.is_onground(){
+
+        if body.is_onground() {
             //going uphill
-            if(angle < 0.0){ // -angle
+            if (angle < 0.0) {
+                // -angle
                 //apply gravity in -x & -y
-                body.apply_force((body.mass() * angle.sin() as i32, body.mass() * angle.cos() as i32));
+                body.apply_force((
+                    body.mass() * angle.sin() as i32,
+                    body.mass() * angle.cos() as i32,
+                ));
                 //apply grav in -y
-                //body.apply_force((0,-body.mass())); 
+                //body.apply_force((0,-body.mass()));
 
                 //apply normal (force positive)
-                body.apply_force((0,-body.mass() * angle.cos() as i32));
+                body.apply_force((0, -body.mass() * angle.cos() as i32));
                 //apply normal in -x & +y
                 //body.apply_force((body.mass()* angle.sin() as i32 * angle.cos() as i32,-body.mass()*angle.cos()as i32*angle.cos()as i32));
 
@@ -65,14 +80,18 @@ impl Physics {
                 //body.apply_force((coeff as i32 * body.mass() * angle.cos() as i32 * angle.cos() as i32, coeff as i32 * body.mass() * angle.cos() as i32 * angle.sin() as i32));
             }
             //flat or going downhill
-            else { // 0 or +angle
-                //apply gravity in +x & -y 
-                body.apply_force((body.mass() * angle.sin() as i32, -body.mass() * angle.cos() as i32));
+            else {
+                // 0 or +angle
+                //apply gravity in +x & -y
+                body.apply_force((
+                    body.mass() * angle.sin() as i32,
+                    -body.mass() * angle.cos() as i32,
+                ));
                 //apply grav in -y
                 //body.apply_force((0,-body.mass()));
 
                 //apply normal (automatically positive)
-                body.apply_force((0,body.mass() * angle.cos() as i32));
+                body.apply_force((0, body.mass() * angle.cos() as i32));
                 //apply normal in +x & +y
                 //body.apply_force((body.mass()* angle.sin() as i32 * angle.cos() as i32,-body.mass()*angle.cos()as i32*angle.cos()as i32));
 
@@ -81,8 +100,8 @@ impl Physics {
                 //apply fricition in -x & +y
                 //body.apply_force((coeff as i32 * -body.mass() * angle.cos() as i32 * angle.cos() as i32, coeff as i32 * body.mass() * angle.cos() as i32 * angle.sin() as i32));
             }
-        }
-        else{   //player in the air
+        } else {
+            //player in the air
             //apply entirity of gravity force in -y direction (bc player not on ground)
             body.apply_force((0, -body.mass()));
             //no normal, no friction, bc in air
@@ -255,10 +274,8 @@ pub trait Body<'a>: Collider<'a> + Dynamic<'a> {
     fn mass(&self) -> i32;
     /// Returns the `Body`'s rotational inertia (i.e. moment of inertia)
     fn rotational_inertia(&self) -> f64;
-    //Returns true when play is on the terrain & not in the air 
+    //Returns true when play is on the terrain & not in the air
     fn is_onground(&self) -> bool;
-    
-
 
     /****************** Forces *********************** */
 
@@ -276,9 +293,7 @@ pub trait Body<'a>: Collider<'a> + Dynamic<'a> {
     // // /   object
     // // / * `radius`: the distance from the object's center of mass
     // fn apply_torque(&mut self, force: i32, radius: i32);
-    
-    
-    
+
     //set the normal force acting on the player
     //fn set_normal(&mut self,normal: i32);
 
@@ -319,7 +334,7 @@ impl<'a> Player<'a> {
             pos,
             velocity: (3, 0),
             accel: (0, 0),
-            
+
             theta: 0.0,
             omega: 0.0,
             // alpha: 0.0,
@@ -332,7 +347,7 @@ impl<'a> Player<'a> {
         }
     }
 
-    pub fn is_onground(&self) -> bool{
+    pub fn is_onground(&self) -> bool {
         self.onground
     }
 
@@ -436,7 +451,6 @@ impl<'a> Entity<'a> for Player<'a> {
 
         // Player's x position is fixed
         self.pos.set_y(self.pos.y() - self.vel_y());
-    
     }
 
     fn rotate(&mut self) {
@@ -558,10 +572,10 @@ impl<'a> Body<'a> for Player<'a> {
         self.mass
     }
 
-    fn is_onground(&self)-> bool{
+    fn is_onground(&self) -> bool {
         self.onground
     }
-    
+
     /*fn set_normal(&mut self, normal: i32){
         self.normal = normal
     }*/
@@ -572,17 +586,17 @@ impl<'a> Body<'a> for Player<'a> {
         // I think we'll wanna use L = mass*R^2     (ie. angular momentum for a sphere/thing with effective radius R)
         // Torque (if we need it) tau = I * alpha
         if !self.jumping {
-            return 0.0
+            return 0.0;
         }
         let mut effective_radius: f64;
-        if self.flipping{
-            effective_radius = (TILE_SIZE as f64)/2.0;
+        if self.flipping {
+            effective_radius = (TILE_SIZE as f64) / 2.0;
         } else {
             effective_radius = TILE_SIZE as f64;
         }
-        let mut L: f64 = (self.mass as f64)*(effective_radius*effective_radius);
-        let mut rot_inertia: f64 = L/self.omega;
-        return rot_inertia
+        let mut L: f64 = (self.mass as f64) * (effective_radius * effective_radius);
+        let mut rot_inertia: f64 = L / self.omega;
+        return rot_inertia;
     }
 
     // Should we take in force as a magnitude and an angle? Makes the friction
@@ -760,7 +774,6 @@ impl<'a> Collectible<'a> for Coin<'a> {
     //for now (honestly not a horrible long term soln)
     fn hitbox(&self) -> Rect {
         Rect::new(self.pos.x, self.pos.y, self.pos.width(), self.pos.height())
-        
     }
 
     fn collect(&mut self) {
@@ -773,5 +786,63 @@ impl<'a> Collectible<'a> for Coin<'a> {
 impl Drop for Coin<'_> {
     fn drop(&mut self) {
         println!("dropping coin");
+    }
+}
+
+pub struct Power<'a> {
+    pub pos: Rect,
+    texture: Texture<'a>,
+    pub collected: bool,
+}
+
+impl<'a> Power<'a> {
+    pub fn new(pos: Rect, texture: Texture<'a>) -> Power {
+        Power {
+            pos,
+            texture,
+            collected: false,
+        }
+    }
+
+    pub fn x(&self) -> i32 {
+        self.pos.x()
+    }
+
+    pub fn y(&self) -> i32 {
+        self.pos.y()
+    }
+
+    fn update_pos(&mut self, x: i32, y: i32) {
+        self.pos.set_x(x);
+        self.pos.set_y(y);
+    }
+
+    pub fn texture(&self) -> &Texture {
+        &self.texture
+    }
+
+    pub fn collected(&self) -> bool {
+        self.collected
+    }
+    //if we delete Power by dropping them from mem (once collected)
+    pub fn drop(&mut self) {}
+}
+
+impl<'a> Collectible<'a> for Power<'a> {
+    //for now (honestly not a horrible long term soln)
+    fn hitbox(&self) -> Rect {
+        Rect::new(self.pos.x, self.pos.y, self.pos.width(), self.pos.height())
+    }
+
+    fn collect(&mut self) {
+        self.collected = true;
+        drop(self);
+    }
+}
+
+//I think this is how we'll delete the Power
+impl Drop for Power<'_> {
+    fn drop(&mut self) {
+        println!("dropping Power");
     }
 }
