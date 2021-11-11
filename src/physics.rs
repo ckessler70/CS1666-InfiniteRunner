@@ -52,7 +52,7 @@ impl Physics {
     }
     //applies gravity, normal & friction forces
     //depends on whether or not player is on ground
-    pub fn apply_gravity<'a>(body: &mut impl Body<'a>, angle: f64, coeff: f64, mass: i32) {
+    pub fn apply_gravity<'a>(body: &mut impl Body<'a>, angle: f64, coeff: f64) {
         //onground --> apply gravity in x & y direction based on angle of the ground
         //Note: "angle" is positive going downhill & negative going uphill
         //---- but we always need a negative force in y direction...
@@ -103,7 +103,7 @@ impl Physics {
         } else {
             //player in the air
             //apply entirity of gravity force in -y direction (bc player not on ground)
-            body.apply_force((0, -mass));
+            body.apply_force((0, -body.mass()));
             //no normal, no friction, bc in air
         }
     }
@@ -260,7 +260,7 @@ pub trait Dynamic<'a>: Entity<'a> {
     /// Returns the `Body`'s rate of rotation
     fn omega(&self) -> f64;
     /// Modifies the velocity of the `Dynamic` `Entity`
-    fn update_vel(&mut self);
+    fn update_vel(&mut self, rate: i32);
     // /// Modifies the rotation speed of the `Dynamic` `Entity`
     // fn update_omega(&mut self);
 }
@@ -376,7 +376,7 @@ impl<'a> Player<'a> {
     pub fn jump(&mut self, ground: Point, bouncy: bool, change: i32) -> bool {
         if bouncy {
             if self.pos.contains_point(ground) {
-                self.velocity.1 += change;
+                self.velocity.1 += 23 + change;
                 self.jumping = true;
                 self.onground = false;
 
@@ -389,7 +389,7 @@ impl<'a> Player<'a> {
             }
         } else {
             if self.pos.contains_point(ground) {
-                self.velocity.1 += 23;
+                self.velocity.1 += 23 + change;
                 self.jumping = true;
                 self.onground = false;
 
@@ -502,12 +502,12 @@ impl<'a> Dynamic<'a> for Player<'a> {
     //     self.alpha
     // }
 
-    fn update_vel(&mut self) {
+    fn update_vel(&mut self, rate: i32) {
         // Update to make the TOTAL MAX VELOCITY constant
         // Right now it's UPPER_SPEED in one direction and UPPER_SPEED*sqrt(2)
         // diagonally
         self.velocity.0 = (self.velocity.0 + self.accel.0).clamp(LOWER_SPEED, UPPER_SPEED);
-        self.velocity.1 = (self.velocity.1 + self.accel.1).clamp(-10, 1000);
+        self.velocity.1 = (self.velocity.1 + self.accel.1).clamp(rate, 1000);
     }
 }
 

@@ -142,7 +142,8 @@ impl Game for Runner {
         let mut power: Option<powers::PowerUps> = None;
         let mut next_power: Option<powers::PowerUps> = None;
 
-        let mut player_mass: i32 = 2;
+        let mut player_accel_rate: i32 = -10;
+        let mut player_jump_change: i32 = 0;
 
         // bg[0] = Front hills
         // bg[1] = Back hills
@@ -347,7 +348,7 @@ impl Game for Runner {
                             keycode: Some(k), ..
                         } => match k {
                             Keycode::W | Keycode::Up | Keycode::Space => {
-                                player.jump(current_ground, false, 0);
+                                player.jump(current_ground, false, player_jump_change);
                                 player.resume_flipping();
                             }
                             Keycode::Escape => {
@@ -445,7 +446,8 @@ impl Game for Runner {
                     }
                 }
 
-                player_mass = 2;
+                player_accel_rate = -10;
+                player_jump_change = 0;
 
                 //Power handling
                 if power_tick > 0 {
@@ -471,7 +473,7 @@ impl Game for Runner {
                         }
                         Some(powers::PowerUps::BouncyShoes) => {
                             println!("BouncyShoes");
-                            player.jump(current_ground, true, 30); //Basically result will need to do something weird with the physics engine
+                            player.jump(current_ground, true, 7); //Basically result will need to do something weird with the physics engine
                             core.wincan.copy(
                                 &tex_bouncy,
                                 None,
@@ -479,8 +481,9 @@ impl Game for Runner {
                             )?;
                         }
                         Some(powers::PowerUps::LowerGravity) => {
-                            println!("LowerGravity: Not Implemented");
-                            player_mass = 1;
+                            println!("LowerGravity");
+                            player_accel_rate = -5;
+                            player_jump_change = 5;
                             core.wincan.copy(
                                 &tex_floaty,
                                 None,
@@ -516,13 +519,13 @@ impl Game for Runner {
                 //applies gravity, normal & friction now
                 //friciton is currently way OP (stronger than grav) bc cast to i32 in apply_force
                 //so to ever have an effect, it needs to be set > 1 for now...
-                Physics::apply_gravity(&mut player, angle, 3.0, player_mass);
+                Physics::apply_gravity(&mut player, angle, 3.0);
 
                 //apply friction
                 //Physics::apply_friction(&mut player, 1.0);
 
                 player.update_pos(current_ground, angle);
-                player.update_vel();
+                player.update_vel(player_accel_rate);
                 player.flip();
 
                 //kinematics change, scroll speed does not :(
