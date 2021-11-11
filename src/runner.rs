@@ -140,6 +140,7 @@ impl Game for Runner {
         let mut object = None;
 
         let mut power: Option<powers::PowerUps> = None;
+        let mut next_power: Option<powers::PowerUps> = None;
 
         // bg[0] = Front hills
         // bg[1] = Back hills
@@ -412,6 +413,26 @@ impl Game for Runner {
                 for p in powers.iter_mut() {
                     if Physics::check_power(&mut player, p) {
                         if !p.collected() {
+                            match next_power {
+                                Some(powers::PowerUps::SpeedBoost) => {
+                                    power = Some(powers::PowerUps::SpeedBoost);
+                                }
+                                Some(powers::PowerUps::ScoreMultiplier) => {
+                                    power = Some(powers::PowerUps::ScoreMultiplier);
+                                }
+                                Some(powers::PowerUps::BouncyShoes) => {
+                                    power = Some(powers::PowerUps::BouncyShoes);
+                                }
+                                Some(powers::PowerUps::LowerGravity) => {
+                                    power = Some(powers::PowerUps::LowerGravity);
+                                }
+                                Some(powers::PowerUps::Shield) => {
+                                    power = Some(powers::PowerUps::Shield);
+                                }
+                                _ => {}
+                            }
+                            power_override = false;
+
                             p.collect();
                             power_tick = 360;
                         }
@@ -433,12 +454,12 @@ impl Game for Runner {
 
                 //kinematics change, scroll speed does not :(
                 //can see best when super curvy map generated
-                println!(
-                    "px:{}  vx:{} ax:{}",
-                    player.x(),
-                    player.vel_x(),
-                    player.accel_x()
-                );
+                // println!(
+                //     "px:{}  vx:{} ax:{}",
+                //     player.x(),
+                //     player.vel_x(),
+                //     player.accel_x()
+                // );
                 //println!("py:{}  vy:{} ay:{}",player.y(),player.vel_y(),player.accel_y());
                 //println!("{}", angle);
 
@@ -598,7 +619,7 @@ impl Game for Runner {
                             object_count -= 1;
                         }
                         Some(proceduralgen::StaticObject::Power) => {
-                            power = Some(rand::random());
+                            next_power = Some(rand::random());
                             let mut pow = Power::new(
                                 rect!(0, 0, 0, 0),
                                 texture_creator.load_texture("assets/powerup.png")?,
