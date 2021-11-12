@@ -113,7 +113,7 @@ impl Game for Runner {
         let src_x: i32 = 0;
 
         let mut score: i32 = 0;
-        let mut tick_score: i32 = 0;
+        let mut tick_score: i32;
         let mut coin_count: i32 = 0;
 
         let mut game_paused: bool = false;
@@ -128,12 +128,11 @@ impl Game for Runner {
 
         let mut next_status = GameStatus::Main;
 
-        let mut ct: usize = 0;
+        let mut ct: usize;
         let mut tick = 0;
         let mut power_tick: i32 = 0;
         let mut buff_1: usize = 0;
         let mut buff_2: usize = 0;
-        let mut buff_3: usize = 0;
         let mut object_spawn: usize = 0;
         let mut object_count: i32 = 0;
 
@@ -349,8 +348,11 @@ impl Game for Runner {
                             keycode: Some(k), ..
                         } => match k {
                             Keycode::W | Keycode::Up | Keycode::Space => {
-                                player.jump(current_ground, false, player_jump_change);
-                                player.resume_flipping();
+                                if player.is_jumping() {
+                                    player.resume_flipping();
+                                } else {
+                                    player.jump(current_ground, true, player_jump_change);
+                                }
                             }
                             Keycode::Escape => {
                                 game_paused = true;
@@ -666,8 +668,8 @@ impl Game for Runner {
                 //not a good impl bc will not work when > 1 obstacle/coin spawned at a time
                 if (object_count > 0) {
                     match object {
-                        Some(proceduralgen::StaticObject::Statue) => {
-                            let mut obstacle = Obstacle::new(
+                        Some(StaticObject::Statue) => {
+                            let obstacle = Obstacle::new(
                                 rect!(0, 0, 0, 0),
                                 2,
                                 texture_creator.load_texture("assets/statue.png")?,
@@ -675,8 +677,8 @@ impl Game for Runner {
                             obstacles.push(obstacle);
                             object_count -= 1;
                         }
-                        Some(proceduralgen::StaticObject::Coin) => {
-                            let mut coin = Coin::new(
+                        Some(StaticObject::Coin) => {
+                            let coin = Coin::new(
                                 rect!(0, 0, 0, 0),
                                 texture_creator.load_texture("assets/coin.gif")?,
                                 1000,
@@ -684,9 +686,9 @@ impl Game for Runner {
                             coins.push(coin);
                             object_count -= 1;
                         }
-                        Some(proceduralgen::StaticObject::Power) => {
+                        Some(StaticObject::Power) => {
                             next_power = Some(rand::random());
-                            let mut pow = Power::new(
+                            let pow = Power::new(
                                 rect!(0, 0, 0, 0),
                                 texture_creator.load_texture("assets/powerup.png")?,
                             );
@@ -815,20 +817,6 @@ impl Game for Runner {
                 if -bg_buff == CAM_W as i32 {
                     bg_buff = 0;
                 }
-
-                // There should be some way to determine where it repeats but I can't figure it out
-                // if buff_1 as f64 % (freq * amp_1) == 0 {
-                //     println!("{:?}", buff_1);
-                //     buff_1 = 0;
-                // }
-                // if buff_2 as f64 % (freq * amp_2) == 0 {
-                //     println!("{:?}", buff_2);
-                //     buff_2 = 0;
-                // }
-                // if buff_3 as f64 % (freq * amp_3) == 0 {
-                //     println!("{:?}", buff_3);
-                //     buff_3 = 0;
-                // }
 
                 // Draw player
                 core.wincan.copy_ex(
