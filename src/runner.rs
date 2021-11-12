@@ -130,7 +130,7 @@ impl Game for Runner {
 
         let mut ct: usize = 0;
         let mut tick = 0;
-        let mut power_tick = 0;
+        let mut power_tick: i32 = 0;
         let mut buff_1: usize = 0;
         let mut buff_2: usize = 0;
         let mut buff_3: usize = 0;
@@ -794,6 +794,15 @@ impl Game for Runner {
                         }
                         _ => {}
                     }
+
+                    let m = power_tick as f64 / 360.0;
+
+                    let r = 256.0 * (1.0 - m);
+                    let g = 256.0 * (m);
+                    let w = TILE_SIZE as f64 * m;
+
+                    core.wincan.set_draw_color(Color::RGB(r as u8, g as u8, 0));
+                    core.wincan.fill_rect(rect!(10, 210, w as u8, 10))?;
                 }
 
                 tick += 1;
