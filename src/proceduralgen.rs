@@ -490,8 +490,6 @@ fn gen_bezier_curve(
 
         let p2: (f64, f64) = (length as f64 + p0.0, point_mod_2.1 * (height / 3) as f64);
 
-        println!("Quadratic");
-
         let group_of_points: [(f64, f64); BUFF_LENGTH] =
             gen_quadratic_bezier_curve_points(p0, p1, p2);
 
@@ -517,8 +515,6 @@ fn gen_bezier_curve(
         );
 
         let p3: (f64, f64) = (length as f64 + p0.0, point_mod_3.1 * (height / 3) as f64);
-
-        println!("Cubic");
 
         let group_of_points: [(f64, f64); BUFF_LENGTH] =
             gen_cubic_bezier_curve_points(p0, p1, p2, p3);
