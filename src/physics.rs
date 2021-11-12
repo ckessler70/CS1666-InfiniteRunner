@@ -373,6 +373,8 @@ impl<'a> Player<'a> {
     }
 
     // Returns true if a jump was initiated
+    // Bouncy will not set flipping to true by default if true
+    // Change is a way to change height of jump depending on value
     pub fn jump(&mut self, ground: Point, bouncy: bool, change: i32) -> bool {
         if bouncy {
             if self.pos.contains_point(ground) {
@@ -502,6 +504,8 @@ impl<'a> Dynamic<'a> for Player<'a> {
     //     self.alpha
     // }
 
+    // Fall rate is the lower clamp value for the y velocity
+    // Speed adjust is the augmenting value for the x velocity
     fn update_vel(&mut self, fall_rate: i32, speed_adjust: i32) {
         // Update to make the TOTAL MAX VELOCITY constant
         // Right now it's UPPER_SPEED in one direction and UPPER_SPEED*sqrt(2)

@@ -438,7 +438,12 @@ impl Game for Runner {
                                 }
                                 _ => {}
                             }
+
+                            // Reset any previously active power values to default
                             power_override = false;
+                            player_accel_rate = -10;
+                            player_jump_change = 0;
+                            player_speed_adjust = 0;
 
                             p.collect();
                             power_tick = 360;
@@ -447,70 +452,53 @@ impl Game for Runner {
                     }
                 }
 
-                player_accel_rate = -10;
-                player_jump_change = 0;
-                player_speed_adjust = 0;
-
                 //Power handling
                 if power_tick > 0 {
                     power_tick -= 1;
                     match power {
                         Some(powers::PowerUps::SpeedBoost) => {
-                            println!("SpeedBoost: Not Implemented");
-                            player_speed_adjust = 1;
-                            core.wincan.copy(
-                                &tex_speed,
-                                None,
-                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                            )?;
+                            // May not be the proper way to handle this.
+                            // Adds player speed adjust to player's velocity
+                            player_speed_adjust = 5;
                         }
                         Some(powers::PowerUps::ScoreMultiplier) => {
-                            println!("ScoreMultiplier");
-                            tick_score = score_mul(tick_score);
-                            core.wincan.copy(
-                                &tex_multiplier,
-                                None,
-                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                            )?;
+                            // Doubles tick score while active
+                            tick_score *= 2;
                         }
                         Some(powers::PowerUps::BouncyShoes) => {
-                            println!("BouncyShoes");
-                            player.jump(current_ground, true, 7); //Basically result will need to do something weird with the physics engine
-                            core.wincan.copy(
-                                &tex_bouncy,
-                                None,
-                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                            )?;
+                            // Forces jumping while active and jumps 7 velocity units higher
+                            player_jump_change = 7;
+                            player.jump(current_ground, true, 7);
                         }
                         Some(powers::PowerUps::LowerGravity) => {
-                            println!("LowerGravity");
+                            // Accel rate is how the y velocity is clamped
+                            // Has player jump 5 velocity units higher.
                             player_accel_rate = -5;
                             player_jump_change = 5;
-                            core.wincan.copy(
-                                &tex_floaty,
-                                None,
-                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                            )?;
                         }
                         Some(powers::PowerUps::Shield) => {
-                            println!("Shield: Not fully Implemented");
+                            // Player override will say to ignore obstacle collisions
                             power_override = true;
-                            core.wincan.copy(
-                                &tex_shield,
-                                None,
-                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                            )?;
                         }
                         _ => {}
                     }
                 } else if power_tick == 0 {
                     power_tick -= 1;
+
+                    // Reset values to default if power times out
                     match power {
                         // Stop any power from going
-                        Some(powers::PowerUps::SpeedBoost) => {}
+                        Some(powers::PowerUps::SpeedBoost) => {
+                            player_speed_adjust = 0;
+                        }
                         Some(powers::PowerUps::ScoreMultiplier) => {}
-                        Some(powers::PowerUps::BouncyShoes) => {}
-                        Some(powers::PowerUps::LowerGravity) => {}
+                        Some(powers::PowerUps::BouncyShoes) => {
+                            player_jump_change = 0;
+                        }
+                        Some(powers::PowerUps::LowerGravity) => {
+                            player_accel_rate = -10;
+                            player_jump_change = 0;
+                        }
                         Some(powers::PowerUps::Shield) => {
                             power_override = false;
                         }
@@ -532,12 +520,12 @@ impl Game for Runner {
 
                 //kinematics change, scroll speed does not :(
                 //can see best when super curvy map generated
-                println!(
-                    "px:{}  vx:{} ax:{}",
-                    player.x(),
-                    player.vel_x(),
-                    player.accel_x()
-                );
+                // println!(
+                //     "px:{}  vx:{} ax:{}",
+                //     player.x(),
+                //     player.vel_x(),
+                //     player.accel_x()
+                // );
                 //println!("py:{}  vy:{} ay:{}",player.y(),player.vel_y(),player.accel_y());
                 //println!("{}", angle);
 
@@ -988,21 +976,4 @@ impl Distribution<powers::PowerUps> for Standard {
             _ => powers::PowerUps::Shield,
         }
     }
-}
-
-//Power helper functions
-fn speed_boost() -> bool {
-    //Every tick active, Apply faster static increase to velocity or acceleration
-    return false;
-}
-
-fn score_mul(tick_score: i32) -> i32 {
-    //Every tick active, take however many points obtained and apply a multiplier
-    println!("{:?}", tick_score);
-    return tick_score * 2;
-}
-
-fn lower_gravity() -> bool {
-    //Every tick active, make the gravity force lower so the player is more "floaty"
-    return false;
 }
