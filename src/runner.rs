@@ -691,8 +691,6 @@ impl Game for Runner {
                                 texture_creator.load_texture("assets/powerup.png")?,
                             );
                             powers.push(pow);
-                            //Physics object for loading it in and maybe that is where the handler will be called?
-                            //When it is collected, it should set `power_tick` to like 360 which is the active time.
                             object_count -= 1;
                         }
                         _ => {}
@@ -756,7 +754,7 @@ impl Game for Runner {
                     }
                 }
 
-                //Power drawing handling
+                //Power asset drawing
                 if power_tick > 0 {
                     match power {
                         Some(powers::PowerUps::SpeedBoost) => {
