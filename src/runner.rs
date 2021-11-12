@@ -54,7 +54,7 @@ const GROUND_INDEX: usize = 2;
 
 // Bounds we want to keep the player within
 const player_upper_bound: i32 = TILE_SIZE as i32;
-const player_lower_bound: i32 = (CAM_H - TILE_SIZE) as i32;
+const player_lower_bound: i32 = CAM_H as i32 - player_upper_bound;
 
 pub struct Runner;
 
@@ -655,10 +655,11 @@ impl Game for Runner {
                  // }
 
                 // Draw player
+                player.draw_adjust(vert_draw_offset);
                 core.wincan.copy_ex(
                     player.texture(),
                     rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
-                    rect!(player.x(), player.y() + vert_draw_offset, TILE_SIZE, TILE_SIZE),
+                    rect!(player.x(), player.y(), TILE_SIZE, TILE_SIZE),
                     player.theta(),
                     None,
                     false,
@@ -668,6 +669,8 @@ impl Game for Runner {
                 for h in player.hitbox().iter() {
                     core.wincan.draw_rect(*h)?;
                 }
+                // Undo draw offset to avoid blastoff
+                player.draw_adjust(-vert_draw_offset);
 
                 // Draw obstacles
                 for o in obstacles.iter() {
