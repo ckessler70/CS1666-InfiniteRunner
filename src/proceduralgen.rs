@@ -166,7 +166,7 @@ impl ProceduralGen {
         _is_pit: bool,
         _is_flat: bool,
         _is_cliff: bool,
-    ) -> [(f64, f64); BUFF_LENGTH] {
+    ) -> [(f64, f64); BUFF_LENGTH + 1] {    //last point will act as bouncy flag.
         let mut rng = rand::thread_rng();
 
         let flat_mod: f64 = 0.25;
@@ -249,7 +249,7 @@ impl ProceduralGen {
         };
 
         // Extract x and y point from last terrain segment
-        let curve = gen_bezier_curve(
+        let mut curve = gen_bezier_curve(
             prev_point,
             cam_w,
             cam_h,
@@ -258,6 +258,16 @@ impl ProceduralGen {
             (point_mod_3a, point_mod_3b),
             100,
         );
+
+        let is_bouncy = rng.gen_range(0.0..1.0);
+
+        if(is_bouncy < 0.5){
+            curve[curve.len() - 1] = (1.0, 1.0);      //True value
+        }
+        else{
+            curve[curve.len() - 1] = (0.0, 0.0);      //False value
+        }
+            
 
         return (curve);
     }
@@ -474,7 +484,7 @@ fn gen_bezier_curve(
     point_mod_2: (f64, f64),
     point_mod_3: (f64, f64),
     buffer: i32,
-) -> [(f64, f64); BUFF_LENGTH] {
+) -> [(f64, f64); BUFF_LENGTH + 1] {
     //TODO
     //Bezier curve
 
@@ -492,7 +502,7 @@ fn gen_bezier_curve(
 
         println!("Quadratic");
 
-        let group_of_points: [(f64, f64); BUFF_LENGTH] =
+        let group_of_points: [(f64, f64); BUFF_LENGTH + 1] =
             gen_quadratic_bezier_curve_points(p0, p1, p2);
 
         return group_of_points;
@@ -520,7 +530,7 @@ fn gen_bezier_curve(
 
         println!("Cubic");
 
-        let group_of_points: [(f64, f64); BUFF_LENGTH] =
+        let group_of_points: [(f64, f64); BUFF_LENGTH + 1] =
             gen_cubic_bezier_curve_points(p0, p1, p2, p3);
 
         return group_of_points;
@@ -534,8 +544,8 @@ pub fn gen_quadratic_bezier_curve_points(
     p0: (f64, f64),
     p1: (f64, f64),
     p2: (f64, f64),
-) -> [(f64, f64); BUFF_LENGTH] {
-    let mut points: [(f64, f64); BUFF_LENGTH] = [(-1.0, -1.0); BUFF_LENGTH];
+) -> [(f64, f64); BUFF_LENGTH + 1] {
+    let mut points: [(f64, f64); BUFF_LENGTH + 1] = [(-1.0, -1.0); BUFF_LENGTH + 1];
 
     for t in 0..BUFF_LENGTH {
         let point = t as f64;
@@ -566,8 +576,8 @@ pub fn gen_cubic_bezier_curve_points(
     p1: (f64, f64),
     p2: (f64, f64),
     p3: (f64, f64),
-) -> [(f64, f64); BUFF_LENGTH] {
-    let mut points: [(f64, f64); BUFF_LENGTH] = [(-1.0, -1.0); BUFF_LENGTH];
+) -> [(f64, f64); BUFF_LENGTH + 1] {
+    let mut points: [(f64, f64); BUFF_LENGTH + 1] = [(-1.0, -1.0); BUFF_LENGTH + 1];
 
     for t in 0..BUFF_LENGTH {
         let point = t as f64;

@@ -128,7 +128,7 @@ impl Game for Runner {
         // bg[2] = Ground
         let mut bg: [[i16; SIZE]; 3] = [[0; SIZE]; 3];
 
-        let mut ground_buffer: [(f64, f64); BUFF_LENGTH] = [(0.0, 0.0); BUFF_LENGTH];
+        let mut ground_buffer: [(f64, f64); BUFF_LENGTH + 1] = [(0.0, 0.0); BUFF_LENGTH + 1];
         let mut buff_idx = 0;
 
         let mut rng = rand::thread_rng();
@@ -401,12 +401,16 @@ impl Game for Runner {
 
                 //kinematics change, scroll speed does not :(
                 //can see best when super curvy map generated
+<<<<<<< HEAD
                 println!(
                     "px:{}  vx:{} ax:{}",
                     player.x(),
                     player.vel_x(),
                     player.accel_x()
                 );
+=======
+                //println!("px:{}  vx:{} ax:{}",player.x(),player.vel_x(),player.accel_x());
+>>>>>>> f4e278a416afb62d99ead0e054d935d068feb58f
                 //println!("py:{}  vy:{} ay:{}",player.y(),player.vel_y(),player.accel_y());
                 //println!("{}", angle);
 
@@ -443,6 +447,12 @@ impl Game for Runner {
                     bg[GROUND_INDEX][(SIZE - 1) as usize] = ground_buffer[buff_idx].1 as i16;
 
                     buff_idx += 1;
+
+                    if(ground_buffer[ground_buffer.len() - 1] == (1.0, 1.0)){
+                        println!("Bouncy!");
+                    } else {
+                        println!("Not Bouncy!");
+                    }
                 }
 
                 // Every 3 ticks, build a new front mountain segment
