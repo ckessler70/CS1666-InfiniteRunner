@@ -401,16 +401,12 @@ impl Game for Runner {
 
                 //kinematics change, scroll speed does not :(
                 //can see best when super curvy map generated
-<<<<<<< HEAD
                 println!(
                     "px:{}  vx:{} ax:{}",
                     player.x(),
                     player.vel_x(),
                     player.accel_x()
                 );
-=======
-                //println!("px:{}  vx:{} ax:{}",player.x(),player.vel_x(),player.accel_x());
->>>>>>> f4e278a416afb62d99ead0e054d935d068feb58f
                 //println!("py:{}  vy:{} ay:{}",player.y(),player.vel_y(),player.accel_y());
                 //println!("{}", angle);
 
