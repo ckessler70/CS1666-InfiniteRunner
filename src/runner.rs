@@ -603,7 +603,8 @@ impl Game for Runner {
                                          + CAM_W as usize / SIZE / 2,
                                      CAM_H as i16
                                          - bg[GROUND_INDEX][object_spawn]
-                                         - TILE_SIZE as i16,
+                                         - TILE_SIZE as i16
+                                         + vert_draw_offset as i16,
                                      TILE_SIZE,
                                      TILE_SIZE
                                  );
@@ -618,7 +619,8 @@ impl Game for Runner {
                                          + CAM_W as usize / SIZE / 2,
                                      CAM_H as i16
                                          - bg[GROUND_INDEX][object_spawn]
-                                         - TILE_SIZE as i16,
+                                         - TILE_SIZE as i16
+                                         + vert_draw_offset as i16,
                                      TILE_SIZE,
                                      TILE_SIZE
                                  );
