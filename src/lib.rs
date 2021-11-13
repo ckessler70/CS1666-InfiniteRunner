@@ -19,6 +19,7 @@ pub enum GameStatus {
     Credits,
     Test,
     BezierSim,
+    PerlinSim,
 }
 
 #[allow(dead_code)]

@@ -435,7 +435,7 @@ fn grad_2d(random: &[[f64; 64]; 64], p: (f64, f64)) -> (f64, f64) {
 }
 
 //Perlin Noise helper function
-fn noise_2d(random: &[[f64; 64]; 64], p: (f64, f64)) -> f64 {
+pub fn noise_2d(random: &[[f64; 64]; 64], p: (f64, f64)) -> f64 {
     let p0 = (p.0.floor(), p.1.floor());
     let p1 = (p0.0 + 1.0, p0.1);
     let p2 = (p0.0, p0.1 + 1.0);
