@@ -88,7 +88,7 @@ impl Game for Runner {
                 TILE_SIZE,
                 TILE_SIZE
             ),
-            2,
+            2.0,
             texture_creator.load_texture("assets/player.png")?,
         );
 
@@ -371,14 +371,15 @@ impl Game for Runner {
                 for c in coins.iter_mut() {
                     //check collection
                     if Physics::check_collection(&mut player, c) {
-                        if !c.collected() {//so you only collect each coin once
+                        if !c.collected() {
+                            //so you only collect each coin once
                             c.collect(); //deletes the coin once collected (but takes too long)
                             coin_count += 1;
-                            
+
                             score += c.value(); //increments the score based on the coins value
                                                 //maybe print next to score: "+ c.value()""
                         }
-                    
+
                         continue;
                     }
                 }
@@ -396,7 +397,12 @@ impl Game for Runner {
 
                 //kinematics change, scroll speed does not :(
                 //can see best when super curvy map generated
-                println!("px:{}  vx:{} ax:{}",player.x(),player.vel_x(),player.accel_x());
+                println!(
+                    "px:{}  vx:{} ax:{}",
+                    player.x(),
+                    player.vel_x(),
+                    player.accel_x()
+                );
                 //println!("py:{}  vy:{} ay:{}",player.y(),player.vel_y(),player.accel_y());
                 //println!("{}", angle);
 
@@ -540,7 +546,7 @@ impl Game for Runner {
                         Some(proceduralgen::StaticObject::Statue) => {
                             let mut obstacle = Obstacle::new(
                                 rect!(0, 0, 0, 0),
-                                2,
+                                2.0,
                                 texture_creator.load_texture("assets/statue.png")?,
                             );
                             obstacles.push(obstacle);
@@ -561,8 +567,7 @@ impl Game for Runner {
 
                 //Object spawning
                 if object_spawn > 0 && object_spawn < SIZE {
-                  
-                   /* println!(
+                    /* println!(
                         "{:?} | {:?}",
                         object_spawn * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
                         CAM_H as i16 - bg[GROUND_INDEX][object_spawn]
@@ -573,7 +578,7 @@ impl Game for Runner {
                             //update physics obstacle position
                             for s in obstacles.iter_mut() {
                                 //this is hacky & dumb (will only work if one obstacle spawned at a time)
-                                s.pos = rect!(
+                                s.hitbox = rect!(
                                     object_spawn * CAM_W as usize / SIZE
                                         + CAM_W as usize / SIZE / 2,
                                     CAM_H as i16
@@ -582,13 +587,14 @@ impl Game for Runner {
                                     TILE_SIZE,
                                     TILE_SIZE
                                 );
+                                s.pos = (s.hitbox.x() as f64, s.hitbox.y() as f64);
                             }
                         }
                         Some(proceduralgen::StaticObject::Coin) => {
                             //update physics coins position
                             for s in coins.iter_mut() {
                                 //hacky "soln" part 2
-                                s.pos = rect!(
+                                s.hitbox = rect!(
                                     object_spawn * CAM_W as usize / SIZE
                                         + CAM_W as usize / SIZE / 2,
                                     CAM_H as i16
@@ -597,6 +603,7 @@ impl Game for Runner {
                                     TILE_SIZE,
                                     TILE_SIZE
                                 );
+                                s.pos = (s.hitbox.x() as f64, s.hitbox.y() as f64);
                             }
                         }
                         _ => {}
