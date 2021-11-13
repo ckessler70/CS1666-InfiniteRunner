@@ -388,7 +388,7 @@ impl<'a> Player<'a> {
     //   - ground sloped UP has positive angle
     pub fn collide_terrain(&mut self, ground: Point, angle: f64) -> bool {
         if self.vel_y() <= 0.0 && self.hitbox.contains_point(ground) {
-            self.pos.1 = (ground.y() as f64) - 0.95 * (TILE_SIZE as f64);
+            self.pos.1 = (ground.y() as f64) - 0.95 * TILE_SIZE;
             self.align_hitbox_to_pos();
             self.jumping = false;
             self.onground = true;
@@ -397,9 +397,8 @@ impl<'a> Player<'a> {
             self.apply_force((0.0, self.mass()));
 
             self.omega = 0.0;
-            if self.theta() > (-OMEGA * 10.0 - angle)
-                || self.theta() < ((-360.0 + OMEGA * 10.0 - angle) % 360.0)
-            {
+
+            if self.theta() < OMEGA * 6.0 - angle || self.theta() > 360.0 - OMEGA * 6.0 - angle {
                 self.theta = angle;
                 true
             } else {
@@ -448,7 +447,7 @@ impl<'a> Entity<'a> for Player<'a> {
     }
 
     fn rotate(&mut self) {
-        self.theta = (self.theta - self.omega) % 360.0;
+        self.theta = (self.theta - self.omega + 360.0) % 360.0;
     }
 }
 
@@ -549,7 +548,7 @@ impl<'a> Collider<'a> for Player<'a> {
             self.apply_force((0.0, self.mass()));
             println!("collided with top of obstacle");
             self.omega = 0.0;
-            if self.theta() > (-OMEGA * 10.0) || self.theta() < ((-360.0 + OMEGA * 10.0) % 360.0) {
+            if self.theta() < OMEGA * 6.0 || self.theta() > 360.0 - OMEGA * 6.0 {
                 self.theta = 0.0;
                 // Add Hooke's law bounce here
                 true

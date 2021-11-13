@@ -316,7 +316,7 @@ impl Game for Runner {
                 let angle = ((next_ground.y() as f64 - current_ground.y() as f64)
                     / (TILE_SIZE as f64))
                     .atan()
-                    * 120.0
+                    * 180.0
                     / std::f64::consts::PI;
 
                 for event in core.event_pump.poll_iter() {
