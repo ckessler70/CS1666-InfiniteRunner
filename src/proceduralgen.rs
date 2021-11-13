@@ -166,7 +166,8 @@ impl ProceduralGen {
         _is_pit: bool,
         _is_flat: bool,
         _is_cliff: bool,
-    ) -> [(f64, f64); BUFF_LENGTH + 1] {    //last point will act as bouncy flag.
+    ) -> [(f64, f64); BUFF_LENGTH + 1] {
+        //last point will act as bouncy flag.
         let mut rng = rand::thread_rng();
 
         let flat_mod: f64 = 0.25;
@@ -261,13 +262,11 @@ impl ProceduralGen {
 
         let is_bouncy = rng.gen_range(0.0..1.0);
 
-        if(is_bouncy < 0.5){
-            curve[curve.len() - 1] = (1.0, 1.0);      //True value
+        if (is_bouncy < 0.5) {
+            curve[curve.len() - 1] = (1.0, 1.0); //True value
+        } else {
+            curve[curve.len() - 1] = (0.0, 0.0); //False value
         }
-        else{
-            curve[curve.len() - 1] = (0.0, 0.0);      //False value
-        }
-            
 
         return (curve);
     }
@@ -604,6 +603,34 @@ fn cubic_bezier_curve_point(
         + t * t * t * p3.1;
 
     return (x_value, y_value);
+}
+
+//
+//Function for extending a cubic bezier curve while keeping the chained curve
+// smooth. Works similarly to gen_cubic_bezier_curve_points()
+// http://www.inf.ed.ac.uk/teaching/courses/cg/d3/bezierJoin.html
+//
+pub fn extend_cubic_bezier_curve(
+    prev_pn: (f64, f64),
+    prev_pn_minus_1: (f64, f64),
+    //no p0 or p1, above data structures work instead
+    p2: (f64, f64),
+    p3: (f64, f64),
+) -> [(f64, f64); BUFF_LENGTH + 1] {
+    let mut points: [(f64, f64); BUFF_LENGTH + 1] = [(-1.0, -1.0); BUFF_LENGTH + 1];
+
+    //Calculate p1
+    let mut p1: (f64, f64) = (0.0, 0.0);
+
+    p1.0 = prev_pn.0 + (prev_pn.0 - prev_pn_minus_1.0);
+    p1.1 = prev_pn.1 + (prev_pn.1 - prev_pn_minus_1.1);
+
+    for t in 0..BUFF_LENGTH {
+        let point = t as f64;
+        //points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / 32.0);
+        points[t] = cubic_bezier_curve_point(prev_pn, p1, p2, p3, point / BUFF_LENGTH as f64);
+    }
+    return points;
 }
 
 pub fn gen_perlin_hill_point(i: usize, freq: f32, amp: f32, modifier: f32, mul: f32) -> i16 {
