@@ -4,32 +4,19 @@ use sdl2::rect::Rect;
 use sdl2::render::Texture;
 
 use crate::runner::TILE_SIZE as InitTILE_SIZE;
+use std::f64::consts::PI;
 
 // use crate::ProceduralGen;
 
 const LOWER_SPEED: f64 = 1.0;
 const UPPER_SPEED: f64 = 5.0;
 // const GRAVITY: f64 = 9.80665;
-const OMEGA: f64 = 9.0;
+const OMEGA: f64 = PI / 18.0;
 const TILE_SIZE: f64 = InitTILE_SIZE as f64;
 
 pub struct Physics;
 
 impl Physics {
-    // pub fn check_collision(player: &Player, obstacle: &Obstacle) -> bool {
-    //     // TODO
-    //     // Using Rect::has_intersection -> bool OR Rect::intersection -> Rect
-    //     // Apply collision to Player AND Obstacle if necessary (i.e. spin out of control
-    //     // and break object or whatever) This includes force and torque
-
-    //     for h in player.hitbox().iter() {
-    //         if h.has_intersection(obstacle.hitbox()) {
-    //             return true;
-    //         }
-    //     }
-    //     return false;
-    // }
-
     pub fn check_collection(player: &Player, coin: &Coin) -> bool {
         // For collection, collsion including force and torque does not need to be accounted for
         // If any of the player hitboxes intersect with a `Collectible`, the object will be aquired by the player
@@ -48,42 +35,24 @@ impl Physics {
         //---- but we always need a negative force in y direction...
 
         if body.is_onground() {
-            //going uphill
-            if (angle < 0.0) {
-                // -angle
-                //apply gravity in -x & -y
-                body.apply_force((body.mass() * angle.sin(), body.mass() * angle.cos()));
-                //apply grav in -y
-                //body.apply_force((0,-body.mass()));
+            // -angle
+            //apply gravity in -x & -y
+            // body.apply_force((body.mass() * angle.sin(), body.mass() * angle.cos()));
+            //apply grav in -y
+            body.apply_force((0.0, -body.mass()));
 
-                //apply normal (force positive)
-                body.apply_force((0.0, -body.mass() * angle.cos()));
-                //apply normal in -x & +y
-                //body.apply_force((body.mass()* angle.sin() * angle.cos(),-body.mass()*angle.cos(*angle.cos());
+            //apply normal (force positive)
+            // body.apply_force((0.0, -body.mass() * angle.cos()));
+            //apply normal in -x & +y
+            body.apply_force((body.mass() * angle.sin(), -body.mass() * angle.cos()));
 
-                //apply friction (same as gravity in -x)
-                body.apply_force(((body.mass() * angle.sin() * coeff), 0.0));
-                //apply fricition in -x & -y
-                //body.apply_force((coeff * body.mass() * angle.cos() * angle.cos(), coeff * body.mass() * angle.cos() * angle.sin()));
-            }
-            //flat or going downhill
-            else {
-                // 0 or +angle
-                //apply gravity in +x & -y
-                body.apply_force((body.mass() * angle.sin(), -body.mass() * angle.cos()));
-                //apply grav in -y
-                //body.apply_force((0,-body.mass()));
-
-                //apply normal (automatically positive)
-                body.apply_force((0.0, body.mass() * angle.cos()));
-                //apply normal in +x & +y
-                //body.apply_force((body.mass()* angle.sin() * angle.cos(),-body.mass()*angle.cos(*angle.cos());
-
-                //apply friciton (opposite to gravity in -x)
-                body.apply_force(((-body.mass() * angle.sin() * coeff), 0.0));
-                //apply fricition in -x & +y
-                //body.apply_force((coeff * -body.mass() * angle.cos() * angle.cos(), coeff * body.mass() * angle.cos() * angle.sin()));
-            }
+            //apply friction (same as gravity in -x)
+            // body.apply_force(((body.mass() * angle.sin() * coeff), 0.0));
+            //apply fricition in -x & -y
+            body.apply_force((
+                -coeff * body.mass() * angle.cos(),
+                coeff * body.mass() * angle.sin(),
+            ));
         } else {
             //player in the air
             //apply entirity of gravity force in -y direction (bc player not on ground)
@@ -303,7 +272,7 @@ pub struct Player<'a> {
     accel: (f64, f64),
     hitbox: Rect,
 
-    theta: f64, // angle of rotation, in degrees
+    theta: f64, // angle of rotation, in radians
     omega: f64, // angular speed
     // alpha: f64, // angular acceleration
     mass: f64,
@@ -384,10 +353,13 @@ impl<'a> Player<'a> {
     // Uses slope of ground to approximate landing angle
     // angle param is relative to the horizontal
     //   - flat ground has angle 0
-    //   - ground sloped DOWN has negative angle
-    //   - ground sloped UP has positive angle
+    //   - ground sloped UP has negative angle
+    //   - ground sloped DOWN has positive angle
     pub fn collide_terrain(&mut self, ground: Point, angle: f64) -> bool {
         if self.vel_y() <= 0.0 && self.hitbox.contains_point(ground) {
+            if self.jumping {
+                self.velocity.1 = 0.0;
+            }
             self.pos.1 = (ground.y() as f64) - 0.95 * TILE_SIZE;
             self.align_hitbox_to_pos();
             self.jumping = false;
@@ -398,7 +370,7 @@ impl<'a> Player<'a> {
 
             self.omega = 0.0;
 
-            if self.theta() < OMEGA * 6.0 - angle || self.theta() > 360.0 - OMEGA * 6.0 - angle {
+            if self.theta() < OMEGA * 6.0 + angle || self.theta() > 2.0 * PI - OMEGA * 6.0 + angle {
                 self.theta = angle;
                 true
             } else {
@@ -447,7 +419,7 @@ impl<'a> Entity<'a> for Player<'a> {
     }
 
     fn rotate(&mut self) {
-        self.theta = (self.theta - self.omega + 360.0) % 360.0;
+        self.theta = (self.theta - self.omega + 2.0 * PI) % (2.0 * PI);
     }
 }
 
@@ -511,8 +483,8 @@ impl<'a> Collider<'a> for Player<'a> {
                 .atan();
             let p_mass = self.mass();
             let o_mass = 7.0;
-            let p_vx = self.vel_x() * angle.cos();
-            let p_vy = self.vel_x() * angle.sin();
+            let p_vx = self.velocity.0;
+            let p_vy = self.velocity.1;
             let p_vx_f = (p_mass - o_mass) * (p_vx) / (p_mass + o_mass);
             let p_vy_f = (p_mass - o_mass) * (p_vy) / (p_mass + o_mass);
             let o_vx_f = (2.0 * p_mass) * (p_vx) / (p_mass + o_mass);
@@ -528,9 +500,12 @@ impl<'a> Collider<'a> for Player<'a> {
             println!("\tobject final velocity({},{})", o_vx_f, o_vy_f);
             /***************************************************/
 
-            self.pos.0 = (other.x() as f64 - 0.95 * (TILE_SIZE as f64));
-            self.velocity.0 = 0.0;
-            self.apply_force((self.mass(), 0.0));
+            self.pos.0 = (other.x() as f64 - 1.05 * TILE_SIZE);
+            self.velocity.0 = p_vx_f;
+            self.velocity.1 = p_vy_f;
+            self.align_hitbox_to_pos();
+            // self.velocity.0 = 0.0;
+            // self.apply_force((self.mass(), 0.0));
 
             // for now (week 5), end the game when the player hits the side of an object
             // alternately, set this value to true to cause the player to stop when they run into the object

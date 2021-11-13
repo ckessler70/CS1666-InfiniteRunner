@@ -312,12 +312,10 @@ impl Game for Runner {
                         - bg[2][(((player.x() + TILE_SIZE as i32) as usize)
                             / (CAM_W / SIZE as u32) as usize)] as i32,
                 );
-                // Angle between (slightly dampened so angling the player doesn't look silly)
+                // Angle between
                 let angle = ((next_ground.y() as f64 - current_ground.y() as f64)
                     / (TILE_SIZE as f64))
-                    .atan()
-                    * 180.0
-                    / std::f64::consts::PI;
+                    .atan();
 
                 for event in core.event_pump.poll_iter() {
                     match event {
@@ -386,7 +384,7 @@ impl Game for Runner {
                 //applies gravity, normal & friction now
                 //friciton is currently way OP (stronger than grav) bc cast to i32 in apply_force
                 //so to ever have an effect, it needs to be set > 1 for now...
-                Physics::apply_gravity(&mut player, angle, 3.0);
+                Physics::apply_gravity(&mut player, angle, 0.3);
 
                 //apply friction
                 //Physics::apply_friction(&mut player, 1.0);
@@ -398,10 +396,11 @@ impl Game for Runner {
                 //kinematics change, scroll speed does not :(
                 //can see best when super curvy map generated
                 println!(
-                    "px:{}  vx:{} ax:{}",
+                    "px:{}  vx:{} ax:{} ay:{}",
                     player.x(),
                     player.vel_x(),
-                    player.accel_x()
+                    player.accel_x(),
+                    player.accel_y(),
                 );
                 //println!("py:{}  vy:{} ay:{}",player.y(),player.vel_y(),player.accel_y());
                 //println!("{}", angle);
@@ -488,56 +487,6 @@ impl Game for Runner {
                     bg_buff -= 1;
                 }
 
-                core.wincan.set_draw_color(Color::RGBA(0, 0, 0, 255));
-                core.wincan.fill_rect(rect!(0, 470, CAM_W, CAM_H))?;
-
-                // Draw background
-                core.wincan
-                    .copy(&tex_bg, None, rect!(bg_buff, -150, CAM_W, CAM_H))?;
-                core.wincan.copy(
-                    &tex_bg,
-                    None,
-                    rect!(bg_buff + (CAM_W as i32), -150, CAM_W, CAM_H),
-                )?;
-
-                //Draw sky in background
-                core.wincan
-                    .copy(&tex_sky, None, rect!(bg_buff, 0, CAM_W, CAM_H / 3))?;
-                core.wincan.copy(
-                    &tex_sky,
-                    None,
-                    rect!(CAM_W as i32 + bg_buff, 0, CAM_W, CAM_H / 3),
-                )?;
-
-                for i in 0..bg[FRONT_HILL_INDEX].len() - 1 {
-                    // Furthest back mountains
-                    core.wincan.set_draw_color(Color::RGBA(128, 51, 6, 255));
-                    core.wincan.fill_rect(rect!(
-                        i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
-                        CAM_H as i16 - bg[BACK_HILL_INDEX][i],
-                        CAM_W as usize / SIZE,
-                        CAM_H as i16
-                    ))?;
-
-                    // Closest mountains
-                    core.wincan.set_draw_color(Color::RGBA(96, 161, 152, 255));
-                    core.wincan.fill_rect(rect!(
-                        i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
-                        CAM_H as i16 - bg[FRONT_HILL_INDEX][i],
-                        CAM_W as usize / SIZE,
-                        CAM_H as i16
-                    ))?;
-
-                    // Ground
-                    core.wincan.set_draw_color(Color::RGBA(13, 66, 31, 255));
-                    core.wincan.fill_rect(rect!(
-                        i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
-                        CAM_H as i16 - bg[GROUND_INDEX][i],
-                        CAM_W as usize / SIZE,
-                        CAM_H as i16
-                    ))?;
-                }
-
                 //creates a single obstacle/coin or overwrites the old one
                 //everytime one a new one is spawned & adds it to corresponding vector
                 //not a good impl bc will not work when > 1 obstacle/coin spawned at a time
@@ -610,6 +559,56 @@ impl Game for Runner {
                     }
                 }
 
+                core.wincan.set_draw_color(Color::RGBA(0, 0, 0, 255));
+                core.wincan.fill_rect(rect!(0, 470, CAM_W, CAM_H))?;
+
+                // Draw background
+                core.wincan
+                    .copy(&tex_bg, None, rect!(bg_buff, -150, CAM_W, CAM_H))?;
+                core.wincan.copy(
+                    &tex_bg,
+                    None,
+                    rect!(bg_buff + (CAM_W as i32), -150, CAM_W, CAM_H),
+                )?;
+
+                //Draw sky in background
+                core.wincan
+                    .copy(&tex_sky, None, rect!(bg_buff, 0, CAM_W, CAM_H / 3))?;
+                core.wincan.copy(
+                    &tex_sky,
+                    None,
+                    rect!(CAM_W as i32 + bg_buff, 0, CAM_W, CAM_H / 3),
+                )?;
+
+                for i in 0..bg[FRONT_HILL_INDEX].len() - 1 {
+                    // Furthest back mountains
+                    core.wincan.set_draw_color(Color::RGBA(128, 51, 6, 255));
+                    core.wincan.fill_rect(rect!(
+                        i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
+                        CAM_H as i16 - bg[BACK_HILL_INDEX][i],
+                        CAM_W as usize / SIZE,
+                        CAM_H as i16
+                    ))?;
+
+                    // Closest mountains
+                    core.wincan.set_draw_color(Color::RGBA(96, 161, 152, 255));
+                    core.wincan.fill_rect(rect!(
+                        i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
+                        CAM_H as i16 - bg[FRONT_HILL_INDEX][i],
+                        CAM_W as usize / SIZE,
+                        CAM_H as i16
+                    ))?;
+
+                    // Ground
+                    core.wincan.set_draw_color(Color::RGBA(13, 66, 31, 255));
+                    core.wincan.fill_rect(rect!(
+                        i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
+                        CAM_H as i16 - bg[GROUND_INDEX][i],
+                        CAM_W as usize / SIZE,
+                        CAM_H as i16
+                    ))?;
+                }
+
                 tick += 1;
 
                 if tick % 3 == 0 && tick % 5 == 0 {
@@ -639,7 +638,7 @@ impl Game for Runner {
                     player.texture(),
                     rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
                     rect!(player.x(), player.y(), TILE_SIZE, TILE_SIZE),
-                    player.theta(),
+                    player.theta() * 180.0 / std::f64::consts::PI,
                     None,
                     false,
                     false,
