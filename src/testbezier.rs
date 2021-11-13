@@ -281,7 +281,7 @@ impl Game for TestBezier {
             let mut prev_p3: (f64, f64) = p3;
 
             let rand_width = rng.gen_range(width_index + 10.0..width_index + 100.0);
-            let rand_height = rng.gen_range(height_index + 10.0..height_index + 705.0);
+            let rand_height = rng.gen_range(height_index + 160.0..height_index + 560.0);
             let p0 = (rand_width, rand_height);
 
             println!("Width: {}\nHeight: {}\n", width_index, height_index);
@@ -289,19 +289,19 @@ impl Game for TestBezier {
             width_index = rand_width;
 
             let rand_width = rng.gen_range(width_index + 10.0..width_index + 100.0);
-            let rand_height = rng.gen_range(height_index + 10.0..height_index + 705.0);
+            let rand_height = rng.gen_range(height_index + 160.0..height_index + 560.0);
             let mut p1 = (rand_width, rand_height);
 
             width_index = rand_width;
 
             let rand_width = rng.gen_range(width_index + 10.0..width_index + 100.0);
-            let rand_height = rng.gen_range(height_index + 10.0..height_index + 705.0);
+            let rand_height = rng.gen_range(height_index + 160.0..height_index + 560.0);
             p2 = (rand_width, rand_height);
 
             width_index = rand_width;
 
             let rand_width = rng.gen_range(width_index + 10.0..width_index + 100.0);
-            let rand_height = rng.gen_range(height_index + 10.0..height_index + 705.0);
+            let rand_height = rng.gen_range(height_index + 160.0..height_index + 560.0);
             p3 = (rand_width, rand_height);
 
             width_index = rand_width;
