@@ -53,8 +53,8 @@ const BACK_HILL_INDEX: usize = 1;
 const GROUND_INDEX: usize = 2;
 
 // Bounds we want to keep the player within
-const PLAYER_BOUNDS_H: (i32, i32) = (0, (CAM_W - TILE_SIZE) as i32);
-const PLAYER_BOUNDS_V: (i32, i32) = (0, (CAM_H - TILE_SIZE - 100) as i32);
+const player_upper_bound: i32 = TILE_SIZE as i32;
+const player_lower_bound: i32 = CAM_H as i32 - player_upper_bound;
 
 pub struct Runner;
 
@@ -83,8 +83,8 @@ impl Game for Runner {
         // Create player at default position
         let mut player = Player::new(
             rect!(
-                PLAYER_BOUNDS_H.1 / 2,
-                PLAYER_BOUNDS_V.0,
+                CAM_W / 2 - TILE_SIZE / 2, // PLAYER_BOUNDS_H.1 / 2,
+                CAM_H / 2 - TILE_SIZE / 2, // PLAYER_BOUNDS_V.0,
                 TILE_SIZE,
                 TILE_SIZE
             ),
@@ -348,7 +348,8 @@ impl Game for Runner {
                 }
 
                 //in the future when obstacles & coins are proc genned we will probs wanna
-                //only check for obstacles/coins based on their location relative to players x cord
+                //only check for obstacles/coins based on their location relative to players x
+                // cord
                 //(also: idt this can be a for loop bc it moves the obstacles values?)
                 for o in obstacles.iter() {
                     //.filter(|near by obstacles|).collect()
@@ -360,8 +361,8 @@ impl Game for Runner {
                             continue 'gameloop;
                         }
                         //print!("collision!");
-                        //Real Solution: need to actually resolve the collision, should go something like this
-                        //player.collide(o);
+                        //Real Solution: need to actually resolve the collision, should go
+                        // something like this player.collide(o);
                         //Physics::apply_gravity(&mut obstacle);    //maybe...
                         //obstacle.update_pos();
                         continue;
@@ -371,20 +372,24 @@ impl Game for Runner {
                 for c in coins.iter_mut() {
                     //check collection
                     if Physics::check_collection(&mut player, c) {
-                        if !c.collected() {//so you only collect each coin once
+                        if !c.collected() {
+                            //so you only collect each coin once
                             c.collect(); //deletes the coin once collected (but takes too long)
                             coin_count += 1;
-                            
-                            score += c.value(); //increments the score based on the coins value
-                                                //maybe print next to score: "+ c.value()""
+
+                            score += c.value(); //increments the score based on
+                                                // the coins value
+                                                // maybe print next to score: "+
+                                                // c.value()""
                         }
-                    
+
                         continue;
                     }
                 }
                 //applies gravity, normal & friction now
-                //friciton is currently way OP (stronger than grav) bc cast to i32 in apply_force
-                //so to ever have an effect, it needs to be set > 1 for now...
+                //friciton is currently way OP (stronger than grav) bc cast to i32 in
+                // apply_force so to ever have an effect, it needs to be set > 1
+                // for now...
                 Physics::apply_gravity(&mut player, angle, 3.0);
 
                 //apply friction
@@ -396,7 +401,12 @@ impl Game for Runner {
 
                 //kinematics change, scroll speed does not :(
                 //can see best when super curvy map generated
-                //println!("px:{}  vx:{} ax:{}",player.x(),player.vel_x(),player.accel_x());
+                println!(
+                    "px:{}  vx:{} ax:{}",
+                    player.x(),
+                    player.vel_x(),
+                    player.accel_x()
+                );
                 //println!("py:{}  vy:{} ay:{}",player.y(),player.vel_y(),player.accel_y());
                 //println!("{}", angle);
 
@@ -509,32 +519,41 @@ impl Game for Runner {
                     rect!(CAM_W as i32 + bg_buff, 0, CAM_W, CAM_H / 3),
                 )?;
 
+                // Vertical draw offset to keep game in vertical bounds
+                let mut vert_draw_offset = 0;
+                if current_ground.y() < player_upper_bound {
+                    vert_draw_offset = player_upper_bound - current_ground.y();
+                }
+                else if current_ground.y() > player_lower_bound {
+                    vert_draw_offset = player_lower_bound -  current_ground.y();
+                }
+
                 for i in 0..bg[FRONT_HILL_INDEX].len() - 1 {
                     // Furthest back mountains
                     core.wincan.set_draw_color(Color::RGBA(128, 51, 6, 255));
                     core.wincan.fill_rect(rect!(
                         i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
-                        CAM_H as i16 - bg[BACK_HILL_INDEX][i],
+                        CAM_H as i16 - bg[BACK_HILL_INDEX][i] + vert_draw_offset as i16,
                         CAM_W as usize / SIZE,
-                        CAM_H as i16
+                        CAM_H as i16 + vert_draw_offset as i16
                     ))?;
 
                     // Closest mountains
                     core.wincan.set_draw_color(Color::RGBA(96, 161, 152, 255));
                     core.wincan.fill_rect(rect!(
                         i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
-                        CAM_H as i16 - bg[FRONT_HILL_INDEX][i],
+                        CAM_H as i16 - bg[FRONT_HILL_INDEX][i] + vert_draw_offset as i16,
                         CAM_W as usize / SIZE,
-                        CAM_H as i16
+                        CAM_H as i16 + vert_draw_offset as i16
                     ))?;
 
                     // Ground
                     core.wincan.set_draw_color(Color::RGBA(13, 66, 31, 255));
                     core.wincan.fill_rect(rect!(
                         i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
-                        CAM_H as i16 - bg[GROUND_INDEX][i],
+                        CAM_H as i16 - bg[GROUND_INDEX][i] + vert_draw_offset as i16,
                         CAM_W as usize / SIZE,
-                        CAM_H as i16
+                        CAM_H as i16 + vert_draw_offset as i16
                     ))?;
                 }
 
@@ -567,73 +586,76 @@ impl Game for Runner {
 
                 //Object spawning
                 if object_spawn > 0 && object_spawn < SIZE {
-                  
-                   /* println!(
-                        "{:?} | {:?}",
-                        object_spawn * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
-                        CAM_H as i16 - bg[GROUND_INDEX][object_spawn]
-                    );*/
 
-                    match object {
-                        Some(proceduralgen::StaticObject::Statue) => {
-                            //update physics obstacle position
-                            for s in obstacles.iter_mut() {
-                                //this is hacky & dumb (will only work if one obstacle spawned at a time)
-                                s.pos = rect!(
-                                    object_spawn * CAM_W as usize / SIZE
-                                        + CAM_W as usize / SIZE / 2,
-                                    CAM_H as i16
-                                        - bg[GROUND_INDEX][object_spawn]
-                                        - TILE_SIZE as i16,
-                                    TILE_SIZE,
-                                    TILE_SIZE
-                                );
-                            }
-                        }
-                        Some(proceduralgen::StaticObject::Coin) => {
-                            //update physics coins position
-                            for s in coins.iter_mut() {
-                                //hacky "soln" part 2
-                                s.pos = rect!(
-                                    object_spawn * CAM_W as usize / SIZE
-                                        + CAM_W as usize / SIZE / 2,
-                                    CAM_H as i16
-                                        - bg[GROUND_INDEX][object_spawn]
-                                        - TILE_SIZE as i16,
-                                    TILE_SIZE,
-                                    TILE_SIZE
-                                );
-                            }
-                        }
-                        _ => {}
-                    }
-                }
+                    /* println!(
+                         "{:?} | {:?}",
+                         object_spawn * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
+                         CAM_H as i16 - bg[GROUND_INDEX][object_spawn]
+                     );*/
 
-                tick += 1;
+                     match object {
+                         Some(proceduralgen::StaticObject::Statue) => {
+                             //update physics obstacle position
+                             for s in obstacles.iter_mut() {
+                                 //this is hacky & dumb (will only work if one obstacle spawned at a time)
+                                 s.pos = rect!(
+                                     object_spawn * CAM_W as usize / SIZE
+                                         + CAM_W as usize / SIZE / 2,
+                                     CAM_H as i16
+                                         - bg[GROUND_INDEX][object_spawn]
+                                         - TILE_SIZE as i16
+                                         + vert_draw_offset as i16,
+                                     TILE_SIZE,
+                                     TILE_SIZE
+                                 );
+                             }
+                         }
+                         Some(proceduralgen::StaticObject::Coin) => {
+                             //update physics coins position
+                             for s in coins.iter_mut() {
+                                 //hacky "soln" part 2
+                                 s.pos = rect!(
+                                     object_spawn * CAM_W as usize / SIZE
+                                         + CAM_W as usize / SIZE / 2,
+                                     CAM_H as i16
+                                         - bg[GROUND_INDEX][object_spawn]
+                                         - TILE_SIZE as i16
+                                         + vert_draw_offset as i16,
+                                     TILE_SIZE,
+                                     TILE_SIZE
+                                 );
+                             }
+                         }
+                         _ => {}
+                     }
+                 }
 
-                if tick % 3 == 0 && tick % 5 == 0 {
-                    tick = 0;
-                }
+                 tick += 1;
 
-                if -bg_buff == CAM_W as i32 {
-                    bg_buff = 0;
-                }
+                 if tick % 3 == 0 && tick % 5 == 0 {
+                     tick = 0;
+                 }
 
-                // There should be some way to determine where it repeats but I can't figure it out
-                // if buff_1 as f64 % (freq * amp_1) == 0 {
-                //     println!("{:?}", buff_1);
-                //     buff_1 = 0;
-                // }
-                // if buff_2 as f64 % (freq * amp_2) == 0 {
-                //     println!("{:?}", buff_2);
-                //     buff_2 = 0;
-                // }
-                // if buff_3 as f64 % (freq * amp_3) == 0 {
-                //     println!("{:?}", buff_3);
-                //     buff_3 = 0;
-                // }
+                 if -bg_buff == CAM_W as i32 {
+                     bg_buff = 0;
+                 }
+
+                 // There should be some way to determine where it repeats but I can't figure it out
+                 // if buff_1 as f64 % (freq * amp_1) == 0 {
+                 //     println!("{:?}", buff_1);
+                 //     buff_1 = 0;
+                 // }
+                 // if buff_2 as f64 % (freq * amp_2) == 0 {
+                 //     println!("{:?}", buff_2);
+                 //     buff_2 = 0;
+                 // }
+                 // if buff_3 as f64 % (freq * amp_3) == 0 {
+                 //     println!("{:?}", buff_3);
+                 //     buff_3 = 0;
+                 // }
 
                 // Draw player
+                player.draw_adjust(vert_draw_offset);
                 core.wincan.copy_ex(
                     player.texture(),
                     rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
@@ -647,6 +669,8 @@ impl Game for Runner {
                 for h in player.hitbox().iter() {
                     core.wincan.draw_rect(*h)?;
                 }
+                // Undo draw offset to avoid blastoff
+                player.draw_adjust(-vert_draw_offset);
 
                 // Draw obstacles
                 for o in obstacles.iter() {

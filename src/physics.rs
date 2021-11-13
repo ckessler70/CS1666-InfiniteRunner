@@ -45,14 +45,14 @@ impl Physics {
         //onground --> apply gravity in x & y direction based on angle of the ground
         //Note: "angle" is positive going downhill & negative going uphill
         //---- but we always need a negative force in y direction...
-        
+
         if body.is_onground(){
             //going uphill
             if(angle < 0.0){ // -angle
                 //apply gravity in -x & -y
                 body.apply_force((body.mass() * angle.sin() as i32, body.mass() * angle.cos() as i32));
                 //apply grav in -y
-                //body.apply_force((0,-body.mass())); 
+                //body.apply_force((0,-body.mass()));
 
                 //apply normal (force positive)
                 body.apply_force((0,-body.mass() * angle.cos() as i32));
@@ -66,7 +66,7 @@ impl Physics {
             }
             //flat or going downhill
             else { // 0 or +angle
-                //apply gravity in +x & -y 
+                //apply gravity in +x & -y
                 body.apply_force((body.mass() * angle.sin() as i32, -body.mass() * angle.cos() as i32));
                 //apply grav in -y
                 //body.apply_force((0,-body.mass()));
@@ -152,6 +152,8 @@ pub trait Entity<'a> {
     fn center(&self) -> Point;
     /// Modifies the position of the `Entity`
     fn update_pos(&mut self, ground: Point, angle: f64);
+    // Modifies y pos to keep `Entity` in camera
+    fn draw_adjust(&mut self, draw_offset: i32);
 
     /****************** Angular motion *************** */
 
@@ -255,9 +257,9 @@ pub trait Body<'a>: Collider<'a> + Dynamic<'a> {
     fn mass(&self) -> i32;
     /// Returns the `Body`'s rotational inertia (i.e. moment of inertia)
     fn rotational_inertia(&self) -> f64;
-    //Returns true when play is on the terrain & not in the air 
+    //Returns true when play is on the terrain & not in the air
     fn is_onground(&self) -> bool;
-    
+
 
 
     /****************** Forces *********************** */
@@ -276,9 +278,9 @@ pub trait Body<'a>: Collider<'a> + Dynamic<'a> {
     // // /   object
     // // / * `radius`: the distance from the object's center of mass
     // fn apply_torque(&mut self, force: i32, radius: i32);
-    
-    
-    
+
+
+
     //set the normal force acting on the player
     //fn set_normal(&mut self,normal: i32);
 
@@ -319,7 +321,7 @@ impl<'a> Player<'a> {
             pos,
             velocity: (3, 0),
             accel: (0, 0),
-            
+
             theta: 0.0,
             omega: 0.0,
             // alpha: 0.0,
@@ -436,7 +438,11 @@ impl<'a> Entity<'a> for Player<'a> {
 
         // Player's x position is fixed
         self.pos.set_y(self.pos.y() - self.vel_y());
-    
+
+    }
+
+    fn draw_adjust(&mut self, draw_offset: i32) {
+        self.pos.set_y(self.pos.y() + draw_offset);
     }
 
     fn rotate(&mut self) {
@@ -561,7 +567,7 @@ impl<'a> Body<'a> for Player<'a> {
     fn is_onground(&self)-> bool{
         self.onground
     }
-    
+
     /*fn set_normal(&mut self, normal: i32){
         self.normal = normal
     }*/
@@ -683,6 +689,10 @@ impl<'a> Entity<'a> for Obstacle<'a> {
         */
     }
 
+    fn draw_adjust(&mut self, draw_offset: i32) {
+        self.pos.set_y(self.pos.y() + draw_offset);
+    }
+
     fn rotate(&mut self) {
         todo!();
         //self.theta = (self.theta - self.omega) % 360.0;
@@ -760,7 +770,7 @@ impl<'a> Collectible<'a> for Coin<'a> {
     //for now (honestly not a horrible long term soln)
     fn hitbox(&self) -> Rect {
         Rect::new(self.pos.x, self.pos.y, self.pos.width(), self.pos.height())
-        
+
     }
 
     fn collect(&mut self) {
