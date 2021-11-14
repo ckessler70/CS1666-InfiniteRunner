@@ -96,7 +96,7 @@ impl Game for TestPerlin {
                 core.wincan
                     .set_draw_color(Color::RGB(rgb as u8, rgb as u8, rgb as u8));
                 core.wincan
-                    .fill_rect(Rect::new(j as i32 * 1, i as i32 * 1, 1, 1));
+                    .fill_rect(Rect::new(j as i32 * 2, i as i32 * 2, 2, 2));
             }
         }
 

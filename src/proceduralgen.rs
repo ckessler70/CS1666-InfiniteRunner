@@ -380,7 +380,6 @@ fn fade_2d(t: f64) -> f64 {
 //Perlin Noise helper function
 fn grad_2d(p: (f64, f64)) -> (f64, f64) {
     let mut rng = rand::thread_rng();
-
     let v = (rng.gen::<f64>(), rng.gen::<f64>());
 
     let n = (v.0 * 2.0 - 1.0, v.1 * 2.0 - 1.0);
@@ -415,12 +414,17 @@ pub fn noise_2d(p: (f64, f64)) -> f64 {
     let p_minus_p2 = (p.0 - p2.0, p.1 - p2.1);
     let p_minus_p3 = (p.0 - p3.0, p.1 - p3.1);
 
-    let p0p1 = (1.0 - fade_t0) * (g0.0 * p_minus_p0.0 + g0.1 * p_minus_p0.1)
-        + fade_t0 * (g1.0 * p_minus_p1.0 + g1.1 * p_minus_p1.1);
-    let p2p3 = (1.0 - fade_t0) * (g2.0 * p_minus_p2.0 + g2.1 * p_minus_p2.1)
-        + fade_t0 * (g3.0 * p_minus_p3.0 + g3.1 * p_minus_p3.1);
+    let g0_dot_p0 = g0.0 * p_minus_p0.0 + g0.1 * p_minus_p0.1;
+    let g1_dot_p1 = g1.0 * p_minus_p1.0 + g1.1 * p_minus_p1.1;
+    let g2_dot_p2 = g2.0 * p_minus_p2.0 + g2.1 * p_minus_p2.1;
+    let g3_dot_p3 = g3.0 * p_minus_p3.0 + g3.1 * p_minus_p3.1;
 
-    return (1.0 - fade_t1) * p0p1 + fade_t1 * p2p3;
+    let p0p1 = (1.0 - fade_t0) * g0_dot_p0 + fade_t0 * g1_dot_p1;
+    let p2p3 = (1.0 - fade_t0) * g2_dot_p2 + fade_t0 * g3_dot_p3;
+
+    let result = (1.0 - fade_t1) * p0p1 + fade_t1 * p2p3;
+
+    return result;
 }
 
 //Not sure the use of this
@@ -585,12 +589,12 @@ fn noise_1d(p: f32) -> f32 {
     let p1 = p0 + 1.0;
 
     let t = p - p0;
-    let fade_t = fade_1d(t);
+    let ft = fade_1d(t);
 
     let g0 = grad_1d(p0);
     let g1 = grad_1d(p1);
 
-    return ((1.0 - fade_t) * g0 * (p - p0) + fade_t * g1 * (p - p1));
+    return ((1.0 - ft) * g0 * (p - p0) + ft * g1 * (p - p1));
 }
 
 impl Distribution<StaticObject> for Standard {
