@@ -7,7 +7,7 @@ use crate::runner::TILE_SIZE;
 
 // use crate::ProceduralGen;
 
-const LOWER_SPEED: i32 = 1;     //
+const LOWER_SPEED: i32 = 1; //
 const UPPER_SPEED: i32 = 5;
 // const GRAVITY: f64 = 9.80665;
 const OMEGA: f64 = 9.0;
@@ -18,8 +18,9 @@ impl Physics {
     // pub fn check_collision(player: &Player, obstacle: &Obstacle) -> bool {
     //     // TODO
     //     // Using Rect::has_intersection -> bool OR Rect::intersection -> Rect
-    //     // Apply collision to Player AND Obstacle if necessary (i.e. spin out of control
-    //     // and break object or whatever) This includes force and torque
+    //     // Apply collision to Player AND Obstacle if necessary (i.e. spin out of
+    // control     // and break object or whatever) This includes force and
+    // torque
 
     //     for h in player.hitbox().iter() {
     //         if h.has_intersection(obstacle.hitbox()) {
@@ -30,8 +31,9 @@ impl Physics {
     // }
 
     pub fn check_collection(player: &Player, coin: &Coin) -> bool {
-        // For collection, collsion including force and torque does not need to be accounted for
-        // If any of the player hitboxes intersect with a `Collectible`, the object will be aquired by the player
+        // For collection, collsion including force and torque does not need to be
+        // accounted for If any of the player hitboxes intersect with a
+        // `Collectible`, the object will be aquired by the player
         for h in player.hitbox().iter() {
             if h.has_intersection(coin.hitbox()) {
                 return true;
@@ -46,43 +48,57 @@ impl Physics {
         //Note: "angle" is positive going downhill & negative going uphill
         //---- but we always need a negative force in y direction...
 
-        if body.is_onground(){
+        if body.is_onground() {
             //going uphill
-            if(angle < 0.0){ // -angle
+            if (angle < 0.0) {
+                // -angle
                 //apply gravity in -x & -y
-                body.apply_force((body.mass() * angle.sin() as i32, body.mass() * angle.cos() as i32));
+                body.apply_force((
+                    body.mass() * angle.sin() as i32,
+                    body.mass() * angle.cos() as i32,
+                ));
                 //apply grav in -y
                 //body.apply_force((0,-body.mass()));
 
                 //apply normal (force positive)
-                body.apply_force((0,-body.mass() * angle.cos() as i32));
+                body.apply_force((0, -body.mass() * angle.cos() as i32));
                 //apply normal in -x & +y
-                //body.apply_force((body.mass()* angle.sin() as i32 * angle.cos() as i32,-body.mass()*angle.cos()as i32*angle.cos()as i32));
+                //body.apply_force((body.mass()* angle.sin() as i32 * angle.cos() as
+                // i32,-body.mass()*angle.cos()as i32*angle.cos()as i32));
 
                 //apply friction (same as gravity in -x)
                 body.apply_force(((body.mass() as f64 * angle.sin() * coeff) as i32, 0));
                 //apply fricition in -x & -y
-                //body.apply_force((coeff as i32 * body.mass() * angle.cos() as i32 * angle.cos() as i32, coeff as i32 * body.mass() * angle.cos() as i32 * angle.sin() as i32));
+                //body.apply_force((coeff as i32 * body.mass() * angle.cos() as
+                // i32 * angle.cos() as i32, coeff as i32 * body.mass() *
+                // angle.cos() as i32 * angle.sin() as i32));
             }
             //flat or going downhill
-            else { // 0 or +angle
+            else {
+                // 0 or +angle
                 //apply gravity in +x & -y
-                body.apply_force((body.mass() * angle.sin() as i32, -body.mass() * angle.cos() as i32));
+                body.apply_force((
+                    body.mass() * angle.sin() as i32,
+                    -body.mass() * angle.cos() as i32,
+                ));
                 //apply grav in -y
                 //body.apply_force((0,-body.mass()));
 
                 //apply normal (automatically positive)
-                body.apply_force((0,body.mass() * angle.cos() as i32));
+                body.apply_force((0, body.mass() * angle.cos() as i32));
                 //apply normal in +x & +y
-                //body.apply_force((body.mass()* angle.sin() as i32 * angle.cos() as i32,-body.mass()*angle.cos()as i32*angle.cos()as i32));
+                //body.apply_force((body.mass()* angle.sin() as i32 * angle.cos() as
+                // i32,-body.mass()*angle.cos()as i32*angle.cos()as i32));
 
                 //apply friciton (opposite to gravity in -x)
                 body.apply_force(((-body.mass() as f64 * angle.sin() * coeff) as i32, 0));
                 //apply fricition in -x & +y
-                //body.apply_force((coeff as i32 * -body.mass() * angle.cos() as i32 * angle.cos() as i32, coeff as i32 * body.mass() * angle.cos() as i32 * angle.sin() as i32));
+                //body.apply_force((coeff as i32 * -body.mass() * angle.cos()
+                // as i32 * angle.cos() as i32, coeff as i32 * body.mass() *
+                // angle.cos() as i32 * angle.sin() as i32));
             }
-        }
-        else{   //player in the air
+        } else {
+            //player in the air
             //apply entirity of gravity force in -y direction (bc player not on ground)
             body.apply_force((0, -body.mass()));
             //no normal, no friction, bc in air
@@ -152,8 +168,6 @@ pub trait Entity<'a> {
     fn center(&self) -> Point;
     /// Modifies the position of the `Entity`
     fn update_pos(&mut self, ground: Point, angle: f64);
-    // Modifies y pos to keep `Entity` in camera
-    fn draw_adjust(&mut self, draw_offset: i32);
 
     /****************** Angular motion *************** */
 
@@ -175,15 +189,18 @@ pub trait Collider<'a>: Entity<'a> {
     /// Returns the collision boundary of the object as a list of `Rect` stored
     /// in a `Vec`
     fn hitbox(&self) -> Vec<Rect>;
-    /// Checks for collision between two objects that can collide by iterating through all of their hitboxes
+    /// Checks for collision between two objects that can collide by iterating
+    /// through all of their hitboxes
     ///
     /// # Arguments
-    /// * `other`: the `Collider` object that may collide with the current object
+    /// * `other`: the `Collider` object that may collide with the current
+    ///   object
     ///
     /// # Return
-    /// * If objects are colliding, return `tuple` as follows:
-    ///     1. `Rect`: the hitbox belonging to this object that collided with the other object
-    ///     2. `Rect`: the hitbox belonging to the other object that collided with this object
+    /// * If objects are colliding, return `tuple` as follows: 1. `Rect`: the
+    ///   hitbox belonging to this object that collided with the other object 2.
+    ///   `Rect`: the hitbox belonging to the other object that collided with
+    ///   this object
     /// * If the objects are not colliding, return `None`
     fn check_collision(&mut self, other: &impl Collider<'a>) -> Option<(Rect, Rect)> {
         // TODO
@@ -260,8 +277,6 @@ pub trait Body<'a>: Collider<'a> + Dynamic<'a> {
     //Returns true when play is on the terrain & not in the air
     fn is_onground(&self) -> bool;
 
-
-
     /****************** Forces *********************** */
 
     /// Applies a force to the `Body` that has an x any y component
@@ -279,8 +294,6 @@ pub trait Body<'a>: Collider<'a> + Dynamic<'a> {
     // // / * `radius`: the distance from the object's center of mass
     // fn apply_torque(&mut self, force: i32, radius: i32);
 
-
-
     //set the normal force acting on the player
     //fn set_normal(&mut self,normal: i32);
 
@@ -290,7 +303,8 @@ pub trait Body<'a>: Collider<'a> + Dynamic<'a> {
     // ///
     // /// # Arguments
     // /// * `terrain_type`: the name of the terrain type the `Body` collided with
-    // fn collide_terrain(&mut self, ground: Point, angle: f64, terrain_type: String);
+    // fn collide_terrain(&mut self, ground: Point, angle: f64, terrain_type:
+    // String);
 }
 
 ///Represents the player character
@@ -334,7 +348,7 @@ impl<'a> Player<'a> {
         }
     }
 
-    pub fn is_onground(&self) -> bool{
+    pub fn is_onground(&self) -> bool {
         self.onground
     }
 
@@ -438,11 +452,6 @@ impl<'a> Entity<'a> for Player<'a> {
 
         // Player's x position is fixed
         self.pos.set_y(self.pos.y() - self.vel_y());
-
-    }
-
-    fn draw_adjust(&mut self, draw_offset: i32) {
-        self.pos.set_y(self.pos.y() + draw_offset);
     }
 
     fn rotate(&mut self) {
@@ -496,13 +505,14 @@ impl<'a> Collider<'a> for Player<'a> {
     fn collide(&mut self, other: &impl Collider<'a>, hitboxes: (Rect, Rect)) -> bool {
         let mut result = false;
 
-        // if the collision box is taller than it is wide, the player hit the side of the object
+        // if the collision box is taller than it is wide, the player hit the side of
+        // the object
         if (hitboxes.0.intersection(hitboxes.1).unwrap().height()
             > hitboxes.0.intersection(hitboxes.1).unwrap().width())
         {
             println!("collided with side of obstacle");
 
-            /********** ELASTIC COLLISION CALCULATION **********/
+            /********** ELASTIC COLLISION CALCULATION ********* */
             // Assumed object has velocity (0,0) and mass of 7
             // Assumed player has velocity (v,0)
             let angle = ((self.center().y() - other.center().y()) as f64
@@ -525,20 +535,22 @@ impl<'a> Collider<'a> for Player<'a> {
             println!("\tangle from player to object in rads: {}", angle);
             println!("\tplayer final velocity({},{})", p_vx_f, p_vy_f);
             println!("\tobject final velocity({},{})", o_vx_f, o_vy_f);
-            /***************************************************/
+            /************************************************** */
 
             self.pos.set_x(other.x() - 95 * (TILE_SIZE as i32) / 100);
             self.velocity.0 = 0;
             self.apply_force((self.mass(), 0));
 
             // for now (week 5), end the game when the player hits the side of an object
-            // alternately, set this value to true to cause the player to stop when they run into the object
-            // the screen does not follow the player when they stop
+            // alternately, set this value to true to cause the player to stop when they run
+            // into the object the screen does not follow the player when they
+            // stop
 
             false
         }
         // if the collision box is wider than it is tall, the player hit the top of the object
-        // don't apply the collision to the top of an object if the player is moving upward, otherwise they will "stick" to the top on the way up
+        // don't apply the collision to the top of an object if the player is moving upward,
+        // otherwise they will "stick" to the top on the way up
         else if (self.vel_y() < 0) {
             self.pos.set_y(other.y() - 95 * (TILE_SIZE as i32) / 100);
             self.velocity.1 = 0;
@@ -564,7 +576,7 @@ impl<'a> Body<'a> for Player<'a> {
         self.mass
     }
 
-    fn is_onground(&self)-> bool{
+    fn is_onground(&self) -> bool {
         self.onground
     }
 
@@ -575,20 +587,21 @@ impl<'a> Body<'a> for Player<'a> {
     fn rotational_inertia(&self) -> f64 {
         // TODO:
         // Rotaional inertia -- I = L/omega
-        // I think we'll wanna use L = mass*R^2     (ie. angular momentum for a sphere/thing with effective radius R)
-        // Torque (if we need it) tau = I * alpha
+        // I think we'll wanna use L = mass*R^2     (ie. angular momentum for a
+        // sphere/thing with effective radius R) Torque (if we need it) tau = I
+        // * alpha
         if !self.jumping {
-            return 0.0
+            return 0.0;
         }
         let mut effective_radius: f64;
-        if self.flipping{
-            effective_radius = (TILE_SIZE as f64)/2.0;
+        if self.flipping {
+            effective_radius = (TILE_SIZE as f64) / 2.0;
         } else {
             effective_radius = TILE_SIZE as f64;
         }
-        let mut L: f64 = (self.mass as f64)*(effective_radius*effective_radius);
-        let mut rot_inertia: f64 = L/self.omega;
-        return rot_inertia
+        let mut L: f64 = (self.mass as f64) * (effective_radius * effective_radius);
+        let mut rot_inertia: f64 = L / self.omega;
+        return rot_inertia;
     }
 
     // Should we take in force as a magnitude and an angle? Makes the friction
@@ -689,10 +702,6 @@ impl<'a> Entity<'a> for Obstacle<'a> {
         */
     }
 
-    fn draw_adjust(&mut self, draw_offset: i32) {
-        self.pos.set_y(self.pos.y() + draw_offset);
-    }
-
     fn rotate(&mut self) {
         todo!();
         //self.theta = (self.theta - self.omega) % 360.0;
@@ -714,9 +723,8 @@ pub trait Collectible<'a> {
 
     /// Returns the collection boundary of the object as a `Rect`
     fn hitbox(&self) -> Rect;
-    /// Applies a collection to the `Collectible` using the physical attributes of
-    /// it and another object that must be of type `Collider`
-    ///
+    /// Applies a collection to the `Collectible` using the physical attributes
+    /// of it and another object that must be of type `Collider`
     // collect the collectible (set its collected field to true & delete it)
     fn collect(&mut self);
 }
@@ -770,7 +778,6 @@ impl<'a> Collectible<'a> for Coin<'a> {
     //for now (honestly not a horrible long term soln)
     fn hitbox(&self) -> Rect {
         Rect::new(self.pos.x, self.pos.y, self.pos.width(), self.pos.height())
-
     }
 
     fn collect(&mut self) {

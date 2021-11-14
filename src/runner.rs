@@ -53,7 +53,7 @@ const BACK_HILL_INDEX: usize = 1;
 const GROUND_INDEX: usize = 2;
 
 // Bounds we want to keep the player within
-const player_upper_bound: i32 = TILE_SIZE as i32;
+const player_upper_bound: i32 = 2 * TILE_SIZE as i32;
 const player_lower_bound: i32 = CAM_H as i32 - player_upper_bound;
 
 pub struct Runner;
@@ -83,8 +83,8 @@ impl Game for Runner {
         // Create player at default position
         let mut player = Player::new(
             rect!(
-                CAM_W / 2 - TILE_SIZE / 2, // PLAYER_BOUNDS_H.1 / 2,
-                CAM_H / 2 - TILE_SIZE / 2, // PLAYER_BOUNDS_V.0,
+                CAM_W / 2 - TILE_SIZE / 2, // Center of screen
+                CAM_H / 2 - TILE_SIZE / 2,
                 TILE_SIZE,
                 TILE_SIZE
             ),
@@ -444,7 +444,7 @@ impl Game for Runner {
 
                     buff_idx += 1;
 
-                    if(ground_buffer[ground_buffer.len() - 1] == (1.0, 1.0)){
+                    if (ground_buffer[ground_buffer.len() - 1] == (1.0, 1.0)) {
                         println!("Bouncy!");
                     } else {
                         println!("Not Bouncy!");
@@ -510,7 +510,7 @@ impl Game for Runner {
                     rect!(bg_buff + (CAM_W as i32), -150, CAM_W, CAM_H),
                 )?;
 
-                //Draw sky in background
+                // Draw sky in background
                 core.wincan
                     .copy(&tex_sky, None, rect!(bg_buff, 0, CAM_W, CAM_H / 3))?;
                 core.wincan.copy(
@@ -521,11 +521,11 @@ impl Game for Runner {
 
                 // Vertical draw offset to keep game in vertical bounds
                 let mut vert_draw_offset = 0;
-                if current_ground.y() < player_upper_bound {
+                if (current_ground.y() - TILE_SIZE as i32) < player_upper_bound {
                     vert_draw_offset = player_upper_bound - current_ground.y();
                 }
-                else if current_ground.y() > player_lower_bound {
-                    vert_draw_offset = player_lower_bound -  current_ground.y();
+                if current_ground.y() > player_lower_bound {
+                    vert_draw_offset = player_lower_bound - current_ground.y();
                 }
 
                 for i in 0..bg[FRONT_HILL_INDEX].len() - 1 {
@@ -535,7 +535,7 @@ impl Game for Runner {
                         i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
                         CAM_H as i16 - bg[BACK_HILL_INDEX][i] + vert_draw_offset as i16,
                         CAM_W as usize / SIZE,
-                        CAM_H as i16 + vert_draw_offset as i16
+                        CAM_H as i16
                     ))?;
 
                     // Closest mountains
@@ -544,7 +544,7 @@ impl Game for Runner {
                         i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
                         CAM_H as i16 - bg[FRONT_HILL_INDEX][i] + vert_draw_offset as i16,
                         CAM_W as usize / SIZE,
-                        CAM_H as i16 + vert_draw_offset as i16
+                        CAM_H as i16
                     ))?;
 
                     // Ground
@@ -553,7 +553,7 @@ impl Game for Runner {
                         i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
                         CAM_H as i16 - bg[GROUND_INDEX][i] + vert_draw_offset as i16,
                         CAM_W as usize / SIZE,
-                        CAM_H as i16 + vert_draw_offset as i16
+                        CAM_H as i16
                     ))?;
                 }
 
@@ -583,94 +583,101 @@ impl Game for Runner {
                         _ => {}
                     }
                 }
-
+                /* Removed for testing
                 //Object spawning
                 if object_spawn > 0 && object_spawn < SIZE {
-
                     /* println!(
-                         "{:?} | {:?}",
-                         object_spawn * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
-                         CAM_H as i16 - bg[GROUND_INDEX][object_spawn]
-                     );*/
+                        "{:?} | {:?}",
+                        object_spawn * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
+                        CAM_H as i16 - bg[GROUND_INDEX][object_spawn]
+                    );*/
 
-                     match object {
-                         Some(proceduralgen::StaticObject::Statue) => {
-                             //update physics obstacle position
-                             for s in obstacles.iter_mut() {
-                                 //this is hacky & dumb (will only work if one obstacle spawned at a time)
-                                 s.pos = rect!(
-                                     object_spawn * CAM_W as usize / SIZE
-                                         + CAM_W as usize / SIZE / 2,
-                                     CAM_H as i16
-                                         - bg[GROUND_INDEX][object_spawn]
-                                         - TILE_SIZE as i16
-                                         + vert_draw_offset as i16,
-                                     TILE_SIZE,
-                                     TILE_SIZE
-                                 );
-                             }
-                         }
-                         Some(proceduralgen::StaticObject::Coin) => {
-                             //update physics coins position
-                             for s in coins.iter_mut() {
-                                 //hacky "soln" part 2
-                                 s.pos = rect!(
-                                     object_spawn * CAM_W as usize / SIZE
-                                         + CAM_W as usize / SIZE / 2,
-                                     CAM_H as i16
-                                         - bg[GROUND_INDEX][object_spawn]
-                                         - TILE_SIZE as i16
-                                         + vert_draw_offset as i16,
-                                     TILE_SIZE,
-                                     TILE_SIZE
-                                 );
-                             }
-                         }
-                         _ => {}
-                     }
-                 }
+                    match object {
+                        Some(proceduralgen::StaticObject::Statue) => {
+                            //update physics obstacle position
+                            for s in obstacles.iter_mut() {
+                                //this is hacky & dumb (will only work if one obstacle spawned at a
+                                // time)
+                                s.pos = rect!(
+                                    object_spawn * CAM_W as usize / SIZE
+                                        + CAM_W as usize / SIZE / 2,
+                                    CAM_H as i16
+                                        - bg[GROUND_INDEX][object_spawn]
+                                        - TILE_SIZE as i16
+                                        + vert_draw_offset as i16,
+                                    TILE_SIZE,
+                                    TILE_SIZE
+                                );
+                            }
+                        }
+                        Some(proceduralgen::StaticObject::Coin) => {
+                            //update physics coins position
+                            for s in coins.iter_mut() {
+                                //hacky "soln" part 2
+                                s.pos = rect!(
+                                    object_spawn * CAM_W as usize / SIZE
+                                        + CAM_W as usize / SIZE / 2,
+                                    CAM_H as i16
+                                        - bg[GROUND_INDEX][object_spawn]
+                                        - TILE_SIZE as i16
+                                        + vert_draw_offset as i16,
+                                    TILE_SIZE,
+                                    TILE_SIZE
+                                );
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                */
 
-                 tick += 1;
+                tick += 1;
 
-                 if tick % 3 == 0 && tick % 5 == 0 {
-                     tick = 0;
-                 }
+                if tick % 3 == 0 && tick % 5 == 0 {
+                    tick = 0;
+                }
 
-                 if -bg_buff == CAM_W as i32 {
-                     bg_buff = 0;
-                 }
+                if -bg_buff == CAM_W as i32 {
+                    bg_buff = 0;
+                }
 
-                 // There should be some way to determine where it repeats but I can't figure it out
-                 // if buff_1 as f64 % (freq * amp_1) == 0 {
-                 //     println!("{:?}", buff_1);
-                 //     buff_1 = 0;
-                 // }
-                 // if buff_2 as f64 % (freq * amp_2) == 0 {
-                 //     println!("{:?}", buff_2);
-                 //     buff_2 = 0;
-                 // }
-                 // if buff_3 as f64 % (freq * amp_3) == 0 {
-                 //     println!("{:?}", buff_3);
-                 //     buff_3 = 0;
-                 // }
+                // There should be some way to determine where it repeats but I can't figure it
+                // out if buff_1 as f64 % (freq * amp_1) == 0 {
+                //     println!("{:?}", buff_1);
+                //     buff_1 = 0;
+                // }
+                // if buff_2 as f64 % (freq * amp_2) == 0 {
+                //     println!("{:?}", buff_2);
+                //     buff_2 = 0;
+                // }
+                // if buff_3 as f64 % (freq * amp_3) == 0 {
+                //     println!("{:?}", buff_3);
+                //     buff_3 = 0;
+                // }
 
                 // Draw player
-                player.draw_adjust(vert_draw_offset);
+                //player.draw_adjust(vert_draw_offset);
                 core.wincan.copy_ex(
                     player.texture(),
                     rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
-                    rect!(player.x(), player.y(), TILE_SIZE, TILE_SIZE),
+                    rect!(
+                        player.x(),
+                        player.y() + vert_draw_offset,
+                        TILE_SIZE,
+                        TILE_SIZE
+                    ),
                     player.theta(),
                     None,
                     false,
                     false,
                 )?;
                 core.wincan.set_draw_color(Color::BLACK);
-                for h in player.hitbox().iter() {
+                for h in player.hitbox().iter_mut() {
+                    (*h).set_y((*h).y() + vert_draw_offset);
                     core.wincan.draw_rect(*h)?;
                 }
                 // Undo draw offset to avoid blastoff
-                player.draw_adjust(-vert_draw_offset);
+                //player.draw_adjust(-vert_draw_offset);
 
                 // Draw obstacles
                 for o in obstacles.iter() {
