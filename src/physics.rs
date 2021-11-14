@@ -5,6 +5,7 @@ use sdl2::render::Texture;
 
 use crate::runner::TILE_SIZE as InitTILE_SIZE;
 use std::f64::consts::PI;
+use std::num;
 
 // use crate::ProceduralGen;
 
@@ -215,7 +216,7 @@ pub trait Dynamic<'a>: Entity<'a> {
     /// Modifies the velocity of the `Dynamic` `Entity`
     fn update_vel(&mut self);
     // /// Modifies the rotation speed of the `Dynamic` `Entity`
-    // fn update_omega(&mut self);
+    fn update_omega(&mut self);
 }
 
 /// Object has mass and rotational inertia. Object responds to forces and
@@ -316,6 +317,7 @@ impl<'a> Player<'a> {
 
     pub fn stop_flipping(&mut self) {
         self.flipping = false;
+
 
         // if self.theta() >= OMEGA * 3.0 {
         //     self.theta = 0.0;
@@ -458,6 +460,15 @@ impl<'a> Dynamic<'a> for Player<'a> {
         // diagonally
         self.velocity.0 = (self.velocity.0 + self.accel.0).clamp(LOWER_SPEED, UPPER_SPEED);
         self.velocity.1 = (self.velocity.1 + self.accel.1).clamp(-10.0, 1000.0);
+    }
+
+    fn update_omega(&mut self) {
+        //Update omega to change player rotational velocity
+        if(self.omega < self.alpha.abs()){
+            omega = 0.0;
+        }else{
+            self.omega = self.omega - self.alpha;
+        }
     }
 }
 
