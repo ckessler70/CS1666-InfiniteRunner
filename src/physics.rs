@@ -245,7 +245,7 @@ pub trait Body<'a>: Collider<'a> + Dynamic<'a> {
     // // / * `force`: the magnitude of the force being applied tangent to the
     // // /   object
     // // / * `radius`: the distance from the object's center of mass
-    // fn apply_torque(&mut self, force: f64, radius: f64);
+    fn apply_torque(&mut self, force: f64, radius: f64);
 
     //set the normal force acting on the player
     //fn set_normal(&mut self,normal: f64);
@@ -274,7 +274,7 @@ pub struct Player<'a> {
 
     theta: f64, // angle of rotation, in radians
     omega: f64, // angular speed
-    // alpha: f64, // angular acceleration
+    alpha: f64, // angular acceleration
     mass: f64,
     texture: Texture<'a>,
     jumping: bool,
@@ -292,7 +292,7 @@ impl<'a> Player<'a> {
 
             theta: 0.0,
             omega: 0.0,
-            // alpha: 0.0,
+            alpha: 0.0,
             texture,
             mass,
             jumping: false,
@@ -559,9 +559,9 @@ impl<'a> Body<'a> for Player<'a> {
         }
         let mut effective_radius: f64;
         if self.flipping {
-            effective_radius = (TILE_SIZE) / 2.0;
+            effective_radius = TILE_SIZE / 4.0;
         } else {
-            effective_radius = TILE_SIZE;
+            effective_radius = TILE_SIZE / 2.0;
         }
         let mut L: f64 = (self.mass) * (effective_radius * effective_radius);
         let mut rot_inertia: f64 = L / self.omega;
@@ -575,10 +575,14 @@ impl<'a> Body<'a> for Player<'a> {
         self.accel.1 += force.1 / self.mass;
     }
 
-    // fn apply_torque(&mut self, force: f64, radius: f64) {
-    //     // TODO
-    //     // Update_alpha (angular acceleration)
-    // }
+    fn apply_torque(&mut self, force: f64, radius: f64) {
+         // TODO
+         // Update_alpha (angular acceleration)
+         //`force`: magnitude of the force being applied tangent to the object
+         //For the above described force, we can use the equation F=mr(omega)
+         //instead of the formula for torque, T=I(omega)
+         self.alpha = (self.mass*radius)/force;
+    }
 }
 
 pub struct Obstacle<'a> {
