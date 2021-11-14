@@ -475,15 +475,15 @@ impl Game for Runner {
                             tick_score *= 2;
                         }
                         Some(powers::PowerUps::BouncyShoes) => {
-                            // Forces jumping while active and jumps 7 velocity units higher
-                            player_jump_change = 7.0;
-                            player.jump(current_ground, true, 7.0);
+                            // Forces jumping while active and jumps 0.3 velocity units higher
+                            player_jump_change = 0.3;
+                            player.jump(current_ground, true, player_jump_change);
                         }
                         Some(powers::PowerUps::LowerGravity) => {
                             // Accel rate is how the y velocity is clamped
-                            // Has player jump 5 velocity units higher.
+                            // Has player jump 0.2 velocity units higher.
                             player_accel_rate = -5.0;
-                            player_jump_change = 5.0;
+                            player_jump_change = 0.2;
                         }
                         Some(powers::PowerUps::Shield) => {
                             // Player override will say to ignore obstacle collisions
