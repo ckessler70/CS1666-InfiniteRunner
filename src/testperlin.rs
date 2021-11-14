@@ -49,7 +49,7 @@ const BUFF_LENGTH: usize = CAM_W as usize / 4;
 
 const TITLE: &str = "Testing Perlin";
 
-const TIMEOUT: u64 = 8000;
+const TIMEOUT: u64 = 5000;
 
 pub struct TestPerlin;
 
@@ -70,33 +70,53 @@ impl Game for TestPerlin {
         core.wincan.set_draw_color(Color::RGBA(0, 128, 128, 255));
         core.wincan.clear();
 
-        let x = 1280 / 2;
-        let y = 720 / 2;
+        let div = 1;
+
+        let x = 1280 / div;
+        let y = 720 / div;
 
         let mut rng = rand::thread_rng();
 
         let freq = rng.gen_range(32.0..300.0);
         let amp = rng.gen_range(0.0..5.0);
 
+        let mut random: [[(i32, i32); 256]; 256] = [[(0, 0); 256]; 256];
+
+        for i in 0..random.len() - 1 {
+            for j in 0..random.len() - 1 {
+                random[i][j] = (rng.gen_range(0..256), rng.gen_range(0..256));
+            }
+        }
+
         for i in 0..y {
             for j in 0..x {
                 let cord = (i, j);
 
-                let n = noise_2d((cord.0 as f64 / (freq), cord.1 as f64 / (freq))) * (amp)
-                    + noise_2d((cord.0 as f64 / (freq / 2.0), cord.1 as f64 / (freq / 2.0)))
-                        * (amp / 2.0)
-                    + noise_2d((cord.0 as f64 / (freq / 4.0), cord.1 as f64 / (freq / 4.0)))
-                        * (amp / 4.0)
-                    + noise_2d((cord.0 as f64 / (freq / 8.0), cord.1 as f64 / (freq / 8.0)))
-                        * (amp / 8.0);
+                let n = noise_2d(&random, (cord.0 as f64 / (freq), cord.1 as f64 / (freq))) * (amp)
+                    + noise_2d(
+                        &random,
+                        (cord.0 as f64 / (freq / 2.0), cord.1 as f64 / (freq / 2.0)),
+                    ) * (amp / 2.0)
+                    + noise_2d(
+                        &random,
+                        (cord.0 as f64 / (freq / 4.0), cord.1 as f64 / (freq / 4.0)),
+                    ) * (amp / 4.0)
+                    + noise_2d(
+                        &random,
+                        (cord.0 as f64 / (freq / 8.0), cord.1 as f64 / (freq / 8.0)),
+                    ) * (amp / 8.0);
                 let modifier = n * 0.5 + 0.5;
 
                 let rgb = 256.0 * modifier;
 
                 core.wincan
                     .set_draw_color(Color::RGB(rgb as u8, rgb as u8, rgb as u8));
-                core.wincan
-                    .fill_rect(Rect::new(j as i32 * 2, i as i32 * 2, 2, 2));
+                core.wincan.fill_rect(Rect::new(
+                    j as i32 * div,
+                    i as i32 * div,
+                    div as u32,
+                    div as u32,
+                ));
             }
         }
 

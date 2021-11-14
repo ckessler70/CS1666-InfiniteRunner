@@ -81,6 +81,7 @@ impl ProceduralGen {
     }
 
     pub fn gen_land<'a>(
+        random: &[[(i32, i32); 256]; 256],
         prev_segment: &TerrainSegment,
         cam_w: i32,
         cam_h: i32,
@@ -118,6 +119,7 @@ impl ProceduralGen {
         // Generates perlin noise for random point instead of whole map
         let map_size = 128;
         let point_mod_1a: f64 = gen_point_mod(
+            &random,
             (
                 (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
                 (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
@@ -126,6 +128,7 @@ impl ProceduralGen {
             amp,
         );
         let point_mod_1b: f64 = gen_point_mod(
+            &random,
             (
                 (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
                 (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
@@ -134,6 +137,7 @@ impl ProceduralGen {
             amp,
         );
         let point_mod_2: f64 = gen_point_mod(
+            &random,
             (
                 (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
                 (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
@@ -164,6 +168,7 @@ impl ProceduralGen {
     }
 
     pub fn gen_bezier_land(
+        random: &[[(i32, i32); 256]; 256],
         mut prev_point: (f64, f64),
         cam_w: i32,
         cam_h: i32,
@@ -198,6 +203,7 @@ impl ProceduralGen {
         // Generates perlin noise for random point instead of whole map
         let map_size = 128;
         let point_mod_1a: f64 = gen_point_mod(
+            &random,
             (
                 (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
                 (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
@@ -206,6 +212,7 @@ impl ProceduralGen {
             amp,
         );
         let point_mod_1b: f64 = gen_point_mod(
+            &random,
             (
                 (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
                 (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
@@ -214,6 +221,7 @@ impl ProceduralGen {
             amp,
         );
         let point_mod_2a: f64 = gen_point_mod(
+            &random,
             (
                 (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
                 (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
@@ -222,6 +230,7 @@ impl ProceduralGen {
             amp,
         );
         let point_mod_2b: f64 = gen_point_mod(
+            &random,
             (
                 (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
                 (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
@@ -230,6 +239,7 @@ impl ProceduralGen {
             amp,
         );
         let point_mod_3a: f64 = gen_point_mod(
+            &random,
             (
                 (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
                 (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
@@ -238,6 +248,7 @@ impl ProceduralGen {
             amp,
         );
         let point_mod_3b: f64 = gen_point_mod(
+            &random,
             (
                 (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
                 (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
@@ -266,7 +277,11 @@ impl ProceduralGen {
         return (curve);
     }
 
-    pub fn spawn_object(min_length: i32, max_length: i32) -> (Option<StaticObject>, usize) {
+    pub fn spawn_object(
+        random: &[[(i32, i32); 256]; 256],
+        min_length: i32,
+        max_length: i32,
+    ) -> (Option<StaticObject>, usize) {
         let mut rng = rand::thread_rng();
 
         let freq = rng.gen::<f64>() * 256.0 + 32.0;
@@ -274,6 +289,7 @@ impl ProceduralGen {
 
         let map_size = 128;
         let point_mod: f64 = gen_point_mod(
+            &random,
             (
                 ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
                 ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
@@ -299,14 +315,29 @@ impl ProceduralGen {
         let freq = rng.gen_range(32.0..256.0);
         let amp = rng.gen::<f64>();
 
+        let mut random: [[(i32, i32); 256]; 256] = [[(0, 0); 256]; 256];
+
+        for i in 0..random.len() - 1 {
+            for j in 0..random.len() - 1 {
+                random[i][j] = (rng.gen_range(0..256), rng.gen_range(0..256));
+            }
+        }
+
         for i in 0..(out.len() - 1) {
             for j in 0..(out.len() - 1) {
                 let cord = (i, j);
 
-                let n = noise_2d((cord.0 as f64 / 64.0, cord.1 as f64 / (freq))) * (amp)
-                    + noise_2d((cord.0 as f64 / 32.0, cord.1 as f64 / (freq / 2.0))) * (amp / 2.0)
-                    + noise_2d((cord.0 as f64 / 16.0, cord.1 as f64 / (freq / 4.0))) * (amp / 4.0)
-                    + noise_2d((cord.0 as f64 / 8.0, cord.1 as f64 / (freq / 8.0))) * (amp / 8.0);
+                let n = noise_2d(&random, (cord.0 as f64 / 64.0, cord.1 as f64 / (freq))) * (amp)
+                    + noise_2d(
+                        &random,
+                        (cord.0 as f64 / 32.0, cord.1 as f64 / (freq / 2.0)),
+                    ) * (amp / 2.0)
+                    + noise_2d(
+                        &random,
+                        (cord.0 as f64 / 16.0, cord.1 as f64 / (freq / 4.0)),
+                    ) * (amp / 4.0)
+                    + noise_2d(&random, (cord.0 as f64 / 8.0, cord.1 as f64 / (freq / 8.0)))
+                        * (amp / 8.0);
                 let modifier = n * 0.5 + 0.5;
 
                 out[i][j] = modifier;
@@ -344,17 +375,24 @@ impl ProceduralGen {
 }
 
 // Test function used freq = 64.0 and amp = 1.0
-fn gen_perlin_noise(freq: f64, amp: f64) -> [[f64; 128]; 128] {
+fn gen_perlin_noise(random: &[[(i32, i32); 256]; 256], freq: f64, amp: f64) -> [[f64; 128]; 128] {
     let mut out = [[0.0; 128]; 128];
 
     for i in 0..(out.len() - 1) {
         for j in 0..(out.len() - 1) {
             let cord = (i, j);
 
-            let n = noise_2d((cord.0 as f64 / 64.0, cord.1 as f64 / (freq))) * (amp)
-                + noise_2d((cord.0 as f64 / 32.0, cord.1 as f64 / (freq / 2.0))) * (amp / 2.0)
-                + noise_2d((cord.0 as f64 / 16.0, cord.1 as f64 / (freq / 4.0))) * (amp / 4.0)
-                + noise_2d((cord.0 as f64 / 8.0, cord.1 as f64 / (freq / 8.0))) * (amp / 8.0);
+            let n = noise_2d(&random, (cord.0 as f64 / 64.0, cord.1 as f64 / (freq))) * (amp)
+                + noise_2d(
+                    &random,
+                    (cord.0 as f64 / 32.0, cord.1 as f64 / (freq / 2.0)),
+                ) * (amp / 2.0)
+                + noise_2d(
+                    &random,
+                    (cord.0 as f64 / 16.0, cord.1 as f64 / (freq / 4.0)),
+                ) * (amp / 4.0)
+                + noise_2d(&random, (cord.0 as f64 / 8.0, cord.1 as f64 / (freq / 8.0)))
+                    * (amp / 8.0);
             let modifier = n * 0.5 + 0.5;
 
             out[i][j] = modifier;
@@ -363,11 +401,20 @@ fn gen_perlin_noise(freq: f64, amp: f64) -> [[f64; 128]; 128] {
     return out;
 }
 
-fn gen_point_mod(cord: (i32, i32), freq: f64, amp: f64) -> f64 {
-    let n = noise_2d((cord.0 as f64 / (freq), cord.1 as f64 / (freq))) * (amp)
-        + noise_2d((cord.0 as f64 / (freq / 2.0), cord.1 as f64 / (freq / 2.0))) * (amp / 2.0)
-        + noise_2d((cord.0 as f64 / (freq / 4.0), cord.1 as f64 / (freq / 4.0))) * (amp / 4.0)
-        + noise_2d((cord.0 as f64 / (freq / 8.0), cord.1 as f64 / (freq / 8.0))) * (amp / 8.0);
+fn gen_point_mod(random: &[[(i32, i32); 256]; 256], cord: (i32, i32), freq: f64, amp: f64) -> f64 {
+    let n = noise_2d(&random, (cord.0 as f64 / (freq), cord.1 as f64 / (freq))) * (amp)
+        + noise_2d(
+            &random,
+            (cord.0 as f64 / (freq / 2.0), cord.1 as f64 / (freq / 2.0)),
+        ) * (amp / 2.0)
+        + noise_2d(
+            &random,
+            (cord.0 as f64 / (freq / 4.0), cord.1 as f64 / (freq / 4.0)),
+        ) * (amp / 4.0)
+        + noise_2d(
+            &random,
+            (cord.0 as f64 / (freq / 8.0), cord.1 as f64 / (freq / 8.0)),
+        ) * (amp / 8.0);
     let modifier = n * 0.5 + 0.5;
     return modifier;
 }
@@ -378,9 +425,10 @@ fn fade_2d(t: f64) -> f64 {
 }
 
 //Perlin Noise helper function
-fn grad_2d(p: (f64, f64)) -> (f64, f64) {
-    let mut rng = rand::thread_rng();
-    let v = (rng.gen::<f64>(), rng.gen::<f64>());
+fn grad_2d(random: &[[(i32, i32); 256]; 256], p: (f64, f64)) -> (f64, f64) {
+    let pre_v = random[p.0 as usize][p.1 as usize];
+
+    let v = (pre_v.0 as f64 / 256.0, pre_v.1 as f64 / 256.0);
 
     let n = (v.0 * 2.0 - 1.0, v.1 * 2.0 - 1.0);
 
@@ -392,16 +440,16 @@ fn grad_2d(p: (f64, f64)) -> (f64, f64) {
 }
 
 //Perlin Noise helper function
-pub fn noise_2d(p: (f64, f64)) -> f64 {
+pub fn noise_2d(random: &[[(i32, i32); 256]; 256], p: (f64, f64)) -> f64 {
     let p0 = (p.0.floor(), p.1.floor());
     let p1 = (p0.0 + 1.0, p0.1);
     let p2 = (p0.0, p0.1 + 1.0);
     let p3 = (p0.0 + 1.0, p0.1 + 1.0);
 
-    let g0 = grad_2d(p0);
-    let g1 = grad_2d(p1);
-    let g2 = grad_2d(p2);
-    let g3 = grad_2d(p3);
+    let g0 = grad_2d(&random, p0);
+    let g1 = grad_2d(&random, p1);
+    let g2 = grad_2d(&random, p2);
+    let g3 = grad_2d(&random, p3);
 
     let t0 = p.0 - p0.0;
     let fade_t0 = fade_2d(t0);

@@ -161,9 +161,19 @@ impl Game for Runner {
         let amp_2: f32 = rng.gen::<f32>() * 2.0 + amp_1;
         let amp_3: f32 = rng.gen::<f32>() * 2.0 + 1.0;
 
+        // Perlin Noise init
+        let mut random: [[(i32, i32); 256]; 256] = [[(0, 0); 256]; 256];
+
+        for i in 0..random.len() - 1 {
+            for j in 0..random.len() - 1 {
+                random[i][j] = (rng.gen_range(0..256), rng.gen_range(0..256));
+            }
+        }
+
         ct = 0;
         let p0 = (0.0, (CAM_H / 3) as f64);
         ground_buffer = proceduralgen::ProceduralGen::gen_bezier_land(
+            &random,
             p0,
             CAM_W as i32,
             CAM_H as i32,
@@ -547,6 +557,7 @@ impl Game for Runner {
                 if tick % 1 == 0 {
                     if buff_idx == BUFF_LENGTH {
                         ground_buffer = proceduralgen::ProceduralGen::gen_bezier_land(
+                            &random,
                             (0.0, bg[GROUND_INDEX][(SIZE - 1) as usize] as f64),
                             CAM_W as i32,
                             CAM_H as i32,
@@ -599,8 +610,11 @@ impl Game for Runner {
                 }
 
                 if object_spawn == 0 {
-                    let breakdown =
-                        proceduralgen::ProceduralGen::spawn_object(SIZE as i32, (SIZE * 2) as i32);
+                    let breakdown = proceduralgen::ProceduralGen::spawn_object(
+                        &random,
+                        SIZE as i32,
+                        (SIZE * 2) as i32,
+                    );
                     object = breakdown.0;
                     object_spawn = breakdown.1;
 
