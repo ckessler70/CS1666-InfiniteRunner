@@ -127,12 +127,12 @@ impl Game for Title {
                             next_status = Some(GameStatus::Credits);
                             break 'gameloop;
                         }
-                        Keycode::T => {
-                            next_status = Some(GameStatus::Test);
-                            break 'gameloop;
-                        }
                         Keycode::B => {
                             next_status = Some(GameStatus::BezierSim);
+                            break 'gameloop;
+                        }
+                        Keycode::V => {
+                            next_status = Some(GameStatus::PerlinSim);
                             break 'gameloop;
                         }
                         _ => {}

@@ -17,8 +17,8 @@ pub enum GameStatus {
     Main,
     Game,
     Credits,
-    Test,
     BezierSim,
+    PerlinSim,
 }
 
 #[allow(dead_code)]
