@@ -49,7 +49,7 @@ const BUFF_LENGTH: usize = CAM_W as usize / 4;
 
 const TITLE: &str = "Testing Perlin";
 
-const TIMEOUT: u64 = 2000;
+const TIMEOUT: u64 = 8000;
 
 pub struct TestPerlin;
 
@@ -70,53 +70,37 @@ impl Game for TestPerlin {
         core.wincan.set_draw_color(Color::RGBA(0, 128, 128, 255));
         core.wincan.clear();
 
-        let mut out = [[0.0; 128]; 128];
-        let mut random = [[0.0; 64]; 64];
+        let x = 1280 / 2;
+        let y = 720 / 2;
 
         let mut rng = rand::thread_rng();
 
-        for i in 0..64 {
-            for j in 0..64 {
-                random[i][j] = rng.gen::<f64>();
-            }
-        }
+        let freq = rng.gen_range(32.0..300.0);
+        let amp = rng.gen_range(0.0..5.0);
 
-        let freq = 64.0;
-        let amp = 1.0;
-
-        for i in 0..(out.len() - 1) {
-            for j in 0..(out.len() - 1) {
+        for i in 0..y {
+            for j in 0..x {
                 let cord = (i, j);
 
-                let n = noise_2d(&random, (cord.0 as f64 / 64.0, cord.1 as f64 / (freq))) * (amp)
-                    + noise_2d(
-                        &random,
-                        (cord.0 as f64 / 32.0, cord.1 as f64 / (freq / 2.0)),
-                    ) * (amp / 2.0)
-                    + noise_2d(
-                        &random,
-                        (cord.0 as f64 / 16.0, cord.1 as f64 / (freq / 4.0)),
-                    ) * (amp / 4.0)
-                    + noise_2d(&random, (cord.0 as f64 / 8.0, cord.1 as f64 / (freq / 8.0)))
+                let n = noise_2d((cord.0 as f64 / (freq), cord.1 as f64 / (freq))) * (amp)
+                    + noise_2d((cord.0 as f64 / (freq / 2.0), cord.1 as f64 / (freq / 2.0)))
+                        * (amp / 2.0)
+                    + noise_2d((cord.0 as f64 / (freq / 4.0), cord.1 as f64 / (freq / 4.0)))
+                        * (amp / 4.0)
+                    + noise_2d((cord.0 as f64 / (freq / 8.0), cord.1 as f64 / (freq / 8.0)))
                         * (amp / 8.0);
                 let modifier = n * 0.5 + 0.5;
 
-                out[i][j] = modifier;
-            }
-        }
-
-        println!("{:?} {:?}", freq, amp);
-
-        for i in 0..(out.len() - 1) {
-            for j in 0..(out.len() - 1) {
-                let rgb = 256.0 * out[i][j];
+                let rgb = 256.0 * modifier;
 
                 core.wincan
                     .set_draw_color(Color::RGB(rgb as u8, rgb as u8, rgb as u8));
                 core.wincan
-                    .fill_rect(Rect::new(i as i32 * 5, j as i32 * 5, 5, 5));
+                    .fill_rect(Rect::new(j as i32 * 1, i as i32 * 1, 1, 1));
             }
         }
+
+        println!("{:?} {:?}", freq, amp);
 
         core.wincan.present();
         thread::sleep(Duration::from_millis(TIMEOUT));
