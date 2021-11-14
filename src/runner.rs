@@ -385,23 +385,27 @@ impl Game for Runner {
                 //in the future when obstacles & coins are proc genned we will probs wanna
                 //only check for obstacles/coins based on their location relative to players x cord
                 //(also: idt this can be a for loop bc it moves the obstacles values?)
-                for o in obstacles.iter() {
+                for o in obstacles.iter_mut() {
                     //.filter(|near by obstacles|).collect()
                     if let Some(collision_boxes) = player.check_collision(o) {
                         //Bad way to ignore collision with a shield
-                        if power_override {
+                        /*if power_override {
                             // if !player.collide(o, collision_boxes) {
                             //     Apply some simulation/annimation on the obstacle knocking it over
                             // }
                             continue;
-                        }
+                        }*/
                         //Temp option: can add these 2 lines to end game upon obstacle collsions
-                        if !player.collide(o, collision_boxes) {
+                       //INVICIBILTY: chane true to power_override (when you dont wanna be invincible)
+                        if !player.collide(o, collision_boxes, true) {
                             game_over = true;
                             initial_pause = true;
                             continue 'gameloop;
                         }
-                        //print!("collision!");
+                        //println!("ypos{} vyo{} ayo{}  ", o.pos.1, o.velocity.1, o.accel.1 );
+                       // o.update_vel(0.0,0.0);   //these args do nothing
+                      // o.update_pos(Point::new(0,0), 3.0);  //the 3 makes the obstacle spin
+                       // println!("ypos{} vyo{} ayo{}  ", o.pos.1, o.velocity.1, o.accel.1 );
                         //Real Solution: need to actually resolve the collision, should go something like this
                         //player.collide(o);
                         //Physics::apply_gravity(&mut obstacle);    //maybe...
@@ -522,20 +526,24 @@ impl Game for Runner {
 
                 //apply friction
                 //Physics::apply_friction(&mut player, 1.0);
-
+                
+                for o in obstacles.iter_mut() {
+                    o.update_vel(0.0,0.0);   //these args do nothing
+                    o.update_pos(Point::new(0,0), 15.0);  //the 3 makes the obstacle spin
+                }
                 player.update_pos(current_ground, angle);
                 player.update_vel(player_accel_rate, player_speed_adjust);
                 player.flip();
 
                 //kinematics change, scroll speed does not :(
                 //can see best when super curvy map generated
-                println!(
+              /*  println!(
                     "px:{}  vx:{} ax:{} ay:{}",
                     player.x(),
                     player.vel_x(),
                     player.accel_x(),
                     player.accel_y(),
-                );
+                ); */
 
                 if !player.collide_terrain(current_ground, angle) {
                     game_over = true;
@@ -672,16 +680,19 @@ impl Game for Runner {
                             //update physics obstacle position
                             for s in obstacles.iter_mut() {
                                 //this is hacky & dumb (will only work if one obstacle spawned at a time)
-                                s.hitbox = rect!(
-                                    object_spawn * CAM_W as usize / SIZE
-                                        + CAM_W as usize / SIZE / 2,
-                                    CAM_H as i16
-                                        - bg[GROUND_INDEX][object_spawn]
-                                        - TILE_SIZE as i16,
-                                    TILE_SIZE,
-                                    TILE_SIZE
-                                );
-                                s.pos = (s.hitbox.x() as f64, s.hitbox.y() as f64);
+                                if !s.collided() {  //once it collides we can't draw it like this
+                                    s.hitbox = rect!(
+                                        object_spawn * CAM_W as usize / SIZE
+                                            + CAM_W as usize / SIZE / 2,
+                                        CAM_H as i16
+                                            - bg[GROUND_INDEX][object_spawn]
+                                            - TILE_SIZE as i16,
+                                        TILE_SIZE,
+                                        TILE_SIZE
+                                    );
+                                    s.pos = (s.hitbox.x() as f64, s.hitbox.y() as f64);
+                                }
+                               
                             }
                         }
                         Some(proceduralgen::StaticObject::Coin) => {
@@ -847,13 +858,14 @@ impl Game for Runner {
 
                 // Draw obstacles
                 for o in obstacles.iter() {
-                    if (o.x() > 50) {
+                    if (o.x() > 50 && o.y()>20) {
                         //hacky - will not work if more than one obstacle spawned
+                        //println!("XXXXX ypos{} vyo{} ayo{}  ", o.pos.1, o.velocity.1, o.accel.1 );
                         core.wincan.copy_ex(
                             o.texture(),
                             None,
-                            rect!(o.x(), o.y(), TILE_SIZE, TILE_SIZE),
-                            0.0,
+                            rect!(o.pos.0, o.pos.1, TILE_SIZE, TILE_SIZE),
+                            o.theta(),
                             None,
                             false,
                             false,
@@ -861,6 +873,10 @@ impl Game for Runner {
                         core.wincan.set_draw_color(Color::RED);
                         core.wincan.draw_rect(o.hitbox())?;
                     }
+                    /*else{
+                        drop(o);
+                        object_count-= 1;
+                    }*/
                 }
 
                 //Draw coins
