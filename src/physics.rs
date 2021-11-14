@@ -496,7 +496,7 @@ impl<'a> Dynamic<'a> for Player<'a> {
     fn update_omega(&mut self) {
         //Update omega to change player rotational velocity
         if(self.omega < self.alpha.abs()){
-            omega = 0.0;
+            self.omega = 0.0;
         }else{
             self.omega = self.omega - self.alpha;
         }
