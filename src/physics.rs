@@ -28,6 +28,17 @@ impl Physics {
         }
         return false;
     }
+
+    pub fn check_power(player: &Player, power: &Power) -> bool {
+        // For collection, collsion including force and torque does not need to be accounted for
+        // If any of the player hitboxes intersect with a `Collectible`, the object will be aquired by the player
+        for h in player.hitbox().iter() {
+            if h.has_intersection(power.hitbox()) {
+                return true;
+            }
+        }
+        return false;
+    }
     //applies gravity, normal & friction forces
     //depends on whether or not player is on ground
     pub fn apply_gravity<'a>(body: &mut impl Body<'a>, angle: f64, coeff: f64) {
@@ -214,7 +225,7 @@ pub trait Dynamic<'a>: Entity<'a> {
     /// Returns the `Body`'s rate of rotation
     fn omega(&self) -> f64;
     /// Modifies the velocity of the `Dynamic` `Entity`
-    fn update_vel(&mut self);
+    fn update_vel(&mut self, fall_rate: f64, speed_adjust: f64);
     // /// Modifies the rotation speed of the `Dynamic` `Entity`
     fn update_omega(&mut self);
 }
@@ -330,18 +341,35 @@ impl<'a> Player<'a> {
     }
 
     // Returns true if a jump was initiated
-    pub fn jump(&mut self, ground: Point) -> bool {
-        if self.hitbox.contains_point(ground) {
-            self.velocity.1 += 35.0;
-            self.jumping = true;
-            self.onground = false;
+    pub fn jump(&mut self, ground: Point, bouncy: bool, change: f64) -> bool {
+        // Bouncy will not set flipping to true by default if true
+        // Change is a way to change height of jump depending on value
+        if bouncy {
+            if self.hitbox.contains_point(ground) {
+                self.velocity.1 += 35.0 + change;
+                self.jumping = true;
+                self.onground = false;
 
-            self.omega = OMEGA;
-            self.flipping = true;
+                self.omega = OMEGA;
+                self.flipping = false;
 
-            true
+                true
+            } else {
+                false
+            }
         } else {
-            false
+            if self.hitbox.contains_point(ground) {
+                self.velocity.1 += 35.0 + change;
+                self.jumping = true;
+                self.onground = false;
+
+                self.omega = OMEGA;
+                self.flipping = true;
+
+                true
+            } else {
+                false
+            }
         }
     }
 
@@ -454,12 +482,15 @@ impl<'a> Dynamic<'a> for Player<'a> {
     //     self.alpha
     // }
 
-    fn update_vel(&mut self) {
+    // Fall rate is the lower clamp value for the y velocity
+    // Speed adjust is the augmenting value for the x velocity
+    fn update_vel(&mut self, fall_rate: f64, speed_adjust: f64) {
         // Update to make the TOTAL MAX VELOCITY constant
         // Right now it's UPPER_SPEED in one direction and UPPER_SPEED*sqrt(2)
         // diagonally
-        self.velocity.0 = (self.velocity.0 + self.accel.0).clamp(LOWER_SPEED, UPPER_SPEED);
-        self.velocity.1 = (self.velocity.1 + self.accel.1).clamp(-10.0, 1000.0);
+        self.velocity.0 =
+            (self.velocity.0 + self.accel.0 + speed_adjust).clamp(LOWER_SPEED, UPPER_SPEED);
+        self.velocity.1 = (self.velocity.1 + self.accel.1).clamp(fall_rate, 1000.0);
     }
 
     fn update_omega(&mut self) {
@@ -574,9 +605,10 @@ impl<'a> Body<'a> for Player<'a> {
         } else {
             effective_radius = TILE_SIZE / 2.0;
         }
-        let mut L: f64 = (self.mass) * (effective_radius * effective_radius);
+        let mut L: f64 = self.mass * effective_radius * effective_radius;
         let mut rot_inertia: f64 = L / self.omega;
-        return rot_inertia;
+
+        rot_inertia
     }
 
     // Should we take in force as a magnitude and an angle? Makes the friction
@@ -587,12 +619,12 @@ impl<'a> Body<'a> for Player<'a> {
     }
 
     fn apply_torque(&mut self, force: f64, radius: f64) {
-         // TODO
-         // Update_alpha (angular acceleration)
-         //`force`: magnitude of the force being applied tangent to the object
-         //For the above described force, we can use the equation F=mr(omega)
-         //instead of the formula for torque, T=I(omega)
-         self.alpha = (self.mass*radius)/force;
+        // TODO
+        // Update_alpha (angular acceleration)
+        //`force`: magnitude of the force being applied tangent to the object
+        //For the above described force, we can use the equation F=mr(omega)
+        //instead of the formula for torque, T=I(omega)
+        self.alpha = (self.mass * radius) / force;
     }
 }
 
@@ -786,5 +818,63 @@ impl<'a> Collectible<'a> for Coin<'a> {
 impl Drop for Coin<'_> {
     fn drop(&mut self) {
         println!("dropping coin");
+    }
+}
+
+pub struct Power<'a> {
+    pub pos: Rect,
+    texture: Texture<'a>,
+    pub collected: bool,
+}
+
+impl<'a> Power<'a> {
+    pub fn new(pos: Rect, texture: Texture<'a>) -> Power {
+        Power {
+            pos,
+            texture,
+            collected: false,
+        }
+    }
+
+    pub fn x(&self) -> i32 {
+        self.pos.x()
+    }
+
+    pub fn y(&self) -> i32 {
+        self.pos.y()
+    }
+
+    fn update_pos(&mut self, x: i32, y: i32) {
+        self.pos.set_x(x);
+        self.pos.set_y(y);
+    }
+
+    pub fn texture(&self) -> &Texture {
+        &self.texture
+    }
+
+    pub fn collected(&self) -> bool {
+        self.collected
+    }
+    //if we delete Power by dropping them from mem (once collected)
+    pub fn drop(&mut self) {}
+}
+
+impl<'a> Collectible<'a> for Power<'a> {
+    //for now (honestly not a horrible long term soln)
+    fn hitbox(&self) -> Rect {
+        Rect::new(self.pos.x, self.pos.y, self.pos.width(), self.pos.height())
+    }
+
+    fn collect(&mut self) {
+        self.collected = true;
+        drop(self);
+    }
+}
+
+//I think this is how we'll delete the Power
+impl Drop for Power<'_> {
+    fn drop(&mut self) {
+        println!("dropping Power");
     }
 }

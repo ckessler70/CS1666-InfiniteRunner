@@ -9,9 +9,11 @@
 
 mod credits;
 mod physics;
+mod powers;
 mod proceduralgen;
 mod runner;
 mod testbezier;
+mod testperlin;
 mod title;
 mod utils;
 
@@ -31,6 +33,7 @@ pub struct UrbanOdyssey {
     credits: credits::Credits,
     proceduralgen: proceduralgen::ProceduralGen,
     testbezier: testbezier::TestBezier,
+    testperlin: testperlin::TestPerlin,
     /* physics?
      * procedural generation? */
 }
@@ -92,28 +95,25 @@ fn main() {
                             }
                         };
                     }
-                    Some(GameStatus::Test) => {
-                        println!("\nRunning Test Sequence:");
-                        println!("\tRunning...");
-
-                        match contents.proceduralgen.test_mapper() {
-                            Err(e) => {
-                                println!("\n\t\tEncountered error while running: {}", e)
-                            }
-                            Ok(_) => {
-                                game_manager = GameState {
-                                    status: Some(GameStatus::Main),
-                                    score: 0,
-                                };
-                                println!("DONE\nExiting cleanly");
-                            }
-                        };
-                    }
                     Some(GameStatus::BezierSim) => {
                         println!("\nTesting Bezier Simulation:");
                         println!("\tRunning...");
 
                         match contents.testbezier.run(&mut (contents.core)) {
+                            Err(e) => {
+                                println!("\n\t\tEncountered error while running: {}", e)
+                            }
+                            Ok(game_status) => {
+                                game_manager = game_status;
+                                println!("DONE\nExiting cleanly");
+                            }
+                        };
+                    }
+                    Some(GameStatus::PerlinSim) => {
+                        println!("\nTesting Perlin Simulation:");
+                        println!("\tRunning...");
+
+                        match contents.testperlin.run(&mut (contents.core)) {
                             Err(e) => {
                                 println!("\n\t\tEncountered error while running: {}", e)
                             }
@@ -142,6 +142,7 @@ fn init() -> Result<UrbanOdyssey, String> {
     let proceduralgen = proceduralgen::ProceduralGen::init()?;
     // procedural generation?
     let testbezier = testbezier::TestBezier::init()?;
+    let testperlin = testperlin::TestPerlin::init()?;
 
     Ok(UrbanOdyssey {
         core,
@@ -150,5 +151,6 @@ fn init() -> Result<UrbanOdyssey, String> {
         credits,
         proceduralgen,
         testbezier,
+        testperlin,
     })
 }
