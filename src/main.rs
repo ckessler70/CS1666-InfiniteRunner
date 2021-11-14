@@ -94,23 +94,6 @@ fn main() {
                             }
                         };
                     }
-                    Some(GameStatus::Test) => {
-                        println!("\nRunning Test Sequence:");
-                        println!("\tRunning...");
-
-                        match contents.proceduralgen.test_mapper() {
-                            Err(e) => {
-                                println!("\n\t\tEncountered error while running: {}", e)
-                            }
-                            Ok(_) => {
-                                game_manager = GameState {
-                                    status: Some(GameStatus::Main),
-                                    score: 0,
-                                };
-                                println!("DONE\nExiting cleanly");
-                            }
-                        };
-                    }
                     Some(GameStatus::BezierSim) => {
                         println!("\nTesting Bezier Simulation:");
                         println!("\tRunning...");

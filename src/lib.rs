@@ -17,7 +17,6 @@ pub enum GameStatus {
     Main,
     Game,
     Credits,
-    Test,
     BezierSim,
     PerlinSim,
 }
