@@ -360,7 +360,7 @@ fn fade_2d(t: f64) -> f64 {
 
 //Perlin Noise helper function
 fn grad_2d(random: &[[(i32, i32); 256]; 256], p: (f64, f64)) -> (f64, f64) {
-    let pre_v = random[p.0 as usize][p.1 as usize];
+    let pre_v = random[p.0 as usize % 256][p.1 as usize % 256];
 
     let v = (pre_v.0 as f64 / 256.0, pre_v.1 as f64 / 256.0);
 
