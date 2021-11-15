@@ -100,7 +100,7 @@ impl Game for Runner {
                 TILE_SIZE,
                 TILE_SIZE
             ),
-            2.0,
+            3.0,
             texture_creator.load_texture("assets/player.png")?,
         );
 
@@ -396,16 +396,20 @@ impl Game for Runner {
                             continue;
                         }*/
                         //Temp option: can add these 2 lines to end game upon obstacle collsions
-                       //INVICIBILTY: chane true to power_override (when you dont wanna be invincible)
-                        if !player.collide(o, collision_boxes, true) {
+                        //INVICIBILTY: chane true to power_override (when you dont wanna be invincible)
+                        let mut shielded = false;
+                        if let Some(powers::PowerUps::Shield) = power {
+                            shielded = true;
+                        }
+                        if !player.collide(o, collision_boxes, shielded) {
                             game_over = true;
                             initial_pause = true;
                             continue 'gameloop;
                         }
                         //println!("ypos{} vyo{} ayo{}  ", o.pos.1, o.velocity.1, o.accel.1 );
-                       // o.update_vel(0.0,0.0);   //these args do nothing
-                      // o.update_pos(Point::new(0,0), 3.0);  //the 3 makes the obstacle spin
-                       // println!("ypos{} vyo{} ayo{}  ", o.pos.1, o.velocity.1, o.accel.1 );
+                        // o.update_vel(0.0,0.0);   //these args do nothing
+                        // o.update_pos(Point::new(0,0), 3.0);  //the 3 makes the obstacle spin
+                        // println!("ypos{} vyo{} ayo{}  ", o.pos.1, o.velocity.1, o.accel.1 );
                         //Real Solution: need to actually resolve the collision, should go something like this
                         //player.collide(o);
                         //Physics::apply_gravity(&mut obstacle);    //maybe...
@@ -517,6 +521,8 @@ impl Game for Runner {
                         }
                         _ => {}
                     }
+
+                    power = None;
                 }
 
                 //applies gravity, normal & friction now
@@ -526,10 +532,10 @@ impl Game for Runner {
 
                 //apply friction
                 //Physics::apply_friction(&mut player, 1.0);
-                
+
                 for o in obstacles.iter_mut() {
-                    o.update_vel(0.0,0.0);   //these args do nothing
-                    o.update_pos(Point::new(0,0), 15.0);  //the 3 makes the obstacle spin
+                    o.update_vel(0.0, 0.0); //these args do nothing
+                    o.update_pos(Point::new(0, 0), 15.0); //the 3 makes the obstacle spin
                 }
                 player.update_pos(current_ground, angle);
                 player.update_vel(player_accel_rate, player_speed_adjust);
@@ -537,7 +543,7 @@ impl Game for Runner {
 
                 //kinematics change, scroll speed does not :(
                 //can see best when super curvy map generated
-              /*  println!(
+                /*  println!(
                     "px:{}  vx:{} ax:{} ay:{}",
                     player.x(),
                     player.vel_x(),
@@ -680,7 +686,8 @@ impl Game for Runner {
                             //update physics obstacle position
                             for s in obstacles.iter_mut() {
                                 //this is hacky & dumb (will only work if one obstacle spawned at a time)
-                                if !s.collided() {  //once it collides we can't draw it like this
+                                if !s.collided() {
+                                    //once it collides we can't draw it like this
                                     s.hitbox = rect!(
                                         object_spawn * CAM_W as usize / SIZE
                                             + CAM_W as usize / SIZE / 2,
@@ -692,7 +699,6 @@ impl Game for Runner {
                                     );
                                     s.pos = (s.hitbox.x() as f64, s.hitbox.y() as f64);
                                 }
-                               
                             }
                         }
                         Some(proceduralgen::StaticObject::Coin) => {
@@ -858,7 +864,7 @@ impl Game for Runner {
 
                 // Draw obstacles
                 for o in obstacles.iter() {
-                    if (o.x() > 50 && o.y()>20) {
+                    if (o.x() > 50 && o.y() > 20) {
                         //hacky - will not work if more than one obstacle spawned
                         //println!("XXXXX ypos{} vyo{} ayo{}  ", o.pos.1, o.velocity.1, o.accel.1 );
                         core.wincan.copy_ex(
