@@ -329,6 +329,10 @@ impl<'a> Player<'a> {
     pub fn stop_flipping(&mut self) {
         self.flipping = false;
 
+        //if the player was flipping previously and still in the air,
+        //want to continue rotation but with a negative angular acceleration
+        self.omega = OMEGA;
+        self.alpha = -0.005;
 
         // if self.theta() >= OMEGA * 3.0 {
         //     self.theta = 0.0;
@@ -337,6 +341,7 @@ impl<'a> Player<'a> {
 
     pub fn resume_flipping(&mut self) {
         self.flipping = true;
+        self.omega = OMEGA;
         self.rotate();
     }
 
@@ -375,8 +380,23 @@ impl<'a> Player<'a> {
 
     pub fn flip(&mut self) {
         if self.is_flipping() {
+            self.omega = OMEGA;
             self.rotate();
         }
+        //******************************************************
+        //UNCOMMENT BELOW TO ADD ANGULAR MOMENTUM AFTER FLIPPING
+        // NEEDS SOME MORE WORK THOUGH
+        //****************************************************** 
+
+        //else if(self.omega!=0.0){
+        //    self.alpha = -0.005;
+        //    if(self.omega > self.alpha.abs()){
+        //        self.omega = self.omega + self.alpha;
+        //    }else{
+        //        self.omega = 0.0;
+        //    }
+        //    self.rotate();
+        //}
     }
 
     // Returns false if the player crashed
