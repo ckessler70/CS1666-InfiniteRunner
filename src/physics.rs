@@ -187,7 +187,7 @@ pub trait Collider<'a>: Entity<'a> {
     /// # Arguments
     ///
     /// * `other`: the other `Collider` object that is involved in the collision
-    fn collide(&mut self, other: &impl Collider<'a>, hitboxes: (Rect, Rect)) -> bool {
+    fn collide(&mut self, Obstacle: &mut Obstacle, hitboxes: (Rect, Rect), bool: bool) -> bool {
         // if the intersection area is vertical, then the collision was from the side
         if (hitboxes.0.intersection(hitboxes.1).unwrap().height()
             > hitboxes.0.intersection(hitboxes.1).unwrap().width())
@@ -232,7 +232,7 @@ pub trait Dynamic<'a>: Entity<'a> {
 
 /// Object has mass and rotational inertia. Object responds to forces and
 /// torque, which can be arbitrarily applied to it.
-pub trait Body<'a>: Collider<'a> + Dynamic<'a> {
+pub trait Body<'a>: Collider<'a> + Dynamic<'a>{
     /****************** Constants ******************** */
 
     /// Returns the `Body`'s mass
@@ -528,7 +528,7 @@ impl<'a> Collider<'a> for Player<'a> {
         vec![self.hitbox]
     }
 
-    fn collide(&mut self, other: &impl Collider<'a>, hitboxes: (Rect, Rect)) -> bool {
+    fn collide(&mut self, Obstacle: &mut Obstacle, hitboxes: (Rect, Rect), bool: bool) -> bool {
         let mut result = false;
 
         // if the collision box is taller than it is wide, the player hit the side of the object
@@ -540,8 +540,8 @@ impl<'a> Collider<'a> for Player<'a> {
             /********** ELASTIC COLLISION CALCULATION **********/
             // Assumed object has velocity (0,0) and mass of 7
             // Assumed player has velocity (v,0)
-            let angle = ((self.center().y() - other.center().y()) as f64
-                / (self.center().x() - other.center().x()) as f64)
+            let angle = ((self.center().y() - Obstacle.center().y()) as f64
+                / (self.center().x() - Obstacle.center().x()) as f64)
                 .atan();
             let p_mass = self.mass();
             let o_mass = 7.0;
@@ -552,33 +552,46 @@ impl<'a> Collider<'a> for Player<'a> {
             let o_vx_f = (2.0 * p_mass) * (p_vx) / (p_mass + o_mass);
             let o_vy_f = (2.0 * p_mass) * (p_vy) / (p_mass + o_mass);
 
-            println!("INTENDED TRAJECTORIES: ELASTIC COLLISION: ");
+          /*  println!("INTENDED TRAJECTORIES: ELASTIC COLLISION: ");
             println!("\tplayer mass: {}", p_mass);
             println!("\tobject mass: {}", o_mass);
             println!("\tplayer initial velocity: ({},{})", p_vx, p_vy);
             println!("\tobject initial velocity: ({},{})", 0, 0);
             println!("\tangle from player to object in rads: {}", angle);
             println!("\tplayer final velocity({},{})", p_vx_f, p_vy_f);
-            println!("\tobject final velocity({},{})", o_vx_f, o_vy_f);
+            println!("\tobject final velocity({},{})", o_vx_f, o_vy_f); */
             /***************************************************/
-
-            self.pos.0 = (other.x() as f64 - 1.05 * TILE_SIZE);
-            self.velocity.0 = p_vx_f;
-            self.velocity.1 = p_vy_f;
-            self.align_hitbox_to_pos();
+            if bool{    //player has shield
+            
+                //self.align_hitbox_to_pos();
+                //other.pos.0 = 6.5;
+                Obstacle.apply_force((-0.4,1.0));
+                Obstacle.collided = true;
+                //println!("ayOb{}", Obstacle.accel_y());
+                
+                //.0 = o_vx_f;
+                true
+            }
+            else{       //playe does not have shield
+                self.pos.0 = (Obstacle.x() as f64 - 1.05 * TILE_SIZE);
+                self.velocity.0 = p_vx_f;
+                self.velocity.1 = p_vy_f;
+                self.align_hitbox_to_pos();
+                false
+            }
+            
             // self.velocity.0 = 0.0;
             // self.apply_force((self.mass(), 0.0));
 
             // for now (week 5), end the game when the player hits the side of an object
             // alternately, set this value to true to cause the player to stop when they run into the object
             // the screen does not follow the player when they stop
-
-            false
+            //bool
         }
         // if the collision box is wider than it is tall, the player hit the top of the object
         // don't apply the collision to the top of an object if the player is moving upward, otherwise they will "stick" to the top on the way up
         else if (self.vel_y() < 0.0) {
-            self.pos.1 = (other.y() as f64 - 0.95 * (TILE_SIZE as f64));
+            self.pos.1 = (Obstacle.y() as f64 - 0.95 * (TILE_SIZE as f64));
             self.align_hitbox_to_pos();
             self.velocity.1 = 0.0;
             self.jumping = false;
@@ -647,14 +660,28 @@ impl<'a> Body<'a> for Player<'a> {
         self.alpha = (self.mass * radius) / force;
     }
 }
-
+//Dynamic
+//Entity
+//Collider
+//Body
 pub struct Obstacle<'a> {
     pub pos: (f64, f64),
+    pub velocity: (f64, f64),
+    pub accel: (f64,f64),
     pub hitbox: Rect,
+
     mass: f64,
     texture: Texture<'a>,
+
     bouncy: bool,
     theta: f64,
+    omega: f64,
+    alpha: f64,
+
+    onground: bool,
+    jumping: bool,
+    flipping: bool,
+    collided: bool,
 }
 
 /// #TODO
@@ -666,16 +693,29 @@ impl<'a> Obstacle<'a> {
     pub fn new(hitbox: Rect, mass: f64, texture: Texture<'a>) -> Obstacle {
         Obstacle {
             pos: (hitbox.x() as f64, hitbox.y() as f64),
+            velocity: (0.0,0.0),
+            accel: (0.0,0.0),
             hitbox,
             texture,
             mass: 1.0, // maybe randomize? idk @procedural gen team
             bouncy: false,
             theta: 0.0,
+            omega: 0.0,
+            alpha: 0.0,
+
+            onground: true,
+            jumping: false,
+            flipping: false,
+            collided: false,
         }
     }
 
     pub fn mass(&self) -> f64 {
         self.mass
+    }
+
+    pub fn collided(&self)-> bool{
+        self.collided
     }
 
     //This is gonna need a better implementation
@@ -693,10 +733,8 @@ impl<'a> Obstacle<'a> {
         self.hitbox.y()
     }
 
-    pub fn update_pos(&mut self, x: f64, y: f64) {
-        self.pos.0 = x;
-        self.pos.1 = y;
-        self.align_hitbox_to_pos();
+    pub fn omega(&self) -> f64{
+        self.omega
     }
 
     pub fn align_hitbox_to_pos(&mut self) {
@@ -732,26 +770,130 @@ impl<'a> Entity<'a> for Obstacle<'a> {
     }
 
     fn update_pos(&mut self, ground: Point, angle: f64) {
-        todo!();
-        /*if self.pos.contains_point(ground) {
-            self.theta = angle;
-        }
+     
+       if self.collided {self.theta += angle;}
 
-        self.pos.set_y(self.pos.y() - self.vel_y());
-        */
+        self.pos.0 -= self.velocity.0;
+        self.pos.1 -= self.velocity.1;
+        //println!("AAAAA {}", self.pos.1);
+        
+        self.align_hitbox_to_pos();
     }
+
 
     fn rotate(&mut self) {
         todo!();
         //self.theta = (self.theta - self.omega) % 360.0;
     }
 }
+
+impl<'a> Dynamic<'a> for Obstacle<'a> {
+    fn vel_x(&self) -> f64 {
+        self.velocity.0
+    }
+
+    fn vel_y(&self) -> f64 {
+        self.velocity.1
+    }
+
+    fn accel_x(&self) -> f64 {
+        self.accel.0
+    }
+
+    fn accel_y(&self) -> f64 {
+        self.accel.1
+    } 
+
+    fn reset_accel(&mut self) {
+        self.accel = (0.0, 0.0);
+    } 
+
+    fn omega(&self) -> f64 {
+        self.omega
+    }
+
+    // fn alpha(&self) -> f64 {
+    //     self.alpha
+    // }
+
+    // Fall rate is the lower clamp value for the y velocity
+    // Speed adjust is the augmenting value for the x velocity
+    fn update_vel(&mut self, fall_rate: f64, speed_adjust: f64) {
+        // Update to make the TOTAL MAX VELOCITY constant
+        // Right now it's UPPER_SPEED in one direction and UPPER_SPEED*sqrt(2)
+        // diagonally
+        self.velocity.0 = (self.velocity.0 + self.accel.0).clamp(-20.0,20.0);
+        self.velocity.1 = (self.velocity.1 + self.accel.1).clamp(-20.0,20.0);
+            //(self.velocity.0 + self.accel.0 + speed_adjust).clamp(LOWER_SPEED, UPPER_SPEED);
+        //self.velocity.1 = (self.velocity.1 + self.accel.1).clamp(fall_rate, 1000.0);
+    }
+
+    fn update_omega(&mut self) {
+        //Update omega to change player rotational velocity
+        if(self.omega < self.alpha.abs()){
+            self.omega = 0.0;
+        }else{
+            self.omega = self.omega() - self.alpha;
+        }
+    }
+}
+
+impl<'a> Body<'a> for Obstacle<'a> {
+    fn mass(&self) -> f64 {
+        self.mass
+    }
+
+    fn is_onground(&self) -> bool {
+        self.onground
+    }
+
+    /*fn set_normal(&mut self, normal: f64){
+        self.normal = normal
+    }*/
+
+    fn rotational_inertia(&self) -> f64 {
+        // TODO:
+        // Rotaional inertia -- I = L/omega
+        // I think we'll wanna use L = mass*R^2     (ie. angular momentum for a sphere/thing with effective radius R)
+        // Torque (if we need it) tau = I * alpha
+        if !self.jumping {
+            return 0.0;
+        }
+        let mut effective_radius: f64;
+        if self.flipping {
+            effective_radius = TILE_SIZE / 4.0;
+        } else {
+            effective_radius = TILE_SIZE / 2.0;
+        }
+        let mut L: f64 = self.mass * effective_radius * effective_radius;
+        let mut rot_inertia: f64 = L / self.omega;
+
+        rot_inertia
+    }
+
+    // Should we take in force as a magnitude and an angle? Makes the friction
+    // calculation above simpler
+    fn apply_force(&mut self, force: (f64, f64)) {
+        self.accel.0 += force.0 / self.mass;
+        self.accel.1 += force.1 / self.mass;
+    }
+
+    fn apply_torque(&mut self, force: f64, radius: f64) {
+        // TODO
+        // Update_alpha (angular acceleration)
+        //`force`: magnitude of the force being applied tangent to the object
+        //For the above described force, we can use the equation F=mr(omega)
+        //instead of the formula for torque, T=I(omega)
+        self.alpha = (self.mass * radius) / force;
+    }
+}
+
 //same with this
 impl<'a> Collider<'a> for Obstacle<'a> {
     fn hitbox(&self) -> Vec<Rect> {
         vec![self.hitbox]
     }
-    fn collide(&mut self, other: &impl Collider<'a>, hitboxes: (Rect, Rect)) -> bool {
+    fn collide(&mut self, Obstacle:&mut Obstacle, hitboxes: (Rect, Rect),bool: bool) -> bool {
         // TODO
         todo!();
     }
