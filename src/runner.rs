@@ -1,4 +1,4 @@
-// use crate::physics::Body;
+use crate::physics::Body;
 use crate::physics::Physics;
 // use crate::physics::Collider;
 use crate::physics::Coin;
@@ -114,13 +114,17 @@ impl Game for Runner {
         let src_x: i32 = 0;
 
         let mut score: i32 = 0;
-        let mut tick_score: i32;
+        let mut tick_score: i32 = 0;
         let mut coin_count: i32 = 0;
 
         let mut game_paused: bool = false;
         let mut initial_pause: bool = false;
         let mut game_over: bool = false;
         let mut power_override: bool = false;
+
+        // number of frames to delay the end of the game by for demonstrating player collision
+        // this should be removed once the camera tracks the player properly
+        let mut game_over_timer = 120;
 
         // FPS tracking
         let mut all_frames: i32 = 0;
@@ -285,7 +289,9 @@ impl Game for Runner {
 
                     initial_pause = false;
                 }
-            } else if game_over {
+                // Remove "&& game_over_timer <= 0" once the camera properly tracks the player.
+                // For now, it is only here to delay the game end and demonstrate collision.
+            } else if game_over && game_over_timer <= 0 {
                 if initial_pause {
                     ct = 0;
                     let game_over_texture = texture_creator
@@ -349,39 +355,45 @@ impl Game for Runner {
                 let angle = ((next_ground.y() as f64 - current_ground.y() as f64)
                     / (TILE_SIZE as f64))
                     .atan();
-
-                for event in core.event_pump.poll_iter() {
-                    match event {
-                        Event::Quit { .. } => break 'gameloop,
-                        Event::KeyDown {
-                            keycode: Some(k), ..
-                        } => match k {
-                            Keycode::W | Keycode::Up | Keycode::Space => {
-                                if player.is_jumping() {
-                                    player.resume_flipping();
-                                } else {
-                                    player.jump(current_ground, true, player_jump_change);
+                // This conditional statement is here so that the game will go on for a few more frames without player input once the player has died. The reason for this is to demonstrate collisions even though the camera does not follow the player.
+                // NOTE: Once the camera properly follows the player, this conditional should be removed.
+                if !game_over {
+                    for event in core.event_pump.poll_iter() {
+                        match event {
+                            Event::Quit { .. } => break 'gameloop,
+                            Event::KeyDown {
+                                keycode: Some(k), ..
+                            } => match k {
+                                Keycode::W | Keycode::Up | Keycode::Space => {
+                                    if player.is_jumping() {
+                                        player.resume_flipping();
+                                    } else {
+                                        player.jump(current_ground, true, player_jump_change);
+                                    }
                                 }
-                            }
-                            Keycode::Escape => {
-                                game_paused = true;
-                                initial_pause = true;
-                            }
+                                Keycode::Escape => {
+                                    game_paused = true;
+                                    initial_pause = true;
+                                }
+                                _ => {}
+                            },
+                            Event::KeyUp {
+                                keycode: Some(k), ..
+                            } => match k {
+                                Keycode::W | Keycode::Up | Keycode::Space => {
+                                    player.stop_flipping();
+                                }
+                                _ => {}
+                            },
                             _ => {}
-                        },
-                        Event::KeyUp {
-                            keycode: Some(k), ..
-                        } => match k {
-                            Keycode::W | Keycode::Up | Keycode::Space => {
-                                player.stop_flipping();
-                            }
-                            _ => {}
-                        },
-                        _ => {}
+                        }
                     }
-                }
 
-                tick_score = 1;
+                    tick_score = 1;
+                } else {
+                    // decrement the amount of frames until the game ends in order to demonstrate the collision
+                    game_over_timer -= 1;
+                }
 
                 //in the future when obstacles & coins are proc genned we will probs wanna
                 //only check for obstacles/coins based on their location relative to players x cord
@@ -413,8 +425,7 @@ impl Game for Runner {
                         // println!("ypos{} vyo{} ayo{}  ", o.pos.1, o.velocity.1, o.accel.1 );
                         //Real Solution: need to actually resolve the collision, should go something like this
                         //player.collide(o);
-                        //Physics::apply_gravity(&mut obstacle);    //maybe...
-                        //obstacle.update_pos();
+                        Physics::apply_gravity(o, 0.0, 0.3);    //maybe...
                         continue;
                     };
                 }
@@ -1024,10 +1035,6 @@ impl Game for Runner {
             let time_since_last_measurement = last_measurement_time.elapsed();
             // measure the FPS once every second
             if time_since_last_measurement > Duration::from_secs(1) {
-                // println!(
-                //     "Average FPS: {:.2}",
-                //     (all_frames as f64) / time_since_last_measurement.as_secs_f64()
-                // );
                 all_frames = 0;
                 last_measurement_time = Instant::now();
             }

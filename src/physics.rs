@@ -9,7 +9,8 @@ use std::num;
 
 // use crate::ProceduralGen;
 
-const LOWER_SPEED: f64 = 1.0;
+//LOWER_SPEED is normally 1.0; it has been set to -20.0 for the purpose of demonstrating collisions
+const LOWER_SPEED: f64 = -20.0;
 const UPPER_SPEED: f64 = 5.0;
 // const GRAVITY: f64 = 9.80665;
 const OMEGA: f64 = PI / 18.0;
@@ -51,11 +52,12 @@ impl Physics {
             //apply gravity in -x & -y
             // body.apply_force((body.mass() * angle.sin(), body.mass() * angle.cos()));
             //apply grav in -y
-            body.apply_force((0.0, -body.mass()));
+            //body.apply_force((0.0, -body.mass()));
 
             //apply normal (force positive)
             // body.apply_force((0.0, -body.mass() * angle.cos()));
             //apply normal in -x & +y
+            // The y direction force here should be 0; the normal force in the y direction 
             body.apply_force((body.mass() * angle.sin(), -body.mass() * angle.cos()));
 
             //apply friction (same as gravity in -x)
@@ -535,7 +537,8 @@ impl<'a> Collider<'a> for Player<'a> {
 
     fn collide(&mut self, obstacle: &mut Obstacle, hitboxes: (Rect, Rect), shielded: bool) -> bool {
         let mut result = false;
-
+        // no matter what the obstacle's type is, flag it as having collided
+        obstacle.collided = true;
         // if the collision box is taller than it is wide, the player hit the side of the object
         if (hitboxes.0.intersection(hitboxes.1).unwrap().height()
             > hitboxes.0.intersection(hitboxes.1).unwrap().width())
@@ -564,8 +567,21 @@ impl<'a> Collider<'a> for Player<'a> {
             // println!("\tplayer initial velocity: ({},{})", p_vx, p_vy);
             // println!("\tobject initial velocity: ({},{})", 0, 0);
             // println!("\tangle from player to object in rads: {}", angle);
-            // println!("\tplayer final velocity({},{})", p_vx_f, p_vy_f);
-            // println!("\tobject final velocity({},{})", o_vx_f, o_vy_f);
+            println!("\tplayer final velocity({},{})", p_vx_f, p_vy_f);
+            println!("\tobject final velocity({},{})", o_vx_f, o_vy_f);
+            obstacle.velocity.0 = o_vx_f;
+            obstacle.velocity.1 = o_vy_f;
+            // if o_vy_f >= 0.0 || !obstacle.is_onground() {
+            //     obstacle.velocity.1 = o_vy_f;
+            // }
+            // Implicitly apply the force of collision to the obstacle by updating its x and y velocity to the values calculated from the collision equation
+            // Unsure of what this does, but it seems like it moves the player back one tile upon collision so as not to have intersecting hitboxes
+            self.pos.0 = (obstacle.x() as f64 - 1.05 * TILE_SIZE);
+            // Update the player's displayed position to the new "bumped back" value
+            self.align_hitbox_to_pos();
+            // Implicitly apply the force of collision to the player by updating its x and y velocity to the values calculated from the collision equation
+            self.velocity.0 = p_vx_f;
+            self.velocity.1 = p_vy_f;
             /***************************************************/
             match obstacle.o_type {
                 ObstacleType::Statue => {
@@ -578,27 +594,21 @@ impl<'a> Collider<'a> for Player<'a> {
                         obstacle.apply_force((-0.4, 1.0));
                         // obstacle.velocity.0 = o_vx_f;
                         // obstacle.velocity.1 = o_vy_f;
-                        obstacle.collided = true;
                         //println!("ayOb{}", Obstacle.accel_y());
-        
                         //.0 = o_vx_f;
-                        return true
+                        true
                         
                     } else {
                         //player does not have shield
-                        self.pos.0 = (obstacle.x() as f64 - 1.05 * TILE_SIZE);
-                        self.velocity.0 = p_vx_f;
-                        self.velocity.1 = p_vy_f;
-                        self.align_hitbox_to_pos();
-                        return false
+                        //obstacle.apply_force((-0.4, 1.0));
+                        false
                     }
                 }
                 ObstacleType::Spring => {
-                    self.set_y_vel_temp(40.0);
                     print!("Spring");  
-                    return true
+                    true
                 }
-                _ => return true
+                _ => true
             }
            
 
@@ -613,13 +623,20 @@ impl<'a> Collider<'a> for Player<'a> {
         // if the collision box is wider than it is tall, the player hit the top of the object
         // don't apply the collision to the top of an object if the player is moving upward, otherwise they will "stick" to the top on the way up
         else if (self.vel_y() < 0.0) {
-            self.pos.1 = (obstacle.y() as f64 - 0.95 * (TILE_SIZE as f64));
-            self.align_hitbox_to_pos();
-            self.velocity.1 = 0.0;
-            self.jumping = false;
-            self.apply_force((0.0, self.mass()));
-            println!("collided with top of obstacle");
-            self.omega = 0.0;
+            // println!("collided with top of obstacle");
+            match obstacle.o_type {
+                ObstacleType::Statue => {
+                    self.pos.1 = (obstacle.y() as f64 - 0.95 * (TILE_SIZE as f64));
+                    self.align_hitbox_to_pos();
+                    self.velocity.1 = 0.0;
+                    self.jumping = false;
+                    self.apply_force((0.0, self.mass()));
+                    self.omega = 0.0;
+                }
+                ObstacleType::Spring => {
+                    self.set_y_vel_temp(40.0);
+                }
+            }
             if self.theta() < OMEGA * 6.0 || self.theta() > 360.0 - OMEGA * 6.0 {
                 self.theta = 0.0;
                 // Add Hooke's law bounce here
@@ -800,10 +817,10 @@ impl<'a> Entity<'a> for Obstacle<'a> {
     }
 
     fn update_pos(&mut self, ground: Point, angle: f64) {
-        if self.collided {
-            self.theta += angle;
-        }
-
+        // uncomment this to restore an arbitrary spin that is applied to all obstacles on collision
+        // if self.collided {
+        //     self.theta += angle;
+        // }
         self.pos.0 -= self.velocity.0;
         self.pos.1 -= self.velocity.1;
         //println!("AAAAA {}", self.pos.1);
