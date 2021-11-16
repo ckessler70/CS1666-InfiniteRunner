@@ -691,7 +691,7 @@ impl Game for Runner {
                         _ => {}
                     }
                 }
-              
+
                 // Vertical draw offset to keep game in vertical bounds
                 // Should be calculated before postion updates and added to the y object's y variable
                 // Currently is not being applied to the player in an ideal way :(
@@ -703,7 +703,7 @@ impl Game for Runner {
                 if current_ground.y() > player_lower_bound {
                     vert_draw_offset = player_lower_bound - current_ground.y();
                 }
-              
+
                 //Object spawning
                 if object_spawn > 0 && object_spawn < SIZE {
                     /* println!(
@@ -722,10 +722,10 @@ impl Game for Runner {
                                     s.hitbox = rect!(
                                         object_spawn * CAM_W as usize / SIZE
                                             + CAM_W as usize / SIZE / 2,
-                                        CAM_H as i16
+                                        (CAM_H as i16
                                             - bg[GROUND_INDEX][object_spawn]
-                                            - TILE_SIZE as i16,
-                                            + vert_draw_offset as i16,
+                                            - TILE_SIZE as i16
+                                            + vert_draw_offset as i16),
                                         TILE_SIZE,
                                         TILE_SIZE
                                     );
@@ -740,10 +740,10 @@ impl Game for Runner {
                                 s.hitbox = rect!(
                                     object_spawn * CAM_W as usize / SIZE
                                         + CAM_W as usize / SIZE / 2,
-                                    CAM_H as i16
+                                    (CAM_H as i16
                                         - bg[GROUND_INDEX][object_spawn]
                                         - TILE_SIZE as i16
-                                        + vert_draw_offset as i16,
+                                        + vert_draw_offset as i16),
                                     TILE_SIZE,
                                     TILE_SIZE
                                 );
@@ -761,8 +761,8 @@ impl Game for Runner {
                                             + CAM_W as usize / SIZE / 2,
                                         (CAM_H as i16
                                             - bg[GROUND_INDEX][object_spawn]
-                                            - (TILE_SIZE/4) as i16),
-                                            + vert_draw_offset as i16,
+                                            - (TILE_SIZE/4) as i16
+                                            + vert_draw_offset as i16),
                                         TILE_SIZE,
                                         TILE_SIZE/4
                                     );
@@ -913,9 +913,9 @@ impl Game for Runner {
                     false,
                 )?;
                 core.wincan.set_draw_color(Color::BLACK);
-              
+
                 // Hacky way of adjusting player's hitbox with the draw offset
-                // Ideally draw offset could be part of position calculations, and this could be a regular iter 
+                // Ideally draw offset could be part of position calculations, and this could be a regular iter
                 for h in player.hitbox().iter_mut() {
                     (*h).set_y((*h).y() + vert_draw_offset);
                     core.wincan.draw_rect(*h)?;
