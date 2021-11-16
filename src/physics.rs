@@ -10,7 +10,7 @@ use std::num;
 // use crate::ProceduralGen;
 
 //LOWER_SPEED is normally 1.0; it has been set to -20.0 for the purpose of demonstrating collisions
-const LOWER_SPEED: f64 = -20.0;
+const LOWER_SPEED: f64 = -5.0;
 const UPPER_SPEED: f64 = 5.0;
 // const GRAVITY: f64 = 9.80665;
 const OMEGA: f64 = PI / 18.0;
@@ -57,7 +57,7 @@ impl Physics {
             //apply normal (force positive)
             // body.apply_force((0.0, -body.mass() * angle.cos()));
             //apply normal in -x & +y
-            // The y direction force here should be 0; the normal force in the y direction 
+            // The y direction force here should be 0; the normal force in the y direction
             body.apply_force((body.mass() * angle.sin(), -body.mass() * angle.cos()));
 
             //apply friction (same as gravity in -x)
@@ -137,7 +137,7 @@ pub trait Entity<'a> {
     /// Returns the center position of the `Entity`
     fn center(&self) -> Point;
     /// Modifies the position of the `Entity`
-    fn update_pos(&mut self, ground: Point, angle: f64);
+    fn update_pos(&mut self, ground: Point, angle: f64, game_over: bool);
 
     /****************** Angular motion *************** */
 
@@ -341,7 +341,7 @@ impl<'a> Player<'a> {
         // }
     }
 
-    pub fn set_y_vel_temp(&mut self, speed: f64){
+    pub fn set_y_vel_temp(&mut self, speed: f64) {
         self.velocity.1 = speed
     }
 
@@ -403,7 +403,6 @@ impl<'a> Player<'a> {
         //    }
         //    self.rotate();
         //}
-        
     }
 
     // Returns false if the player crashed
@@ -465,12 +464,17 @@ impl<'a> Entity<'a> for Player<'a> {
         self.theta
     }
 
-    fn update_pos(&mut self, ground: Point, angle: f64) {
+    fn update_pos(&mut self, ground: Point, angle: f64, game_over: bool) {
         if self.hitbox.contains_point(ground) {
             self.theta = angle;
         }
 
-        // Player's x position is fixed
+        println!("player velocity: {} {}", self.vel_x(), self.vel_y());
+
+        // TEMPORARY: Player's x position is fixed until camera freezes on game ending
+        if game_over {
+            self.pos.0 += self.vel_x();
+        }
         self.pos.1 -= self.vel_y();
         self.align_hitbox_to_pos();
     }
@@ -537,14 +541,14 @@ impl<'a> Collider<'a> for Player<'a> {
 
     fn collide(&mut self, obstacle: &mut Obstacle, hitboxes: (Rect, Rect), shielded: bool) -> bool {
         let mut result = false;
-        // no matter what the obstacle's type is, flag it as having collided
-        obstacle.collided = true;
         // if the collision box is taller than it is wide, the player hit the side of the object
         if (hitboxes.0.intersection(hitboxes.1).unwrap().height()
             > hitboxes.0.intersection(hitboxes.1).unwrap().width())
         {
             println!("collided with side of obstacle");
 
+            // no matter what the obstacle's type is, flag it as having collided
+            obstacle.collided = true;
             /********** ELASTIC COLLISION CALCULATION **********/
             // https://en.wikipedia.org/wiki/Elastic_collision#One-dimensional_Newtonian
             // Assumed object has velocity (0,0)
@@ -555,18 +559,18 @@ impl<'a> Collider<'a> for Player<'a> {
             let p_mass = self.mass();
             let o_mass = obstacle.mass();
             let p_vx = self.velocity.0;
-            let p_vy = self.velocity.1;
+            let p_vy = if self.jumping { self.velocity.1 } else { 0.0 };
             let p_vx_f = (p_mass - o_mass) * (p_vx) / (p_mass + o_mass);
             let p_vy_f = (p_mass - o_mass) * (p_vy) / (p_mass + o_mass);
             let o_vx_f = (2.0 * p_mass) * (p_vx) / (p_mass + o_mass);
             let o_vy_f = (2.0 * p_mass) * (p_vy) / (p_mass + o_mass);
 
             // println!("INTENDED TRAJECTORIES: ELASTIC COLLISION: ");
-            // println!("\tplayer mass: {}", p_mass);
-            // println!("\tobject mass: {}", o_mass);
-            // println!("\tplayer initial velocity: ({},{})", p_vx, p_vy);
-            // println!("\tobject initial velocity: ({},{})", 0, 0);
-            // println!("\tangle from player to object in rads: {}", angle);
+            println!("\tplayer mass: {}", p_mass);
+            println!("\tobject mass: {}", o_mass);
+            println!("\tplayer initial velocity: ({},{})", p_vx, p_vy);
+            println!("\tobject initial velocity: ({},{})", 0, 0);
+            println!("\tangle from player to object in rads: {}", angle);
             println!("\tplayer final velocity({},{})", p_vx_f, p_vy_f);
             println!("\tobject final velocity({},{})", o_vx_f, o_vy_f);
             obstacle.velocity.0 = o_vx_f;
@@ -582,22 +586,24 @@ impl<'a> Collider<'a> for Player<'a> {
             // Implicitly apply the force of collision to the player by updating its x and y velocity to the values calculated from the collision equation
             self.velocity.0 = p_vx_f;
             self.velocity.1 = p_vy_f;
+            Physics::apply_gravity(obstacle, 0.0, 0.3);
             /***************************************************/
             match obstacle.o_type {
                 ObstacleType::Statue => {
                     if shielded {
                         //player has shield
-        
+
                         //self.align_hitbox_to_pos();
                         //other.pos.0 = 6.5;
-                        
-                        obstacle.apply_force((-0.4, 1.0));
-                        // obstacle.velocity.0 = o_vx_f;
-                        // obstacle.velocity.1 = o_vy_f;
+
+                        self.velocity.0 = p_vx_f;
+                        self.velocity.1 = p_vy_f;
+                        // obstacle.apply_force((-0.4, 1.0));
+                        obstacle.velocity.0 = o_vx_f;
+                        obstacle.velocity.1 = o_vy_f;
                         //println!("ayOb{}", Obstacle.accel_y());
                         //.0 = o_vx_f;
                         true
-                        
                     } else {
                         //player does not have shield
                         //obstacle.apply_force((-0.4, 1.0));
@@ -605,12 +611,11 @@ impl<'a> Collider<'a> for Player<'a> {
                     }
                 }
                 ObstacleType::Spring => {
-                    print!("Spring");  
+                    print!("Spring");
                     true
                 }
-                _ => true
+                _ => true,
             }
-           
 
             // self.velocity.0 = 0.0;
             // self.apply_force((self.mass(), 0.0));
@@ -634,7 +639,7 @@ impl<'a> Collider<'a> for Player<'a> {
                     self.omega = 0.0;
                 }
                 ObstacleType::Spring => {
-                    self.set_y_vel_temp(40.0);
+                    self.set_y_vel_temp(25.0);
                 }
             }
             if self.theta() < OMEGA * 6.0 || self.theta() > 360.0 - OMEGA * 6.0 {
@@ -717,7 +722,6 @@ pub struct Obstacle<'a> {
     theta: f64,
     omega: f64,
     alpha: f64,
-    
 
     onground: bool,
     jumping: bool,
@@ -725,7 +729,7 @@ pub struct Obstacle<'a> {
     collided: bool,
 }
 
-pub enum ObstacleType{
+pub enum ObstacleType {
     Statue,
     Spring,
 }
@@ -816,7 +820,7 @@ impl<'a> Entity<'a> for Obstacle<'a> {
         self.theta
     }
 
-    fn update_pos(&mut self, ground: Point, angle: f64) {
+    fn update_pos(&mut self, ground: Point, angle: f64, game_over: bool) {
         // uncomment this to restore an arbitrary spin that is applied to all obstacles on collision
         // if self.collided {
         //     self.theta += angle;
