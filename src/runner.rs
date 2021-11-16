@@ -698,7 +698,7 @@ impl Game for Runner {
                             //update physics obstacle position
                             for s in obstacles.iter_mut() {
                                 //this is hacky & dumb (will only work if one obstacle spawned at a time)
-                                if !s.collided() {
+                                if !s.collided() && s.mass > 1.0 {
                                     //once it collides we can't draw it like this
                                     s.hitbox = rect!(
                                         object_spawn * CAM_W as usize / SIZE
