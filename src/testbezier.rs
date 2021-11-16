@@ -49,7 +49,7 @@ const BUFF_LENGTH: usize = CAM_W as usize / 4;
 
 const TITLE: &str = "Testing Bezier";
 
-const TIMEOUT: u64 = 10000;
+const TIMEOUT: u64 = 50000;
 
 pub struct TestBezier;
 
@@ -130,9 +130,11 @@ impl Game for TestBezier {
         //p2 = (900, 500)
 
         //First points
-        let p0: (f64, f64) = (20.0, 150.0);
-        let p1: (f64, f64) = (100.0, 75.0);
-        let p2: (f64, f64) = (180.0, 150.0);
+
+        /*
+        let p0: (f64, f64) = (100.0, 100.0);
+        let p1: (f64, f64) = (200.0, 200.0);
+        let p2: (f64, f64) = (400.0, 150.0);
 
         //Print points for reference
         core.wincan.set_draw_color(b);
@@ -143,7 +145,7 @@ impl Game for TestBezier {
         core.wincan
             .fill_rect(Rect::new(p2.0 as i32, p2.1 as i32, 30, 30))?;
 
-        let group_of_points: [(f64, f64); BUFF_LENGTH] =
+        let group_of_points: [(f64, f64); BUFF_LENGTH + 1] =
             proceduralgen::gen_quadratic_bezier_curve_points(p0, p1, p2);
 
         core.wincan.set_draw_color(g);
@@ -157,9 +159,9 @@ impl Game for TestBezier {
         }
 
         //Second points
-        let p0: (f64, f64) = (200.0, 300.0);
-        let p1: (f64, f64) = (400.0, 500.0);
-        let p2: (f64, f64) = (600.0, 400.0);
+        let p0: (f64, f64) = (400.0, 150.0);
+        let p1: (f64, f64) = (500.0, 30.0);
+        let p2: (f64, f64) = (600.0, 150.0);
 
         //Print points for reference
         core.wincan.set_draw_color(Color::RGBA(255, 235, 4, 255));
@@ -170,7 +172,7 @@ impl Game for TestBezier {
         core.wincan
             .fill_rect(Rect::new(p2.0 as i32, p2.1 as i32, 30, 30))?;
 
-        let group_of_points: [(f64, f64); BUFF_LENGTH] =
+        let group_of_points: [(f64, f64); BUFF_LENGTH + 1] =
             proceduralgen::gen_quadratic_bezier_curve_points(p0, p1, p2);
 
         core.wincan.set_draw_color(g);
@@ -183,26 +185,28 @@ impl Game for TestBezier {
                 10,
             ))?;
         }
+        */
 
-        //Third points
-        let p0: (f64, f64) = (400.0, 600.0);
-        let p1: (f64, f64) = (600.0, 200.0);
-        let p2: (f64, f64) = (800.0, 690.0);
-        let p3: (f64, f64) = (1200.0, 150.0);
+        //Cubic first points
+        /*
+        let prev_p0: (f64, f64) = (50.0, 650.0);
+        let prev_p1: (f64, f64) = (250.0, 200.0);
+        let prev_p2: (f64, f64) = (450.0, 600.0);
+        let prev_p3: (f64, f64) = (650.0, 400.0);
 
         //Print points for reference
         core.wincan.set_draw_color(Color::RGBA(255, 0, 0, 255));
         core.wincan
-            .fill_rect(Rect::new(p0.0 as i32, p0.1 as i32, 30, 30))?;
+            .fill_rect(Rect::new(prev_p0.0 as i32, prev_p0.1 as i32, 30, 30))?;
         core.wincan
-            .fill_rect(Rect::new(p1.0 as i32, p1.1 as i32, 30, 30))?;
+            .fill_rect(Rect::new(prev_p1.0 as i32, prev_p1.1 as i32, 30, 30))?;
         core.wincan
-            .fill_rect(Rect::new(p2.0 as i32, p2.1 as i32, 30, 30))?;
+            .fill_rect(Rect::new(prev_p2.0 as i32, prev_p2.1 as i32, 30, 30))?;
         core.wincan
-            .fill_rect(Rect::new(p3.0 as i32, p3.1 as i32, 30, 30))?;
+            .fill_rect(Rect::new(prev_p3.0 as i32, prev_p3.1 as i32, 30, 30))?;
 
-        let group_of_points: [(f64, f64); BUFF_LENGTH] =
-            proceduralgen::gen_cubic_bezier_curve_points(p0, p1, p2, p3);
+        let group_of_points: [(f64, f64); BUFF_LENGTH + 1] =
+            proceduralgen::gen_cubic_bezier_curve_points(prev_p0, prev_p1, prev_p2, prev_p3);
 
         core.wincan.set_draw_color(g);
         for t in 0..BUFF_LENGTH {
@@ -213,6 +217,141 @@ impl Game for TestBezier {
                 10,
             ))?;
         }
+
+        //Cubic second points
+        //let p0: (f64, f64) = (650.0, 400.0);
+        //let p1: (f64, f64) = (850.0, 200.0);
+        let p2: (f64, f64) = (1000.0, 690.0);
+        let p3: (f64, f64) = (1200.0, 50.0);
+
+        //Print points for reference
+        core.wincan.set_draw_color(Color::RGBA(255, 255, 255, 255));
+        /*core.wincan
+            .fill_rect(Rect::new(p0.0 as i32, p0.1 as i32, 15, 15))?;
+        core.wincan
+            .fill_rect(Rect::new(p1.0 as i32, p1.1 as i32, 15, 15))?;
+            */
+        core.wincan
+            .fill_rect(Rect::new(p2.0 as i32, p2.1 as i32, 15, 15))?;
+        core.wincan
+            .fill_rect(Rect::new(p3.0 as i32, p3.1 as i32, 15, 15))?;
+
+        /*
+        let group_of_points: [(f64, f64); BUFF_LENGTH + 1] =
+            proceduralgen::gen_cubic_bezier_curve_points(p0, p1, p2, p3);
+            */
+
+        let temp = group_of_points;
+        let group_of_points: [(f64, f64); BUFF_LENGTH + 1] =
+            proceduralgen::extend_cubic_bezier_curve(prev_p3, prev_p2, p2, p3);
+
+        core.wincan.set_draw_color(b);
+        for t in 0..BUFF_LENGTH {
+            core.wincan.fill_rect(Rect::new(
+                group_of_points[t].0 as i32,
+                group_of_points[t].1 as i32,
+                10,
+                10,
+            ))?;
+        }
+        */
+
+        //core.wincan.set_draw_color(Color::RGBA(255, 0, 255, 255));
+        let mut rng = rand::thread_rng();
+
+        //start at (0, 640)
+        let mut p0: (f64, f64) = (0.0, 640.0);
+        let mut p2: (f64, f64) = (0.0, 0.0); //just instantiate
+        let mut p3: (f64, f64) = (0.0, 0.0); //just instantiate
+        let mut width_index: f64 = 0.0;
+        let mut height_index: f64 = 0.0;
+
+        let mut first_curve: bool = true;
+
+        while (width_index < 1280.0) {
+            //set random color
+            let temp_color = Color::RGBA(
+                rng.gen_range(0..255),
+                rng.gen_range(0..255),
+                rng.gen_range(0..255),
+                255,
+            );
+            core.wincan.set_draw_color(temp_color);
+            let mut prev_p2: (f64, f64) = p2;
+            let mut prev_p3: (f64, f64) = p3;
+
+            let rand_width = rng.gen_range(width_index + 10.0..width_index + 100.0);
+            let rand_height = rng.gen_range(height_index + 160.0..height_index + 560.0);
+            let p0 = (rand_width, rand_height);
+
+            println!("Width: {}\nHeight: {}\n", width_index, height_index);
+
+            width_index = rand_width;
+
+            let rand_width = rng.gen_range(width_index + 10.0..width_index + 100.0);
+            let rand_height = rng.gen_range(height_index + 160.0..height_index + 560.0);
+            let mut p1 = (rand_width, rand_height);
+
+            width_index = rand_width;
+
+            let rand_width = rng.gen_range(width_index + 10.0..width_index + 100.0);
+            let rand_height = rng.gen_range(height_index + 160.0..height_index + 560.0);
+            p2 = (rand_width, rand_height);
+
+            width_index = rand_width;
+
+            let rand_width = rng.gen_range(width_index + 10.0..width_index + 100.0);
+            let rand_height = rng.gen_range(height_index + 160.0..height_index + 560.0);
+            p3 = (rand_width, rand_height);
+
+            width_index = rand_width;
+
+            if (first_curve) {
+                let group_of_points: [(f64, f64); BUFF_LENGTH + 1] =
+                    proceduralgen::gen_cubic_bezier_curve_points(p0, p1, p2, p3);
+
+                //DRAW
+                for t in 0..BUFF_LENGTH {
+                    core.wincan.fill_rect(Rect::new(
+                        group_of_points[t].0 as i32,
+                        group_of_points[t].1 as i32,
+                        10,
+                        10,
+                    ))?;
+                }
+            } else {
+                let group_of_points: [(f64, f64); BUFF_LENGTH + 1] =
+                    proceduralgen::extend_cubic_bezier_curve(prev_p3, prev_p2, p2, p3);
+
+                //DRAW
+                for t in 0..BUFF_LENGTH {
+                    core.wincan.fill_rect(Rect::new(
+                        group_of_points[t].0 as i32,
+                        group_of_points[t].1 as i32,
+                        10,
+                        10,
+                    ))?;
+                }
+            }
+
+            first_curve = false;
+        }
+
+        /*
+        let mut rand_height = rng.gen_range(0.0..705.0);
+        let mut rand_width = rng.gen_range(0.0..1265.0);
+        core.wincan
+            .fill_rect(Rect::new(rand_width as i32, rand_height as i32, 15, 15))?;
+
+        rand_height = rng.gen_range(0.0..705.0);
+        rand_width = rng.gen_range(0.0..1265.0);
+        core.wincan
+            .fill_rect(Rect::new(rand_width as i32, rand_height as i32, 15, 15))?;
+        rand_height = rng.gen_range(0.0..705.0);
+        rand_width = rng.gen_range(0.0..1265.0);
+        core.wincan
+            .fill_rect(Rect::new(rand_width as i32, rand_height as i32, 15, 15))?;
+            */
 
         /*
         let chunk_3 = proceduralgen::gen_perlin_hill_point(

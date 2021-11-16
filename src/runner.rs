@@ -60,8 +60,8 @@ const BACK_HILL_INDEX: usize = 1;
 const GROUND_INDEX: usize = 2;
 
 // Bounds we want to keep the player within
-const PLAYER_BOUNDS_H: (i32, i32) = (0, (CAM_W - TILE_SIZE) as i32);
-const PLAYER_BOUNDS_V: (i32, i32) = (0, (CAM_H - TILE_SIZE - 100) as i32);
+const player_upper_bound: i32 = 2 * TILE_SIZE as i32;
+const player_lower_bound: i32 = CAM_H as i32 - player_upper_bound;
 
 pub struct Runner;
 
@@ -96,8 +96,8 @@ impl Game for Runner {
         // Create player at default position
         let mut player = Player::new(
             rect!(
-                PLAYER_BOUNDS_H.1 / 2,
-                PLAYER_BOUNDS_V.0,
+                CAM_W / 2 - TILE_SIZE / 2, // Center of screen
+                CAM_H / 2 - TILE_SIZE / 2,
                 TILE_SIZE,
                 TILE_SIZE
             ),
@@ -151,7 +151,7 @@ impl Game for Runner {
         // bg[2] = Ground
         let mut bg: [[i16; SIZE]; 3] = [[0; SIZE]; 3];
 
-        let mut ground_buffer: [(f64, f64); BUFF_LENGTH] = [(0.0, 0.0); BUFF_LENGTH];
+        let mut ground_buffer: [(f64, f64); BUFF_LENGTH + 1] = [(0.0, 0.0); BUFF_LENGTH + 1];
         let mut buff_idx = 0;
 
         let mut rng = rand::thread_rng();
@@ -384,7 +384,8 @@ impl Game for Runner {
                 tick_score = 1;
 
                 //in the future when obstacles & coins are proc genned we will probs wanna
-                //only check for obstacles/coins based on their location relative to players x cord
+                //only check for obstacles/coins based on their location relative to players x
+                // cord
                 //(also: idt this can be a for loop bc it moves the obstacles values?)
                 for o in obstacles.iter_mut() {
                     //.filter(|near by obstacles|).collect()
@@ -586,6 +587,12 @@ impl Game for Runner {
                     bg[GROUND_INDEX][(SIZE - 1) as usize] = ground_buffer[buff_idx].1 as i16;
 
                     buff_idx += 1;
+
+                    if (ground_buffer[ground_buffer.len() - 1] == (1.0, 1.0)) {
+                        println!("Bouncy!");
+                    } else {
+                        println!("Not Bouncy!");
+                    }
                 }
 
                 // Every 3 ticks, build a new front mountain segment
@@ -684,7 +691,19 @@ impl Game for Runner {
                         _ => {}
                     }
                 }
-
+              
+                // Vertical draw offset to keep game in vertical bounds
+                // Should be calculated before postion updates and added to the y object's y variable
+                // Currently is not being applied to the player in an ideal way :(
+                // Seems to be fine for obstables?
+                let mut vert_draw_offset = 0;
+                if (current_ground.y() - TILE_SIZE as i32) < player_upper_bound {
+                    vert_draw_offset = player_upper_bound - current_ground.y();
+                }
+                if current_ground.y() > player_lower_bound {
+                    vert_draw_offset = player_lower_bound - current_ground.y();
+                }
+              
                 //Object spawning
                 if object_spawn > 0 && object_spawn < SIZE {
                     /* println!(
@@ -706,6 +725,7 @@ impl Game for Runner {
                                         CAM_H as i16
                                             - bg[GROUND_INDEX][object_spawn]
                                             - TILE_SIZE as i16,
+                                            + vert_draw_offset as i16,
                                         TILE_SIZE,
                                         TILE_SIZE
                                     );
@@ -722,7 +742,8 @@ impl Game for Runner {
                                         + CAM_W as usize / SIZE / 2,
                                     CAM_H as i16
                                         - bg[GROUND_INDEX][object_spawn]
-                                        - TILE_SIZE as i16,
+                                        - TILE_SIZE as i16
+                                        + vert_draw_offset as i16,
                                     TILE_SIZE,
                                     TILE_SIZE
                                 );
@@ -741,6 +762,7 @@ impl Game for Runner {
                                         (CAM_H as i16
                                             - bg[GROUND_INDEX][object_spawn]
                                             - (TILE_SIZE/4) as i16),
+                                            + vert_draw_offset as i16,
                                         TILE_SIZE,
                                         TILE_SIZE/4
                                     );
@@ -756,7 +778,8 @@ impl Game for Runner {
                                         + CAM_W as usize / SIZE / 2,
                                     CAM_H as i16
                                         - bg[GROUND_INDEX][object_spawn]
-                                        - TILE_SIZE as i16,
+                                        - TILE_SIZE as i16
+                                        + vert_draw_offset as i16,
                                     TILE_SIZE,
                                     TILE_SIZE
                                 );
@@ -792,7 +815,7 @@ impl Game for Runner {
                     core.wincan.set_draw_color(Color::RGBA(128, 51, 6, 255));
                     core.wincan.fill_rect(rect!(
                         i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
-                        CAM_H as i16 - bg[BACK_HILL_INDEX][i],
+                        CAM_H as i16 - bg[BACK_HILL_INDEX][i] + vert_draw_offset as i16,
                         CAM_W as usize / SIZE,
                         CAM_H as i16
                     ))?;
@@ -801,7 +824,7 @@ impl Game for Runner {
                     core.wincan.set_draw_color(Color::RGBA(96, 161, 152, 255));
                     core.wincan.fill_rect(rect!(
                         i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
-                        CAM_H as i16 - bg[FRONT_HILL_INDEX][i],
+                        CAM_H as i16 - bg[FRONT_HILL_INDEX][i] + vert_draw_offset as i16,
                         CAM_W as usize / SIZE,
                         CAM_H as i16
                     ))?;
@@ -810,7 +833,7 @@ impl Game for Runner {
                     core.wincan.set_draw_color(Color::RGBA(13, 66, 31, 255));
                     core.wincan.fill_rect(rect!(
                         i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
-                        CAM_H as i16 - bg[GROUND_INDEX][i],
+                        CAM_H as i16 - bg[GROUND_INDEX][i] + vert_draw_offset as i16,
                         CAM_W as usize / SIZE,
                         CAM_H as i16
                     ))?;
@@ -879,17 +902,22 @@ impl Game for Runner {
                 }
 
                 // Draw player
+                // Ideally draw offset could be part of position calculations, and that var could be removed from the second rect
                 core.wincan.copy_ex(
                     player.texture(),
                     rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
-                    rect!(player.x(), player.y(), TILE_SIZE, TILE_SIZE),
+                    rect!(player.x(), player.y() + vert_draw_offset, TILE_SIZE, TILE_SIZE),
                     player.theta() * 180.0 / std::f64::consts::PI,
                     None,
                     false,
                     false,
                 )?;
                 core.wincan.set_draw_color(Color::BLACK);
-                for h in player.hitbox().iter() {
+              
+                // Hacky way of adjusting player's hitbox with the draw offset
+                // Ideally draw offset could be part of position calculations, and this could be a regular iter 
+                for h in player.hitbox().iter_mut() {
+                    (*h).set_y((*h).y() + vert_draw_offset);
                     core.wincan.draw_rect(*h)?;
                 }
 

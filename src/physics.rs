@@ -19,8 +19,9 @@ pub struct Physics;
 
 impl Physics {
     pub fn check_collection(player: &Player, coin: &Coin) -> bool {
-        // For collection, collsion including force and torque does not need to be accounted for
-        // If any of the player hitboxes intersect with a `Collectible`, the object will be aquired by the player
+        // For collection, collsion including force and torque does not need to be
+        // accounted for If any of the player hitboxes intersect with a
+        // `Collectible`, the object will be aquired by the player
         for h in player.hitbox().iter() {
             if h.has_intersection(coin.hitbox()) {
                 return true;
@@ -157,15 +158,18 @@ pub trait Collider<'a>: Entity<'a> {
     /// Returns the collision boundary of the object as a list of `Rect` stored
     /// in a `Vec`
     fn hitbox(&self) -> Vec<Rect>;
-    /// Checks for collision between two objects that can collide by iterating through all of their hitboxes
+    /// Checks for collision between two objects that can collide by iterating
+    /// through all of their hitboxes
     ///
     /// # Arguments
-    /// * `other`: the `Collider` object that may collide with the current object
+    /// * `other`: the `Collider` object that may collide with the current
+    ///   object
     ///
     /// # Return
-    /// * If objects are colliding, return `tuple` as follows:
-    ///     1. `Rect`: the hitbox belonging to this object that collided with the other object
-    ///     2. `Rect`: the hitbox belonging to the other object that collided with this object
+    /// * If objects are colliding, return `tuple` as follows: 1. `Rect`: the
+    ///   hitbox belonging to this object that collided with the other object 2.
+    ///   `Rect`: the hitbox belonging to the other object that collided with
+    ///   this object
     /// * If the objects are not colliding, return `None`
     fn check_collision(&mut self, other: &impl Collider<'a>) -> Option<(Rect, Rect)> {
         // TODO
@@ -268,7 +272,8 @@ pub trait Body<'a>: Collider<'a> + Dynamic<'a> {
     // ///
     // /// # Arguments
     // /// * `terrain_type`: the name of the terrain type the `Body` collided with
-    // fn collide_terrain(&mut self, ground: Point, angle: f64, terrain_type: String);
+    // fn collide_terrain(&mut self, ground: Point, angle: f64, terrain_type:
+    // String);
 }
 
 ///Represents the player character
@@ -301,7 +306,6 @@ impl<'a> Player<'a> {
             velocity: (3.0, 0.0),
             accel: (0.0, 0.0),
             hitbox,
-
             theta: 0.0,
             omega: 0.0,
             alpha: 0.0,
@@ -536,7 +540,8 @@ impl<'a> Collider<'a> for Player<'a> {
     fn collide(&mut self, obstacle: &mut Obstacle, hitboxes: (Rect, Rect), shielded: bool) -> bool {
         let mut result = false;
 
-        // if the collision box is taller than it is wide, the player hit the side of the object
+        // if the collision box is taller than it is wide, the player hit the side of
+        // the object
         if (hitboxes.0.intersection(hitboxes.1).unwrap().height()
             > hitboxes.0.intersection(hitboxes.1).unwrap().width())
         {
@@ -600,7 +605,6 @@ impl<'a> Collider<'a> for Player<'a> {
                 }
                 _ => return true
             }
-           
 
             // self.velocity.0 = 0.0;
             // self.apply_force((self.mass(), 0.0));
@@ -649,8 +653,9 @@ impl<'a> Body<'a> for Player<'a> {
     fn rotational_inertia(&self) -> f64 {
         // TODO:
         // Rotaional inertia -- I = L/omega
-        // I think we'll wanna use L = mass*R^2     (ie. angular momentum for a sphere/thing with effective radius R)
-        // Torque (if we need it) tau = I * alpha
+        // I think we'll wanna use L = mass*R^2     (ie. angular momentum for a
+        // sphere/thing with effective radius R) Torque (if we need it) tau = I
+        // * alpha
         if !self.jumping {
             return 0.0;
         }
@@ -934,9 +939,8 @@ pub trait Collectible<'a> {
 
     /// Returns the collection boundary of the object as a `Rect`
     fn hitbox(&self) -> Rect;
-    /// Applies a collection to the `Collectible` using the physical attributes of
-    /// it and another object that must be of type `Collider`
-    ///
+    /// Applies a collection to the `Collectible` using the physical attributes
+    /// of it and another object that must be of type `Collider`
     // collect the collectible (set its collected field to true & delete it)
     fn collect(&mut self);
 }
