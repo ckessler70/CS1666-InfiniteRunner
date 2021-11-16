@@ -4,7 +4,10 @@ use crate::rect;
 use sdl2::rect::Rect;
 use sdl2::render::Texture;
 
-use rand::Rng;
+use rand::{
+    distributions::{Distribution, Standard},
+    Rng,
+};
 
 const CAM_W: u32 = 1280;
 // Ensure that SIZE is not a decimal
@@ -24,6 +27,8 @@ pub struct TerrainSegment<'a> {
 pub enum StaticObject {
     Coin,
     Statue,
+    Power,
+    Spring,
 }
 
 #[allow(dead_code)]
@@ -77,6 +82,7 @@ impl ProceduralGen {
     }
 
     pub fn gen_land<'a>(
+        random: &[[(i32, i32); 256]; 256],
         prev_segment: &TerrainSegment,
         cam_w: i32,
         cam_h: i32,
@@ -93,7 +99,7 @@ impl ProceduralGen {
         let cliff_min_mod: f64 = 2.0;
         let cliff_max_mod: f64 = 5.0;
 
-        let freq = rng.gen::<f64>() * 256.0 + 32.0;
+        let freq = rng.gen_range(32.0..256.0);
         let amp: f64 = if _is_flat {
             rng.gen::<f64>() * flat_mod
         } else if _is_cliff {
@@ -114,25 +120,28 @@ impl ProceduralGen {
         // Generates perlin noise for random point instead of whole map
         let map_size = 128;
         let point_mod_1a: f64 = gen_point_mod(
+            &random,
             (
-                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
-                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
             ),
             freq,
             amp,
         );
         let point_mod_1b: f64 = gen_point_mod(
+            &random,
             (
-                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
-                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
             ),
             freq,
             amp,
         );
         let point_mod_2: f64 = gen_point_mod(
+            &random,
             (
-                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
-                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
             ),
             freq,
             amp,
@@ -160,6 +169,7 @@ impl ProceduralGen {
     }
 
     pub fn gen_bezier_land(
+        random: &[[(i32, i32); 256]; 256],
         mut prev_point: (f64, f64),
         cam_w: i32,
         cam_h: i32,
@@ -174,7 +184,7 @@ impl ProceduralGen {
         let cliff_min_mod: f64 = 2.0;
         let cliff_max_mod: f64 = 5.0;
 
-        let freq = rng.gen::<f64>() * 256.0 + 32.0;
+        let freq = rng.gen_range(32.0..256.0);
         let amp: f64 = if _is_flat {
             rng.gen::<f64>() * flat_mod
         } else if _is_cliff {
@@ -195,49 +205,55 @@ impl ProceduralGen {
         // Generates perlin noise for random point instead of whole map
         let map_size = 128;
         let point_mod_1a: f64 = gen_point_mod(
+            &random,
             (
-                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
-                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
             ),
             freq,
             amp,
         );
         let point_mod_1b: f64 = gen_point_mod(
+            &random,
             (
-                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
-                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
             ),
             freq,
             amp,
         );
         let point_mod_2a: f64 = gen_point_mod(
+            &random,
             (
-                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
-                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
             ),
             freq,
             amp,
         );
         let point_mod_2b: f64 = gen_point_mod(
+            &random,
             (
-                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
-                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
             ),
             freq,
             amp,
         );
         let point_mod_3a: f64 = gen_point_mod(
+            &random,
             (
-                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
-                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
             ),
             freq,
             amp,
         );
         let point_mod_3b: f64 = gen_point_mod(
+            &random,
             (
-                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
-                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
             ),
             freq,
             amp,
@@ -271,7 +287,11 @@ impl ProceduralGen {
         return (curve);
     }
 
-    pub fn spawn_object(min_length: i32, max_length: i32) -> (Option<StaticObject>, usize) {
+    pub fn spawn_object(
+        random: &[[(i32, i32); 256]; 256],
+        min_length: i32,
+        max_length: i32,
+    ) -> (Option<StaticObject>, usize) {
         let mut rng = rand::thread_rng();
 
         let freq = rng.gen::<f64>() * 256.0 + 32.0;
@@ -279,6 +299,7 @@ impl ProceduralGen {
 
         let map_size = 128;
         let point_mod: f64 = gen_point_mod(
+            &random,
             (
                 ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
                 ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
@@ -287,11 +308,7 @@ impl ProceduralGen {
             amp,
         );
 
-        let object = if amp > 0.5 {
-            StaticObject::Coin
-        } else {
-            StaticObject::Statue
-        };
+        let object = rand::random();
 
         let length = (point_mod * max_length as f64 + min_length as f64)
             .clamp(min_length as f64, max_length as f64)
@@ -299,85 +316,11 @@ impl ProceduralGen {
 
         (Some(object), length)
     }
-
-    pub fn test_mapper(&mut self) -> Result<(), String> {
-        let mut out = [[0.0; 128]; 128];
-        let mut random = [[0.0; 64]; 64];
-
-        let mut rng = rand::thread_rng();
-
-        for i in 0..64 {
-            for j in 0..64 {
-                random[i][j] = rng.gen::<f64>();
-            }
-        }
-
-        let freq = rng.gen::<f64>() * 256.0 + 32.0;
-        let amp = rng.gen::<f64>();
-
-        for i in 0..(out.len() - 1) {
-            for j in 0..(out.len() - 1) {
-                let cord = (i, j);
-
-                let n = noise_2d(&random, (cord.0 as f64 / 64.0, cord.1 as f64 / (freq))) * (amp)
-                    + noise_2d(
-                        &random,
-                        (cord.0 as f64 / 32.0, cord.1 as f64 / (freq / 2.0)),
-                    ) * (amp / 2.0)
-                    + noise_2d(
-                        &random,
-                        (cord.0 as f64 / 16.0, cord.1 as f64 / (freq / 4.0)),
-                    ) * (amp / 4.0)
-                    + noise_2d(&random, (cord.0 as f64 / 8.0, cord.1 as f64 / (freq / 8.0)))
-                        * (amp / 8.0);
-                let modifier = n * 0.5 + 0.5;
-
-                out[i][j] = modifier;
-            }
-        }
-        for i in 0..(out.len() - 1) {
-            for j in 0..(out.len() - 1) {
-                let print = if out[j][i] / 0.1 < 1.0 {
-                    ' '
-                } else if out[i][j] / 0.1 < 2.0 {
-                    '.'
-                } else if out[i][j] / 0.1 < 3.0 {
-                    ','
-                } else if out[i][j] / 0.1 < 4.0 {
-                    '-'
-                } else if out[i][j] / 0.1 < 5.0 {
-                    '|'
-                } else if out[i][j] / 0.1 < 6.0 {
-                    '"'
-                } else if out[i][j] / 0.1 < 7.0 {
-                    '='
-                } else if out[i][j] / 0.1 < 8.0 {
-                    '+'
-                } else if out[i][j] / 0.1 < 9.0 {
-                    'o'
-                } else {
-                    'O'
-                };
-                print!("{}", print);
-            }
-            println!("");
-        }
-        Ok(())
-    }
 }
 
 // Test function used freq = 64.0 and amp = 1.0
-fn gen_perlin_noise(freq: f64, amp: f64) -> [[f64; 128]; 128] {
+fn gen_perlin_noise(random: &[[(i32, i32); 256]; 256], freq: f64, amp: f64) -> [[f64; 128]; 128] {
     let mut out = [[0.0; 128]; 128];
-    let mut random = [[0.0; 64]; 64];
-
-    let mut rng = rand::thread_rng();
-
-    for i in 0..64 {
-        for j in 0..64 {
-            random[i][j] = rng.gen::<f64>();
-        }
-    }
 
     for i in 0..(out.len() - 1) {
         for j in 0..(out.len() - 1) {
@@ -402,27 +345,20 @@ fn gen_perlin_noise(freq: f64, amp: f64) -> [[f64; 128]; 128] {
     return out;
 }
 
-fn gen_point_mod(cord: (i32, i32), freq: f64, amp: f64) -> f64 {
-    let mut random = [[0.0; 64]; 64];
-
-    let mut rng = rand::thread_rng();
-
-    for i in 0..64 {
-        for j in 0..64 {
-            random[i][j] = rng.gen::<f64>();
-        }
-    }
-
-    let n = noise_2d(&random, (cord.0 as f64 / 64.0, cord.1 as f64 / (freq))) * (amp)
+fn gen_point_mod(random: &[[(i32, i32); 256]; 256], cord: (i32, i32), freq: f64, amp: f64) -> f64 {
+    let n = noise_2d(&random, (cord.0 as f64 / (freq), cord.1 as f64 / (freq))) * (amp)
         + noise_2d(
             &random,
-            (cord.0 as f64 / 32.0, cord.1 as f64 / (freq / 2.0)),
+            (cord.0 as f64 / (freq / 2.0), cord.1 as f64 / (freq / 2.0)),
         ) * (amp / 2.0)
         + noise_2d(
             &random,
-            (cord.0 as f64 / 16.0, cord.1 as f64 / (freq / 4.0)),
+            (cord.0 as f64 / (freq / 4.0), cord.1 as f64 / (freq / 4.0)),
         ) * (amp / 4.0)
-        + noise_2d(&random, (cord.0 as f64 / 8.0, cord.1 as f64 / (freq / 8.0))) * (amp / 8.0);
+        + noise_2d(
+            &random,
+            (cord.0 as f64 / (freq / 8.0), cord.1 as f64 / (freq / 8.0)),
+        ) * (amp / 8.0);
     let modifier = n * 0.5 + 0.5;
     return modifier;
 }
@@ -433,18 +369,22 @@ fn fade_2d(t: f64) -> f64 {
 }
 
 //Perlin Noise helper function
-fn grad_2d(random: &[[f64; 64]; 64], p: (f64, f64)) -> (f64, f64) {
-    let v = (
-        random[((p.0 / random.len() as f64) as usize) % random.len()][0],
-        random[0][((p.1 / random.len() as f64) as usize) % random.len()],
-    );
+fn grad_2d(random: &[[(i32, i32); 256]; 256], p: (f64, f64)) -> (f64, f64) {
+    let pre_v = random[p.0 as usize % 256][p.1 as usize % 256];
+
+    let v = (pre_v.0 as f64 / 256.0, pre_v.1 as f64 / 256.0);
+
     let n = (v.0 * 2.0 - 1.0, v.1 * 2.0 - 1.0);
-    let normalize = (v.0 * v.0 + v.1 * v.1).sqrt();
-    return (n.0 / normalize, n.1 / normalize);
+
+    let length = (n.0 * n.0 + n.1 * n.1).sqrt();
+
+    let unit = (n.0 / length, n.1 / length);
+
+    return unit;
 }
 
 //Perlin Noise helper function
-fn noise_2d(random: &[[f64; 64]; 64], p: (f64, f64)) -> f64 {
+pub fn noise_2d(random: &[[(i32, i32); 256]; 256], p: (f64, f64)) -> f64 {
     let p0 = (p.0.floor(), p.1.floor());
     let p1 = (p0.0 + 1.0, p0.1);
     let p2 = (p0.0, p0.1 + 1.0);
@@ -466,12 +406,17 @@ fn noise_2d(random: &[[f64; 64]; 64], p: (f64, f64)) -> f64 {
     let p_minus_p2 = (p.0 - p2.0, p.1 - p2.1);
     let p_minus_p3 = (p.0 - p3.0, p.1 - p3.1);
 
-    let p0p1 = (1.0 - fade_t0) * (g0.0 * p_minus_p0.0 + g0.1 * p_minus_p0.1)
-        + fade_t0 * (g1.0 * p_minus_p1.0 + g1.1 * p_minus_p1.1);
-    let p2p3 = (1.0 - fade_t0) * (g2.0 * p_minus_p2.0 + g2.1 * p_minus_p2.1)
-        + fade_t0 * (g3.0 * p_minus_p3.0 + g3.1 * p_minus_p3.1);
+    let g0_dot_p0 = g0.0 * p_minus_p0.0 + g0.1 * p_minus_p0.1;
+    let g1_dot_p1 = g1.0 * p_minus_p1.0 + g1.1 * p_minus_p1.1;
+    let g2_dot_p2 = g2.0 * p_minus_p2.0 + g2.1 * p_minus_p2.1;
+    let g3_dot_p3 = g3.0 * p_minus_p3.0 + g3.1 * p_minus_p3.1;
 
-    return (1.0 - fade_t1) * p0p1 + fade_t1 * p2p3;
+    let p0p1 = (1.0 - fade_t0) * g0_dot_p0 + fade_t0 * g1_dot_p1;
+    let p2p3 = (1.0 - fade_t0) * g2_dot_p2 + fade_t0 * g3_dot_p3;
+
+    let result = (1.0 - fade_t1) * p0p1 + fade_t1 * p2p3;
+
+    return result;
 }
 
 //Not sure the use of this
@@ -668,10 +613,23 @@ fn noise_1d(p: f32) -> f32 {
     let p1 = p0 + 1.0;
 
     let t = p - p0;
-    let fade_t = fade_1d(t);
+    let ft = fade_1d(t);
 
     let g0 = grad_1d(p0);
     let g1 = grad_1d(p1);
 
-    return ((1.0 - fade_t) * g0 * (p - p0) + fade_t * g1 * (p - p1));
+    return ((1.0 - ft) * g0 * (p - p0) + ft * g1 * (p - p1));
+}
+
+impl Distribution<StaticObject> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> StaticObject {
+        // match rng.gen_range(0, 3) { // rand 0.5, 0.6, 0.7
+        match rng.gen_range(0..=3) {
+            // rand 0.8
+            0 => StaticObject::Coin,
+            1 => StaticObject::Statue,
+            2 => StaticObject::Spring,
+            _ => StaticObject::Power,
+        }
+    }
 }
