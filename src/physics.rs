@@ -339,6 +339,10 @@ impl<'a> Player<'a> {
         // }
     }
 
+    pub fn set_y_vel_temp(&mut self, speed: f64){
+        self.velocity.1 = speed
+    }
+
     pub fn resume_flipping(&mut self) {
         self.flipping = true;
         self.omega = OMEGA;
@@ -397,6 +401,7 @@ impl<'a> Player<'a> {
         //    }
         //    self.rotate();
         //}
+        
     }
 
     // Returns false if the player crashed
@@ -562,27 +567,40 @@ impl<'a> Collider<'a> for Player<'a> {
             // println!("\tplayer final velocity({},{})", p_vx_f, p_vy_f);
             // println!("\tobject final velocity({},{})", o_vx_f, o_vy_f);
             /***************************************************/
-            if true {
-                //player has shield
-
-                //self.align_hitbox_to_pos();
-                //other.pos.0 = 6.5;
-                obstacle.apply_force((-0.4, 1.0));
-                // obstacle.velocity.0 = o_vx_f;
-                // obstacle.velocity.1 = o_vy_f;
-                obstacle.collided = true;
-                //println!("ayOb{}", Obstacle.accel_y());
-
-                //.0 = o_vx_f;
-                true
-            } else {
-                //playe does not have shield
-                self.pos.0 = (obstacle.x() as f64 - 1.05 * TILE_SIZE);
-                self.velocity.0 = p_vx_f;
-                self.velocity.1 = p_vy_f;
-                self.align_hitbox_to_pos();
-                false
+            match obstacle.o_type {
+                ObstacleType::Statue => {
+                    if shielded {
+                        //player has shield
+        
+                        //self.align_hitbox_to_pos();
+                        //other.pos.0 = 6.5;
+                        
+                        obstacle.apply_force((-0.4, 1.0));
+                        // obstacle.velocity.0 = o_vx_f;
+                        // obstacle.velocity.1 = o_vy_f;
+                        obstacle.collided = true;
+                        //println!("ayOb{}", Obstacle.accel_y());
+        
+                        //.0 = o_vx_f;
+                        return true
+                        
+                    } else {
+                        //player does not have shield
+                        self.pos.0 = (obstacle.x() as f64 - 1.05 * TILE_SIZE);
+                        self.velocity.0 = p_vx_f;
+                        self.velocity.1 = p_vy_f;
+                        self.align_hitbox_to_pos();
+                        return false
+                    }
+                }
+                ObstacleType::Spring => {
+                    self.set_y_vel_temp(40.0);
+                    print!("Spring");  
+                    return true
+                }
+                _ => return true
             }
+           
 
             // self.velocity.0 = 0.0;
             // self.apply_force((self.mass(), 0.0));
@@ -673,19 +691,26 @@ pub struct Obstacle<'a> {
     pub velocity: (f64, f64),
     pub accel: (f64, f64),
     pub hitbox: Rect,
+    pub o_type: ObstacleType,
 
-    mass: f64,
+    pub mass: f64,
     texture: Texture<'a>,
 
     bouncy: bool,
     theta: f64,
     omega: f64,
     alpha: f64,
+    
 
     onground: bool,
     jumping: bool,
     flipping: bool,
     collided: bool,
+}
+
+pub enum ObstacleType{
+    Statue,
+    Spring,
 }
 
 /// #TODO
@@ -694,14 +719,15 @@ pub struct Obstacle<'a> {
 /// * Add default impls of certain obstacle traits so that it is easier to make
 /// different types of obstacles
 impl<'a> Obstacle<'a> {
-    pub fn new(hitbox: Rect, mass: f64, texture: Texture<'a>) -> Obstacle {
+    pub fn new(hitbox: Rect, mass: f64, texture: Texture<'a>, o_type: ObstacleType) -> Obstacle {
         Obstacle {
             pos: (hitbox.x() as f64, hitbox.y() as f64),
             velocity: (0.0, 0.0),
             accel: (0.0, 0.0),
+            o_type,
             hitbox,
             texture,
-            mass: 1.0, // maybe randomize? idk @procedural gen team
+            mass, // maybe randomize? idk @procedural gen team
             bouncy: false,
             theta: 0.0,
             omega: 0.0,

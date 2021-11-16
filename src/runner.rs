@@ -9,6 +9,7 @@ use crate::physics::Entity;
 use crate::physics::Obstacle;
 use crate::physics::Player;
 use crate::physics::Power;
+use crate::physics::ObstacleType;
 
 use crate::proceduralgen;
 // use crate::proceduralgen::ProceduralGen;
@@ -647,6 +648,7 @@ impl Game for Runner {
                                 rect!(0, 0, 0, 0),
                                 2.0,
                                 texture_creator.load_texture("assets/statue.png")?,
+                                ObstacleType::Statue,
                             );
                             obstacles.push(obstacle);
                             object_count -= 1;
@@ -658,6 +660,16 @@ impl Game for Runner {
                                 1000,
                             );
                             coins.push(coin);
+                            object_count -= 1;
+                        }
+                        Some(StaticObject::Spring) => {
+                            let obstacle = Obstacle::new(
+                                rect!(0, 0, 0, 0),
+                                1.0,
+                                texture_creator.load_texture("assets/temp_spring.jpg")?,
+                                ObstacleType::Spring,
+                            );
+                            obstacles.push(obstacle);
                             object_count -= 1;
                         }
                         Some(StaticObject::Power) => {
@@ -715,6 +727,25 @@ impl Game for Runner {
                                     TILE_SIZE
                                 );
                                 s.pos = (s.hitbox.x() as f64, s.hitbox.y() as f64);
+                            }
+                        }
+                        Some(proceduralgen::StaticObject::Spring) => {
+                            //update physics obstacle position
+                            for s in obstacles.iter_mut() {
+                                //this is hacky & dumb (will only work if one obstacle spawned at a time)
+                                if !s.collided() && s.mass<2.0  {   //gaurantees spring for now
+                                    //once it collides we can't draw it like this
+                                    s.hitbox = rect!(
+                                        object_spawn * CAM_W as usize / SIZE
+                                            + CAM_W as usize / SIZE / 2,
+                                        (CAM_H as i16
+                                            - bg[GROUND_INDEX][object_spawn]
+                                            - (TILE_SIZE/4) as i16),
+                                        TILE_SIZE,
+                                        TILE_SIZE/4
+                                    );
+                                    s.pos = (s.hitbox.x() as f64, s.hitbox.y() as f64);
+                                }
                             }
                         }
                         Some(proceduralgen::StaticObject::Power) => {
@@ -867,17 +898,36 @@ impl Game for Runner {
                     if (o.x() > 50 && o.y() > 20) {
                         //hacky - will not work if more than one obstacle spawned
                         //println!("XXXXX ypos{} vyo{} ayo{}  ", o.pos.1, o.velocity.1, o.accel.1 );
-                        core.wincan.copy_ex(
-                            o.texture(),
-                            None,
-                            rect!(o.pos.0, o.pos.1, TILE_SIZE, TILE_SIZE),
-                            o.theta(),
-                            None,
-                            false,
-                            false,
-                        )?;
-                        core.wincan.set_draw_color(Color::RED);
-                        core.wincan.draw_rect(o.hitbox())?;
+                        match o.o_type {
+                            ObstacleType::Statue => {
+                                core.wincan.copy_ex(
+                                    o.texture(),
+                                    None,
+                                    rect!(o.pos.0, o.pos.1, TILE_SIZE, TILE_SIZE),
+                                    o.theta(),
+                                    None,
+                                    false,
+                                    false,
+                                )?;
+                                core.wincan.set_draw_color(Color::RED);
+                                core.wincan.draw_rect(o.hitbox())?;
+                                break
+                            }
+                            ObstacleType::Spring => {
+                                core.wincan.copy_ex(
+                                    o.texture(),
+                                    None,
+                                    rect!(o.pos.0, o.pos.1, TILE_SIZE, TILE_SIZE/4),
+                                    o.theta(),
+                                    None,
+                                    false,
+                                    false,
+                                )?;
+                                core.wincan.set_draw_color(Color::BLUE);
+                                core.wincan.draw_rect(o.hitbox())?;
+                            }
+                            _ => {}
+                        }
                     }
                     /*else{
                         drop(o);
