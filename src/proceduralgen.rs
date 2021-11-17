@@ -168,11 +168,14 @@ impl ProceduralGen {
         )
     }
 
+
+
+// Stuff currently in use below
     pub fn gen_bezier_land(
         random: &[[(i32, i32); 256]; 256],
         mut prev_point: (f64, f64),
         cam_w: i32,
-        cam_h: i32,
+        cam_h: i32,'
         _is_pit: bool,
         _is_flat: bool,
         _is_cliff: bool,
