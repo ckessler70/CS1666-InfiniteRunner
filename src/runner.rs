@@ -94,6 +94,8 @@ impl Game for Runner {
         let tex_bouncy = texture_creator.load_texture("assets/bouncy.png")?;
         let tex_floaty = texture_creator.load_texture("assets/floaty.png")?;
         let tex_shield = texture_creator.load_texture("assets/shield.png")?;
+        let mut shielded = false;
+        let shielded_player = texture_creator.load_texture("assets/shielded_player.png")?;
 
         let mut bg_buff = 0;
 
@@ -378,10 +380,10 @@ impl Game for Runner {
                         }*/
                         //Temp option: can add these 2 lines to end game upon obstacle collsions
                         //INVICIBILTY: chane true to power_override (when you dont wanna be invincible)
-                        let mut shielded = false;
+                        /*shielded = false;
                         if let Some(powers::PowerUps::Shield) = power {
                             shielded = true;
-                        }
+                        }*/
                         if !player.collide(o, collision_boxes, shielded) {
                             game_over = true;
                             initial_pause = true;
@@ -475,7 +477,7 @@ impl Game for Runner {
                         }
                         Some(powers::PowerUps::Shield) => {
                             // Player override will say to ignore obstacle collisions
-                            power_override = true;
+                            shielded = true;
                         }
                         _ => {}
                     }
@@ -497,7 +499,7 @@ impl Game for Runner {
                             player_jump_change = 0.0;
                         }
                         Some(powers::PowerUps::Shield) => {
-                            power_override = false;
+                            shielded = false;
                         }
                         _ => {}
                     }
@@ -912,6 +914,23 @@ impl Game for Runner {
 
                 // Draw player
                 // Ideally draw offset could be part of position calculations, and that var could be removed from the second rect
+                if shielded {
+                    core.wincan.copy_ex(
+                        &shielded_player,
+                        rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
+                        rect!(
+                            player.x(), /* + camera_adj_x*/
+                            player.y(), /* + camera_adj_y*/
+                            TILE_SIZE,
+                            TILE_SIZE
+                        ),
+                        player.theta() * 180.0 / std::f64::consts::PI,
+                        None,
+                        false,
+                        false,
+                    )?;
+                }
+                
                 core.wincan.copy_ex(
                     player.texture(),
                     rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
@@ -927,6 +946,7 @@ impl Game for Runner {
                     false,
                 )?;
                 core.wincan.set_draw_color(Color::BLACK);
+
 
                 /*
                 // Hacky way of adjusting player's hitbox with the draw offset
