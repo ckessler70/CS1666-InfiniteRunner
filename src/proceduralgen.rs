@@ -1,15 +1,24 @@
 use crate::physics::Power;
 use crate::powers;
 use crate::rect;
+
 use rand::distributions::Distribution;
 use rand::distributions::Standard;
 use rand::Rng;
+
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::Texture;
 
 const CAM_W: u32 = 1280;
+// SIZE relates to the length of the background hills array.
+// Used to convert width of drawn rectangles to fill up the screen.
+// Reason for it being 1/10th width is that it was the highest resolution we could
+// get with previous iterations of that array and still have good performance
 const SIZE: usize = CAM_W as usize / 10; // Size of what? Why 1/10 of screen width specifically?
+
+// Similar to SIZE, the length of the ground_buffer array.
+// Reason for it being 1/4th width is arbitrary. As long as it is consistent, can be any length
 const BUFF_LENGTH: usize = CAM_W as usize / 4; // Why 1/4 of screen width specifically?
 
 // Where all the math is done?
@@ -230,7 +239,7 @@ impl ProceduralGen {
         // )
     }
 
-    /* Handler method to setup necessary parts for generating Bezier Curves
+    /*  Handler method to setup necessary parts for generating Bezier Curves
      *
      *  - Takes in `random` which is the array of random tuples of (i32, i32)
      *    Needs to be the same values on each run for porper noise output
@@ -368,8 +377,8 @@ impl ProceduralGen {
         return (curve);
     }
 
-    /* Handles the object spawning for the game.
-     * Includes determining object type and how long until it comes up
+    /*  Handles the object spawning for the game.
+     *  Includes determining object type and how long until it comes up
      *
      *  - Takes in `random` which is the array of random tuples of (i32, i32)
      *    Needs to be the same values on each run for porper noise output
@@ -439,7 +448,7 @@ pub fn extend_cubic_bezier_curve(
 
 /* ~~~~~~      Terrain segment primary functions      ~~~~~~ */
 // Creates the first segment
-pub fn init_terrain() {
+/*pub fn init_terrain() {
     pos =;
     curve =;
     angle_from_last =;
@@ -456,13 +465,24 @@ pub fn new_terrain(prev: TerrainSegment) {
     terrain_type =;
     color =;
     TerrainSegment{pos, curve, angle_from_last, terrain_type, color};
-}
+}*/
 
 /* ~~~~~~      Terrain segment helper functions      ~~~~~~ */
 
 /* ~~~~~~     Bezier primary functions      ~~~~~~ */
 
-// Description
+/*  Handler for getting either quadratic or cubic bezier curve representation
+ *
+ *  - Takes in `p0` which is the last place the previously generated land ended
+ *  - Takes in `length` which is a control parameter
+ *  - Takes in `height` which is a control parameter
+ *  - Takes in `point_mod_x` which are the Perlin Noise Modifiers to help generate
+ *    control points
+ *  - Takes in `buffer` which is a control parameter saying how close control points
+ *    can be in the x direction
+ *
+ *  - Returns Bezier Curve representation
+ */
 fn gen_bezier_curve(
     p0: (f64, f64),
     length: i32, // Needs to be static which is stupid so 1280
@@ -594,7 +614,7 @@ fn quadratic_bezier_curve_point(
 
 /******      Perlin primary functions      ***** */
 
-/* Generates a single value from the 1d perlin noise
+/*  Generates a single value from the 1d perlin noise
  *
  *  - Takes in point `i` which is the x value we want to get the y of
  *  - Takes in `freq` which is a control value on the cord
@@ -625,7 +645,7 @@ pub fn gen_perlin_hill_point(i: usize, freq: f32, amp: f32, modifier: f32, mul: 
     return 720 as i16;
 }
 
-/* Not currently utilized...Can probably be removed
+/*  Not currently utilized...Can probably be removed
  *  Generates entire perlin map of 128x128
  *
  *  - Takes in `random` which is the array of random tuples of (i32, i32)
@@ -663,7 +683,7 @@ fn gen_perlin_noise(random: &[[(i32, i32); 256]; 256], freq: f64, amp: f64) -> [
     return out;
 }
 
-/* Generates the advanced perlin noise value for a single point.
+/*  Generates the advanced perlin noise value for a single point.
  *  Calls noise_2d 4 times to make output more "interesting"
  *
  *  - Takes in `random` which is the array of random tuples of (i32, i32)
@@ -698,7 +718,7 @@ fn gen_point_mod(random: &[[(i32, i32); 256]; 256], cord: (i32, i32), freq: f64,
 /******      Perlin helper functions      ***** */
 // Implementation adapted from https://gpfault.net/posts/perlin-noise.txt.html
 
-/* Smoothing the input value so the result isn't as "sharp"
+/*  Smoothing the input value so the result isn't as "sharp"
  *  Used for interpolation step of Perlin Noise Algorithm.
  *  Interchangeable between 1d and 2d implementation
  *
@@ -710,7 +730,7 @@ fn fade(t: f64) -> f64 {
     return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
 }
 
-/* Determine gradient value for given point p
+/*  Determine gradient value for given point p
  *
  *  - Takes in `random` which is the array of random tuples of (i32, i32)
  *    Needs to be the same values on each run for porper noise output
@@ -733,7 +753,7 @@ fn grad_2d(random: &[[(i32, i32); 256]; 256], p: (f64, f64)) -> (f64, f64) {
     return unit;
 }
 
-/* Putting everything together for making the 2d noise
+/*  Putting everything together for making the 2d noise
  *
  *  - Takes in `random` which is the array of random tuples of (i32, i32)
  *    Needs to be the same values on each run for porper noise output
@@ -777,7 +797,7 @@ pub fn noise_2d(random: &[[(i32, i32); 256]; 256], p: (f64, f64)) -> f64 {
     return result;
 }
 
-/* Determine gradient value for given value p
+/*  Determine gradient value for given value p
  *  *NOTE*: Some wierdness taking in the random values array but
  *    setting value to consistently output either -1 always or 1 always
  *    gives expected output
@@ -792,7 +812,7 @@ fn grad_1d(p: f32) -> f32 {
     return if v > 0.5 { 1.0 } else { -1.0 };
 }
 
-/* Putting everything together for making the 1d noise
+/*  Putting everything together for making the 1d noise
  *
  *  - Takes in point value `p` to give noise output on
  *
@@ -833,7 +853,7 @@ fn choose_terrain_type(upper: i32) -> TerrainType {
     }
 }
 
-/* Randomly choose a StaticObject
+/*  Randomly choose a StaticObject
  *
  *  - Returns a random StaticObject
  */
@@ -847,7 +867,7 @@ fn choose_static_object() -> StaticObject {
     }
 }
 
-/* Randomly choose a PowerUp
+/*  Randomly choose a PowerUp
  *
  *  - Returns a random PowerUp
  */
