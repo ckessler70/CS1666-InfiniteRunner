@@ -1,3 +1,5 @@
+use crate::physics::Power;
+use crate::powers;
 use crate::rect;
 use rand::distributions::Distribution;
 use rand::distributions::Standard;
@@ -7,11 +9,23 @@ use sdl2::rect::Rect;
 use sdl2::render::Texture;
 
 const CAM_W: u32 = 1280;
-const SIZE: usize = CAM_W as usize / 10; // Size of what?
+const SIZE: usize = CAM_W as usize / 10; // Size of what? Why 1/10 of screen width specifically?
 const BUFF_LENGTH: usize = CAM_W as usize / 4; // Why 1/4 of screen width specifically?
 
-pub struct ProceduralGen; // This is getting axed for the refractor I think
+// Where all the math is done?
+pub struct ProceduralGen;
 
+// Representation of a single bezier curve
+pub struct TerrainSegment {
+    pos: Rect,                 // Bounding box
+    curve: [(i32, i32); SIZE], // Array of points defining the bezier curve
+    angle_from_last: f64,      /* Angle between previous segment and this segment, should trend
+                                * downward on average */
+    terrain_type: TerrainType,
+    color: Color,
+}
+
+// Contains all types of terrain
 pub enum TerrainType {
     Grass,
     Asphalt,
@@ -19,6 +33,7 @@ pub enum TerrainType {
     Water,
 }
 
+// Contains all types of objects generated on terrain
 pub enum StaticObject {
     Coin,
     Statue,
@@ -26,30 +41,45 @@ pub enum StaticObject {
     Spring,
 }
 
-// Starting point for the overall goal of this refractor
-pub struct TerrainSegment {
-    pos: Rect,          // Bounding box
-    curve: [i16; SIZE], // Array of points defining the bezier curve
-    angle_from_last: f64, /* Angle between previous segment and this segment, should trend
-                         * downward on average */
-    terrain_type: TerrainType,
-    color: Color,
-}
-
+// Terrain Segment Definitions
 impl TerrainSegment {
     pub fn new(
         pos: Rect,
-        texture: &Texture,
+        curve: [(i32, i32); SIZE],
+        angle_from_last: f64,
+        terrain_type: TerrainType,
         color: Color,
-        terrainType: TerrainType,
     ) -> TerrainSegment {
+        // Set defaults, should probably be different than this
         TerrainSegment {
-            pos,
-            terrainType,
-            color,
+            pos: rect!(0, 0, 10, 10),
+            curve: [(0, 0); SIZE],
+            angle_from_last: 0.0,
+            terrain_type: TerrainType::Grass,
+            color: Color::GREEN,
         }
     }
 
+    // Mutators
+    // Adjusts terrain postion in runner.rs based on camera_adj_x & camera_adj_y in
+    pub fn camera_adj(&mut self, x_adj: i32, y_adj: i32) {
+        self.pos.set_x(self.pos.x() + x_adj);
+        self.pos.set_y(self.pos.y() + y_adj);
+        for (x, y) in self.curve.iter_mut() {
+            *x += x_adj;
+            *y += y_adj;
+        }
+    }
+
+    // Shifts terrain left so player can "move forward"
+    pub fn travel_update(&mut self, travel_adj: i32) {
+        self.pos.set_x(self.pos.x() + travel_adj);
+        for (x, y) in self.curve.iter_mut() {
+            *x += travel_adj;
+        }
+    }
+
+    // Accessors
     pub fn x(&self) -> i32 {
         self.pos.x()
     }
@@ -66,17 +96,16 @@ impl TerrainSegment {
         self.pos.height() as i32
     }
 
-    pub fn pos(&self) -> &Rect {
-        &self.pos
+    pub fn angle_from_last(&self) -> f64 {
+        self.angle_from_last
     }
 
-    pub fn color(&self) -> &Color {
-        &self.color
+    pub fn get_type(&self) -> TerrainType {
+        self.terrain_type
     }
 
-    pub fn update_pos(&mut self, x_adj: i32, y_adj: i32) {
-        self.pos.set_x(self.pos.x() + x_adj);
-        self.pos.set_y(self.pos.y() + y_adj);
+    pub fn color(&self) -> Color {
+        self.color
     }
 }
 
@@ -380,45 +409,6 @@ pub fn extend_cubic_bezier_curve(
         points[t] = cubic_bezier_curve_point(prev_pn, p1, p2, p3, point / BUFF_LENGTH as f64);
     }
     return points;
-}
-
-/* Randomly choose a TerrainType.
- * Heavily weighted to pick Grass as that should be most common
- *
- *  - Takes in `upper` which is the top of of the gen_range. Should be >= 3.
- *    Higher it is, more weighted to choose Grass
- *
- *  - Returns a random TerrainType
- */
-fn get_random_terrain(upper: i32) -> TerrainType {
-    let mut rng = rand::thread_rng();
-
-    let upper = upper.clamp(3, i32::MAX);
-
-    match rng.gen_range(0..=10) {
-        0 => TerrainType::Asphalt,
-        1 => TerrainType::Sand,
-        2 => TerrainType::Water,
-        _ => TerrainType::Grass,
-    }
-}
-
-/* Overwriting of `rand::random()` for our use to determine a random
- * StaticObject
- *
- *  - Returns a random StaticObject
- */
-impl Distribution<StaticObject> for Standard {
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> StaticObject {
-        // match rng.gen_range(0, 3) { // rand 0.5, 0.6, 0.7
-        match rng.gen_range(0..=3) {
-            // rand 0.8
-            0 => StaticObject::Coin,
-            1 => StaticObject::Statue,
-            2 => StaticObject::Spring,
-            _ => StaticObject::Power,
-        }
-    }
 }
 
 /******      Bezier primary functions      ***** */
@@ -770,4 +760,63 @@ fn noise_1d(p: f32) -> f32 {
     let g1 = grad_1d(p1);
 
     return ((1.0 - ft) * g0 * (p - p0) + ft * g1 * (p - p1));
+}
+
+/* ~~~~~~ Random Distributions ~~~~~~ */
+
+/* Randomly choose a TerrainType. Heavily weighted to pick Grass.
+ *  - Takes in `upper` which is the top of of the gen_range. Should be >= 3.
+ *    Higher it is, more weighted to choose Grass
+ *
+ *  - Returns a random TerrainType
+ */
+// Renamed from get_random_terrain
+fn choose_terrain_type(upper: i32) -> TerrainType {
+    let mut rng = rand::thread_rng();
+
+    let upper = upper.clamp(3, i32::MAX);
+
+    match rng.gen_range(0..=10) {
+        0 => TerrainType::Asphalt,
+        1 => TerrainType::Sand,
+        2 => TerrainType::Water,
+        _ => TerrainType::Grass,
+    }
+}
+
+/* Overwriting of `rand::random()` for our use to determine a random
+ * StaticObject
+ *
+ *  - Returns a random StaticObject
+ */
+impl Distribution<StaticObject> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> StaticObject {
+        // match rng.gen_range(0, 3) { // rand 0.5, 0.6, 0.7
+        match rng.gen_range(0..=3) {
+            // rand 0.8
+            0 => StaticObject::Coin,
+            1 => StaticObject::Statue,
+            2 => StaticObject::Spring,
+            _ => StaticObject::Power,
+        }
+    }
+}
+
+/* Overwriting of `rand::random()` for our use to determine a random
+ * PowerUp
+ *
+ *  - Returns a random PowerUp
+ */
+impl Distribution<powers::PowerUps> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> powers::PowerUps {
+        // match rng.gen_range(0, 3) { // rand 0.5, 0.6, 0.7
+        match rng.gen_range(0..=4) {
+            // rand 0.8
+            0 => powers::PowerUps::SpeedBoost,
+            1 => powers::PowerUps::ScoreMultiplier,
+            2 => powers::PowerUps::BouncyShoes,
+            3 => powers::PowerUps::LowerGravity,
+            _ => powers::PowerUps::Shield,
+        }
+    }
 }

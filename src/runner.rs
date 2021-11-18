@@ -37,26 +37,23 @@ use sdl2::rect::Rect;
 // use sdl2::render::Texture;
 use sdl2::render::TextureQuery;
 
-use rand::{
-    distributions::{Distribution, Standard},
-    Rng,
-};
+use rand::distributions::Distribution;
+use rand::distributions::Standard;
+use rand::Rng;
 
 const FPS: f64 = 60.0;
 const FRAME_TIME: f64 = 1.0 / FPS as f64;
 
 const CAM_H: u32 = 720;
 const CAM_W: u32 = 1280;
-
 pub const TILE_SIZE: u32 = 100;
 
-// Ensure that SIZE is not a decimal
-// 1, 2, 4, 5, 8, 10, 16, 20, 32, 40, 64, 80, 128, 160, 256, 320, 640
+// Ensure that SIZE is not a decimal -- Why?
 const SIZE: usize = CAM_W as usize / 10;
 const BUFF_LENGTH: usize = CAM_W as usize / 4;
 
-const FRONT_HILL_INDEX: usize = 0;
-const BACK_HILL_INDEX: usize = 1;
+const IND_BACKGROUND_MID: usize = 0;
+const IND_BACKGROUND_BACK: usize = 1;
 // const GROUND_INDEX: usize = 2;
 
 // Bounds to keep the player within
@@ -157,9 +154,10 @@ impl Game for Runner {
         let mut player_jump_change: f64 = 0.0;
         let mut player_speed_adjust: f64 = 0.0;
 
-        // Sine waves the player doesn't interact with
-        // background_curves[0] = Front hills
-        // background_curves[1] = Back hills
+        // Sine waves the player can't interact with
+        // For visual purposes only
+        // background_curves[IND_BACKGROUND_MID] = Front hills
+        // background_curves[IND_BACKGROUND_BACK] = Back hills
         let mut background_curves: [[i16; SIZE]; 2] = [[0; SIZE]; 2]; // renamed from bg
 
         // Description
@@ -199,9 +197,9 @@ impl Game for Runner {
 
         // Generate sine waves (I think?)
         while ct < SIZE as usize {
-            background_curves[FRONT_HILL_INDEX][ct] =
+            background_curves[IND_BACKGROUND_MID][ct] =
                 proceduralgen::gen_perlin_hill_point((ct + buff_1), freq, amp_1, 0.5, 600.0);
-            background_curves[BACK_HILL_INDEX][ct] =
+            background_curves[IND_BACKGROUND_BACK][ct] =
                 proceduralgen::gen_perlin_hill_point((ct + buff_2), freq, amp_2, 1.0, 820.0);
 
             // background_curves[GROUND_INDEX][ct] = ground_buffer[buff_idx].1 as i16;
@@ -583,6 +581,7 @@ impl Game for Runner {
 
                 // Generate more terrain if player hasn't died
                 if !game_over {
+                    /* Will be entirely overhauled for procgen refractor
                     // Every tick, build a new ground segment
                     if tick % 1 == 0 {
                         if buff_idx == BUFF_LENGTH {
@@ -617,12 +616,13 @@ impl Game for Runner {
                             println!("Not Bouncy!");
                         }
                     }
+                    */
 
                     // Every 3 ticks, build a new front mountain segment
                     if tick % 3 == 0 {
                         for i in 0..(SIZE as usize - 1) {
-                            background_curves[FRONT_HILL_INDEX][i] =
-                                background_curves[FRONT_HILL_INDEX][i + 1];
+                            background_curves[IND_BACKGROUND_MID][i] =
+                                background_curves[IND_BACKGROUND_MID][i + 1];
                         }
                         buff_1 += 1;
                         let chunk_1 = proceduralgen::gen_perlin_hill_point(
@@ -632,14 +632,14 @@ impl Game for Runner {
                             0.5,
                             600.0,
                         );
-                        background_curves[FRONT_HILL_INDEX][(SIZE - 1) as usize] = chunk_1;
+                        background_curves[IND_BACKGROUND_MID][(SIZE - 1) as usize] = chunk_1;
                     }
 
                     // Every 5 ticks, build a new back mountain segment
                     if tick % 5 == 0 {
                         for i in 0..(SIZE as usize - 1) {
-                            background_curves[BACK_HILL_INDEX][i] =
-                                background_curves[BACK_HILL_INDEX][i + 1];
+                            background_curves[IND_BACKGROUND_BACK][i] =
+                                background_curves[IND_BACKGROUND_BACK][i + 1];
                         }
                         buff_2 += 1;
                         let chunk_2 = proceduralgen::gen_perlin_hill_point(
@@ -649,7 +649,7 @@ impl Game for Runner {
                             1.0,
                             820.0,
                         );
-                        background_curves[BACK_HILL_INDEX][(SIZE - 1) as usize] = chunk_2;
+                        background_curves[IND_BACKGROUND_BACK][(SIZE - 1) as usize] = chunk_2;
                     }
 
                     if object_spawn == 0 {
@@ -868,12 +868,12 @@ impl Game for Runner {
                     rect!(CAM_W as i32 + bg_buff, 0, CAM_W, CAM_H / 3),
                 )?;
 
-                for i in 0..background_curves[FRONT_HILL_INDEX].len() - 1 {
+                for i in 0..background_curves[IND_BACKGROUND_MID].len() - 1 {
                     // Furthest back mountains
                     core.wincan.set_draw_color(Color::RGBA(128, 51, 6, 255));
                     core.wincan.fill_rect(rect!(
                         i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
-                        CAM_H as i16 - background_curves[BACK_HILL_INDEX][i],
+                        CAM_H as i16 - background_curves[IND_BACKGROUND_BACK][i],
                         CAM_W as usize / SIZE,
                         CAM_H as i16
                     ))?;
@@ -882,7 +882,7 @@ impl Game for Runner {
                     core.wincan.set_draw_color(Color::RGBA(96, 161, 152, 255));
                     core.wincan.fill_rect(rect!(
                         i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
-                        CAM_H as i16 - background_curves[FRONT_HILL_INDEX][i],
+                        CAM_H as i16 - background_curves[IND_BACKGROUND_MID][i],
                         CAM_W as usize / SIZE,
                         CAM_H as i16
                     ))?;
@@ -1158,20 +1158,3 @@ impl Game for Runner {
         })
     }
 }
-
-/* Equivalant should be implemented in proceduralgen
-// Remaking rand::random() to fit with powers.
-impl Distribution<powers::PowerUps> for Standard {
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> powers::PowerUps {
-        // match rng.gen_range(0, 3) { // rand 0.5, 0.6, 0.7
-        match rng.gen_range(0..=4) {
-            // rand 0.8
-            0 => powers::PowerUps::SpeedBoost,
-            1 => powers::PowerUps::ScoreMultiplier,
-            2 => powers::PowerUps::BouncyShoes,
-            3 => powers::PowerUps::LowerGravity,
-            _ => powers::PowerUps::Shield,
-        }
-    }
-}
-*/
