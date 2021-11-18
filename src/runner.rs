@@ -147,8 +147,8 @@ impl Game for Runner {
 
         let mut object = None;
 
-        let mut power: Option<powers::PowerUps> = None;
-        let mut next_power: Option<powers::PowerUps> = None;
+        let mut power: Option<proceduralgen::PowerUps> = None;
+        let mut next_power: Option<proceduralgen::PowerUps> = None;
 
         let mut player_accel_rate: f64 = -10.0;
         let mut player_jump_change: f64 = 0.0;
@@ -408,7 +408,7 @@ impl Game for Runner {
                         //INVICIBILTY: chane true to power_override (when you dont wanna be
                         // invincible)
                         /*shielded = false;
-                        if let Some(powers::PowerUps::Shield) = power {
+                        if let Some(proceduralgen::PowerUps::Shield) = power {
                             shielded = true;
                         }*/
                         if !player.collide(o, collision_boxes, shielded) {
@@ -450,20 +450,20 @@ impl Game for Runner {
                     if Physics::check_power(&mut player, p) {
                         if !p.collected() {
                             match next_power {
-                                Some(powers::PowerUps::SpeedBoost) => {
-                                    power = Some(powers::PowerUps::SpeedBoost);
+                                Some(proceduralgen::PowerUps::SpeedBoost) => {
+                                    power = Some(proceduralgen::PowerUps::SpeedBoost);
                                 }
-                                Some(powers::PowerUps::ScoreMultiplier) => {
-                                    power = Some(powers::PowerUps::ScoreMultiplier);
+                                Some(proceduralgen::PowerUps::ScoreMultiplier) => {
+                                    power = Some(proceduralgen::PowerUps::ScoreMultiplier);
                                 }
-                                Some(powers::PowerUps::BouncyShoes) => {
-                                    power = Some(powers::PowerUps::BouncyShoes);
+                                Some(proceduralgen::PowerUps::BouncyShoes) => {
+                                    power = Some(proceduralgen::PowerUps::BouncyShoes);
                                 }
-                                Some(powers::PowerUps::LowerGravity) => {
-                                    power = Some(powers::PowerUps::LowerGravity);
+                                Some(proceduralgen::PowerUps::LowerGravity) => {
+                                    power = Some(proceduralgen::PowerUps::LowerGravity);
                                 }
-                                Some(powers::PowerUps::Shield) => {
-                                    power = Some(powers::PowerUps::Shield);
+                                Some(proceduralgen::PowerUps::Shield) => {
+                                    power = Some(proceduralgen::PowerUps::Shield);
                                 }
                                 _ => {}
                             }
@@ -485,28 +485,28 @@ impl Game for Runner {
                 if power_tick > 0 {
                     power_tick -= 1;
                     match power {
-                        Some(powers::PowerUps::SpeedBoost) => {
+                        Some(proceduralgen::PowerUps::SpeedBoost) => {
                             // May not be the proper way to handle this.
                             // Adds player speed adjust to player's velocity
                             player_speed_adjust = 5.0;
                         }
-                        Some(powers::PowerUps::ScoreMultiplier) => {
+                        Some(proceduralgen::PowerUps::ScoreMultiplier) => {
                             // Doubles tick score while active
                             tick_score *= 2;
                         }
-                        Some(powers::PowerUps::BouncyShoes) => {
+                        Some(proceduralgen::PowerUps::BouncyShoes) => {
                             // Forces jumping while active and jumps 0.3 velocity units higher
                             player_jump_change = 0.3;
                             // This will need changed for refractor
                             player.jump(current_ground, true, player_jump_change);
                         }
-                        Some(powers::PowerUps::LowerGravity) => {
+                        Some(proceduralgen::PowerUps::LowerGravity) => {
                             // Accel rate is how the y velocity is clamped
                             // Has player jump 0.2 velocity units higher.
                             player_accel_rate = -5.0;
                             player_jump_change = 0.2;
                         }
-                        Some(powers::PowerUps::Shield) => {
+                        Some(proceduralgen::PowerUps::Shield) => {
                             // Player override will say to ignore obstacle collisions
                             shielded = true;
                         }
@@ -518,18 +518,18 @@ impl Game for Runner {
                     // Reset values to default if power times out
                     match power {
                         // Stop any power from going
-                        Some(powers::PowerUps::SpeedBoost) => {
+                        Some(proceduralgen::PowerUps::SpeedBoost) => {
                             player_speed_adjust = 0.0;
                         }
-                        Some(powers::PowerUps::ScoreMultiplier) => {}
-                        Some(powers::PowerUps::BouncyShoes) => {
+                        Some(proceduralgen::PowerUps::ScoreMultiplier) => {}
+                        Some(proceduralgen::PowerUps::BouncyShoes) => {
                             player_jump_change = 0.0;
                         }
-                        Some(powers::PowerUps::LowerGravity) => {
+                        Some(proceduralgen::PowerUps::LowerGravity) => {
                             player_accel_rate = -10.0;
                             player_jump_change = 0.0;
                         }
-                        Some(powers::PowerUps::Shield) => {
+                        Some(proceduralgen::PowerUps::Shield) => {
                             shielded = false;
                         }
                         _ => {}
@@ -705,7 +705,7 @@ impl Game for Runner {
                                 object_count -= 1;
                             }
                             Some(StaticObject::Power) => {
-                                next_power = Some(rand::random());
+                                next_power = Some(proceduralgen::choose_power_up());
                                 let pow = Power::new(
                                     rect!(0, 0, 0, 0),
                                     texture_creator.load_texture("assets/powerup.png")?,
@@ -902,35 +902,35 @@ impl Game for Runner {
                 //Power asset drawing
                 if power_tick > 0 {
                     match power {
-                        Some(powers::PowerUps::SpeedBoost) => {
+                        Some(proceduralgen::PowerUps::SpeedBoost) => {
                             core.wincan.copy(
                                 &tex_speed,
                                 None,
                                 rect!(10, 100, TILE_SIZE, TILE_SIZE),
                             )?;
                         }
-                        Some(powers::PowerUps::ScoreMultiplier) => {
+                        Some(proceduralgen::PowerUps::ScoreMultiplier) => {
                             core.wincan.copy(
                                 &tex_multiplier,
                                 None,
                                 rect!(10, 100, TILE_SIZE, TILE_SIZE),
                             )?;
                         }
-                        Some(powers::PowerUps::BouncyShoes) => {
+                        Some(proceduralgen::PowerUps::BouncyShoes) => {
                             core.wincan.copy(
                                 &tex_bouncy,
                                 None,
                                 rect!(10, 100, TILE_SIZE, TILE_SIZE),
                             )?;
                         }
-                        Some(powers::PowerUps::LowerGravity) => {
+                        Some(proceduralgen::PowerUps::LowerGravity) => {
                             core.wincan.copy(
                                 &tex_floaty,
                                 None,
                                 rect!(10, 100, TILE_SIZE, TILE_SIZE),
                             )?;
                         }
-                        Some(powers::PowerUps::Shield) => {
+                        Some(proceduralgen::PowerUps::Shield) => {
                             core.wincan.copy(
                                 &tex_shield,
                                 None,

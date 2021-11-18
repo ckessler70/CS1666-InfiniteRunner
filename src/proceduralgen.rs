@@ -41,6 +41,15 @@ pub enum StaticObject {
     Spring,
 }
 
+// Contains all types of power ups
+pub enum PowerUps {
+    SpeedBoost,
+    ScoreMultiplier,
+    BouncyShoes,
+    LowerGravity,
+    Shield,
+}
+
 // Terrain Segment Definitions
 impl TerrainSegment {
     pub fn new(
@@ -128,7 +137,8 @@ impl ProceduralGen {
         // &texture)
     }
 
-    /*
+    /*  Currently Deprecated
+     *  Similar intent to gen_bezier_land
      *
      */
     pub fn gen_land<'a>(
@@ -220,8 +230,22 @@ impl ProceduralGen {
         // )
     }
 
-    /*
+    /* Handler method to setup necessary parts for generating Bezier Curves
      *
+     *  - Takes in `random` which is the array of random tuples of (i32, i32)
+     *    Needs to be the same values on each run for porper noise output
+     *    Represents the gradient value for points. Passed into gen_point_mod
+     *  - Takes in `prev_point` which is the x (assumes 0) and y of the last part of generated terrain
+     *  - Takes in `cam_w` which is the width of the camera (1280)
+     *  - Takes in `cam_h` which is the height of the camera (720)
+     *  - Takes in `_is_pit` boolean which will generate a pit within this land segment
+     *    *NOT IMPLEMENTED YET*
+     *  - Takes in `_is_flat` boolean which will make the generated control point modifiers
+     *    around the same y and thus, curves should be relatively flat for the next land segment
+     *  - Takes in `_is_cliff` boolean which will make a cliff within the next land segment
+     *    *NOT IMPLEMENTED YET*
+     *
+     *  - Returns array of tuples associated with the output curve.
      */
     pub fn gen_bezier_land(
         random: &[[(i32, i32); 256]; 256],
@@ -374,7 +398,7 @@ impl ProceduralGen {
             amp,
         );
 
-        let object = rand::random();
+        let object = choose_static_object();
 
         let length = (point_mod * max_length as f64 + min_length as f64)
             .clamp(min_length as f64, max_length as f64)
@@ -776,7 +800,7 @@ fn choose_terrain_type(upper: i32) -> TerrainType {
 
     let upper = upper.clamp(3, i32::MAX);
 
-    match rng.gen_range(0..=10) {
+    match rng.gen_range(0..=upper) {
         0 => TerrainType::Asphalt,
         1 => TerrainType::Sand,
         2 => TerrainType::Water,
@@ -784,39 +808,33 @@ fn choose_terrain_type(upper: i32) -> TerrainType {
     }
 }
 
-/* Overwriting of `rand::random()` for our use to determine a random
- * StaticObject
+/* Randomly choose a StaticObject
  *
  *  - Returns a random StaticObject
  */
-impl Distribution<StaticObject> for Standard {
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> StaticObject {
-        // match rng.gen_range(0, 3) { // rand 0.5, 0.6, 0.7
-        match rng.gen_range(0..=3) {
-            // rand 0.8
-            0 => StaticObject::Coin,
-            1 => StaticObject::Statue,
-            2 => StaticObject::Spring,
-            _ => StaticObject::Power,
-        }
+fn choose_static_object() -> StaticObject {
+    let mut rng = rand::thread_rng();
+    match rng.gen_range(0..=3) {
+        0 => StaticObject::Coin,
+        1 => StaticObject::Statue,
+        2 => StaticObject::Spring,
+        _ => StaticObject::Power,
     }
 }
 
-/* Overwriting of `rand::random()` for our use to determine a random
- * PowerUp
+/* Randomly choose a PowerUp
  *
  *  - Returns a random PowerUp
  */
-impl Distribution<powers::PowerUps> for Standard {
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> powers::PowerUps {
-        // match rng.gen_range(0, 3) { // rand 0.5, 0.6, 0.7
-        match rng.gen_range(0..=4) {
-            // rand 0.8
-            0 => powers::PowerUps::SpeedBoost,
-            1 => powers::PowerUps::ScoreMultiplier,
-            2 => powers::PowerUps::BouncyShoes,
-            3 => powers::PowerUps::LowerGravity,
-            _ => powers::PowerUps::Shield,
-        }
+// Probably shouldn't be pub when call is moved to procgen.rs
+pub fn choose_power_up() -> PowerUps {
+    let mut rng = rand::thread_rng();
+    match rng.gen_range(0..=4) {
+        // rand 0.8
+        0 => PowerUps::SpeedBoost,
+        1 => PowerUps::ScoreMultiplier,
+        2 => PowerUps::BouncyShoes,
+        3 => PowerUps::LowerGravity,
+        _ => PowerUps::Shield,
     }
 }
