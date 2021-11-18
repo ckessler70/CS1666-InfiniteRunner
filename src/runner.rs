@@ -477,6 +477,7 @@ impl Game for Runner {
                             player_accel_rate = -10.0;
                             player_jump_change = 0.0;
                             player_speed_adjust = 0.0;
+                            shielded = false;
 
                             p.collect();
                             power_tick = 360;
