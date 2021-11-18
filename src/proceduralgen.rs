@@ -52,7 +52,6 @@ pub enum PowerUps {
 
 // Terrain Segment Definitions
 impl TerrainSegment {
-    // Initializors
     pub fn new(
         pos: Rect,
         curve: [(i32, i32); SIZE],
@@ -68,10 +67,6 @@ impl TerrainSegment {
             terrain_type: TerrainType::Grass,
             color: Color::GREEN,
         }
-    }
-
-    pub fn init_terrain() {
-        TerrainSegment::new(/* Args for the consistent initial segment */)
     }
 
     // Mutators
@@ -240,15 +235,17 @@ impl ProceduralGen {
      *  - Takes in `random` which is the array of random tuples of (i32, i32)
      *    Needs to be the same values on each run for porper noise output
      *    Represents the gradient value for points. Passed into gen_point_mod
-     *  - Takes in `prev_point` which is the x (assumes 0) and y of the last part of generated terrain
+     *  - Takes in `prev_point` which is the x (assumes 0) and y of the last part
+     *    of generated terrain
      *  - Takes in `cam_w` which is the width of the camera (1280)
      *  - Takes in `cam_h` which is the height of the camera (720)
-     *  - Takes in `_is_pit` boolean which will generate a pit within this land segment
-     *    *NOT IMPLEMENTED YET*
-     *  - Takes in `_is_flat` boolean which will make the generated control point modifiers
-     *    around the same y and thus, curves should be relatively flat for the next land segment
-     *  - Takes in `_is_cliff` boolean which will make a cliff within the next land segment
-     *    *NOT IMPLEMENTED YET*
+     *  - Takes in `_is_pit` boolean which will generate a pit within this land
+     *    segment *NOT IMPLEMENTED YET*
+     *  - Takes in `_is_flat` boolean which will make the generated control point
+     *    modifiers around the same y and thus, curves should be relatively flat
+     *    for the next land segment
+     *  - Takes in `_is_cliff` boolean which will make a cliff within the next
+     *    land segment *NOT IMPLEMENTED YET*
      *
      *  - Returns array of tuples associated with the output curve.
      */
@@ -440,7 +437,30 @@ pub fn extend_cubic_bezier_curve(
     return points;
 }
 
-/******      Bezier primary functions      ***** */
+/* ~~~~~~      Terrain segment primary functions      ~~~~~~ */
+// Creates the first segment
+pub fn init_terrain() {
+    pos =;
+    curve =;
+    angle_from_last =;
+    terrain_type =;
+    color =;
+    TerrainSegment{pos, curve, angle_from_last, terrain_type, color};
+}
+
+// Creates a new segment with bezier curve and everything else
+pub fn new_terrain(prev: TerrainSegment) {
+    pos =;
+    curve =;
+    angle_from_last =;
+    terrain_type =;
+    color =;
+    TerrainSegment{pos, curve, angle_from_last, terrain_type, color};
+}
+
+/* ~~~~~~      Terrain segment helper functions      ~~~~~~ */
+
+/* ~~~~~~     Bezier primary functions      ~~~~~~ */
 
 // Description
 fn gen_bezier_curve(

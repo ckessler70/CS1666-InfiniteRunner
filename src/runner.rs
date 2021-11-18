@@ -97,8 +97,8 @@ impl Game for Runner {
         let mut bg_buff = 0;
 
         // Create terrain vector with starting segment
-        let mut all_terrain = Vec::new();
-        all_terrain.push(TerrainSegment::init_terrain())
+        let mut all_terrain: Vec<TerrainSegment> = Vec::new();
+        all_terrain.push(proceduralgen::init_terrain())
 
         // Create player at default position
         let mut player = Player::new(
