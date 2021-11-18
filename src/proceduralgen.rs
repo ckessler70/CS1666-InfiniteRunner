@@ -1,27 +1,20 @@
 use crate::rect;
-// use crate::Physics;
-
+use rand::distributions::Distribution;
+use rand::distributions::Standard;
+use rand::Rng;
+use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::Texture;
 
-use rand::{
-    distributions::{Distribution, Standard},
-    Rng,
-};
+const BUFF_LENGTH: usize = 320;
 
-const CAM_W: u32 = 1280;
-// Ensure that SIZE is not a decimal
-// 1, 2, 4, 5, 8, 10, 16, 20, 32, 40, 64, 80, 128, 160, 256, 320, 640
-const SIZE: usize = CAM_W as usize / 10;
-const BUFF_LENGTH: usize = CAM_W as usize / 4;
+pub struct ProceduralGen; // This is getting axed for the refractor I think
 
-pub struct ProceduralGen;
-
-#[allow(dead_code)]
-pub struct TerrainSegment<'a> {
-    pos: Rect,
-    // curve: Bezier Curve,
-    texture: &'a Texture<'a>,
+pub enum TerrainType {
+    Grass,
+    Asphalt,
+    Sand,
+    Water,
 }
 
 pub enum StaticObject {
@@ -31,10 +24,17 @@ pub enum StaticObject {
     Spring,
 }
 
-#[allow(dead_code)]
+/* Old code, starting point for the overall goal of this refractor
+pub struct TerrainSegment {
+    pos: Rect,
+    // curve: Bezier Curve,
+    terrainType: TerrainType,
+    color: Color,
+}
+
 impl<'a> TerrainSegment<'a> {
     pub fn new(pos: Rect, texture: &'a Texture<'a>) -> TerrainSegment {
-        TerrainSegment { pos, texture }
+        TerrainSegment { pos, color }
     }
 
     pub fn x(&self) -> i32 {
@@ -57,8 +57,8 @@ impl<'a> TerrainSegment<'a> {
         &self.pos
     }
 
-    pub fn texture(&self) -> &Texture {
-        &self.texture
+    pub fn color(&self) -> Color {
+        &self.color
     }
 
     pub fn update_pos(&mut self, x_adj: i32, y_adj: i32) {
@@ -66,13 +66,17 @@ impl<'a> TerrainSegment<'a> {
         self.pos.set_y(self.pos.y() + y_adj);
     }
 }
+*/
 
+// I don't understand a lot of what's going on in this impl,
+// but it needs cleaning
 #[allow(dead_code)]
 impl ProceduralGen {
     pub fn init() -> Result<Self, String> {
         Ok(ProceduralGen {})
     }
 
+    // Description
     pub fn init_terrain<'a>(
         cam_w: i32,
         cam_h: i32,
@@ -81,6 +85,7 @@ impl ProceduralGen {
         TerrainSegment::new(rect!(0, cam_h * 2 / 3, cam_w, cam_h / 3), &texture)
     }
 
+    // Description
     pub fn gen_land<'a>(
         random: &[[(i32, i32); 256]; 256],
         prev_segment: &TerrainSegment,
@@ -168,14 +173,12 @@ impl ProceduralGen {
         )
     }
 
-
-
-// Stuff currently in use below
+    // Description
     pub fn gen_bezier_land(
         random: &[[(i32, i32); 256]; 256],
         mut prev_point: (f64, f64),
         cam_w: i32,
-        cam_h: i32,'
+        cam_h: i32,
         _is_pit: bool,
         _is_flat: bool,
         _is_cliff: bool,
@@ -290,6 +293,7 @@ impl ProceduralGen {
         return (curve);
     }
 
+    // Description
     pub fn spawn_object(
         random: &[[(i32, i32); 256]; 256],
         min_length: i32,
@@ -321,7 +325,7 @@ impl ProceduralGen {
     }
 }
 
-// Test function used freq = 64.0 and amp = 1.0
+// Description
 fn gen_perlin_noise(random: &[[(i32, i32); 256]; 256], freq: f64, amp: f64) -> [[f64; 128]; 128] {
     let mut out = [[0.0; 128]; 128];
 
@@ -348,6 +352,7 @@ fn gen_perlin_noise(random: &[[(i32, i32); 256]; 256], freq: f64, amp: f64) -> [
     return out;
 }
 
+// Description
 fn gen_point_mod(random: &[[(i32, i32); 256]; 256], cord: (i32, i32), freq: f64, amp: f64) -> f64 {
     let n = noise_2d(&random, (cord.0 as f64 / (freq), cord.1 as f64 / (freq))) * (amp)
         + noise_2d(
@@ -366,63 +371,63 @@ fn gen_point_mod(random: &[[(i32, i32); 256]; 256], cord: (i32, i32), freq: f64,
     return modifier;
 }
 
-//Perlin Noise helper function
-fn fade_2d(t: f64) -> f64 {
+/*  Function for extending a cubic bezier curve while keeping the chained curve
+ *  smooth. Works similarly to gen_cubic_bezier_curve_points()
+ *      http://www.inf.ed.ac.uk/teaching/courses/cg/d3/bezierJoin.html
+ */
+pub fn extend_cubic_bezier_curve(
+    prev_pn: (f64, f64),
+    prev_pn_minus_1: (f64, f64),
+    //no p0 or p1, above data structures work instead
+    p2: (f64, f64),
+    p3: (f64, f64),
+) -> [(f64, f64); BUFF_LENGTH + 1] {
+    let mut points: [(f64, f64); BUFF_LENGTH + 1] = [(-1.0, -1.0); BUFF_LENGTH + 1];
+
+    //Calculate p1
+    let mut p1: (f64, f64) = (0.0, 0.0);
+
+    p1.0 = prev_pn.0 + (prev_pn.0 - prev_pn_minus_1.0);
+    p1.1 = prev_pn.1 + (prev_pn.1 - prev_pn_minus_1.1);
+
+    for t in 0..BUFF_LENGTH {
+        let point = t as f64;
+        //points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / 32.0);
+        points[t] = cubic_bezier_curve_point(prev_pn, p1, p2, p3, point / BUFF_LENGTH as f64);
+    }
+    return points;
+}
+
+// Description
+fn fade_1d(t: f32) -> f32 {
     return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
 }
 
-//Perlin Noise helper function
-fn grad_2d(random: &[[(i32, i32); 256]; 256], p: (f64, f64)) -> (f64, f64) {
-    let pre_v = random[p.0 as usize % 256][p.1 as usize % 256];
+// Description
+fn grad_1d(p: f32) -> f32 {
+    let v: f32 = 0.0;
 
-    let v = (pre_v.0 as f64 / 256.0, pre_v.1 as f64 / 256.0);
-
-    let n = (v.0 * 2.0 - 1.0, v.1 * 2.0 - 1.0);
-
-    let length = (n.0 * n.0 + n.1 * n.1).sqrt();
-
-    let unit = (n.0 / length, n.1 / length);
-
-    return unit;
+    return if v > 0.5 { 1.0 } else { -1.0 };
 }
 
-//Perlin Noise helper function
-pub fn noise_2d(random: &[[(i32, i32); 256]; 256], p: (f64, f64)) -> f64 {
-    let p0 = (p.0.floor(), p.1.floor());
-    let p1 = (p0.0 + 1.0, p0.1);
-    let p2 = (p0.0, p0.1 + 1.0);
-    let p3 = (p0.0 + 1.0, p0.1 + 1.0);
-
-    let g0 = grad_2d(&random, p0);
-    let g1 = grad_2d(&random, p1);
-    let g2 = grad_2d(&random, p2);
-    let g3 = grad_2d(&random, p3);
-
-    let t0 = p.0 - p0.0;
-    let fade_t0 = fade_2d(t0);
-
-    let t1 = p.1 - p0.1;
-    let fade_t1 = fade_2d(t1);
-
-    let p_minus_p0 = (p.0 - p0.0, p.1 - p0.1);
-    let p_minus_p1 = (p.0 - p1.0, p.1 - p1.1);
-    let p_minus_p2 = (p.0 - p2.0, p.1 - p2.1);
-    let p_minus_p3 = (p.0 - p3.0, p.1 - p3.1);
-
-    let g0_dot_p0 = g0.0 * p_minus_p0.0 + g0.1 * p_minus_p0.1;
-    let g1_dot_p1 = g1.0 * p_minus_p1.0 + g1.1 * p_minus_p1.1;
-    let g2_dot_p2 = g2.0 * p_minus_p2.0 + g2.1 * p_minus_p2.1;
-    let g3_dot_p3 = g3.0 * p_minus_p3.0 + g3.1 * p_minus_p3.1;
-
-    let p0p1 = (1.0 - fade_t0) * g0_dot_p0 + fade_t0 * g1_dot_p1;
-    let p2p3 = (1.0 - fade_t0) * g2_dot_p2 + fade_t0 * g3_dot_p3;
-
-    let result = (1.0 - fade_t1) * p0p1 + fade_t1 * p2p3;
-
-    return result;
+// Description
+impl Distribution<StaticObject> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> StaticObject {
+        // match rng.gen_range(0, 3) { // rand 0.5, 0.6, 0.7
+        match rng.gen_range(0..=3) {
+            // rand 0.8
+            0 => StaticObject::Coin,
+            1 => StaticObject::Statue,
+            2 => StaticObject::Spring,
+            _ => StaticObject::Power,
+        }
+    }
 }
 
-//Not sure the use of this
+
+/******      Bezier primary functions      ***** */
+
+// Description
 fn gen_bezier_curve(
     p0: (f64, f64),
     length: i32, // Needs to be static which is stupid so 1280
@@ -484,40 +489,8 @@ fn gen_bezier_curve(
     }
 }
 
-//p0 is start point, p1 is the mid point, p2 is the end Point
-//Returns an array of tuples that represent the x and y values (x,y) of the
-// points
-pub fn gen_quadratic_bezier_curve_points(
-    p0: (f64, f64),
-    p1: (f64, f64),
-    p2: (f64, f64),
-) -> [(f64, f64); BUFF_LENGTH + 1] {
-    let mut points: [(f64, f64); BUFF_LENGTH + 1] = [(-1.0, -1.0); BUFF_LENGTH + 1];
-
-    for t in 0..BUFF_LENGTH {
-        let point = t as f64;
-        //points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / 32.0);
-        points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / BUFF_LENGTH as f64);
-    }
-    return points;
-}
-
-//Get p's from perlin
-//T = Point range 0-1 of the curve
-//first value is x, second value is y
-fn quadratic_bezier_curve_point(
-    p0: (f64, f64),
-    p1: (f64, f64),
-    p2: (f64, f64),
-    t: f64,
-) -> (f64, f64) {
-    let x_value = (1.0 - t) * ((1.0 - t) * p0.0 + t * p1.0) + t * ((1.0 - t) * p1.0 + t * p2.0);
-
-    let y_value = (1.0 - t) * ((1.0 - t) * p0.1 + t * p1.1) + t * ((1.0 - t) * p1.1 + t * p2.1);
-
-    return (x_value, y_value);
-}
-
+// Description
+// Returns an array of the points' (x,y) values
 pub fn gen_cubic_bezier_curve_points(
     p0: (f64, f64),
     p1: (f64, f64),
@@ -534,6 +507,25 @@ pub fn gen_cubic_bezier_curve_points(
     return points;
 }
 
+// Description
+// Returns an array of the points' (x,y) values
+pub fn gen_quadratic_bezier_curve_points(
+    p0: (f64, f64), // Start point
+    p1: (f64, f64), // Mid point
+    p2: (f64, f64), // End point
+) -> [(f64, f64); BUFF_LENGTH + 1] {
+    let mut points: [(f64, f64); BUFF_LENGTH + 1] = [(-1.0, -1.0); BUFF_LENGTH + 1];
+    for t in 0..BUFF_LENGTH {
+        let point = t as f64;
+        //points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / 32.0);
+        points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / BUFF_LENGTH as f64);
+    }
+    return points;
+}
+
+/******      Bezier helper functions      ***** */
+
+// Description
 fn cubic_bezier_curve_point(
     p0: (f64, f64),
     p1: (f64, f64),
@@ -553,34 +545,21 @@ fn cubic_bezier_curve_point(
     return (x_value, y_value);
 }
 
-//
-//Function for extending a cubic bezier curve while keeping the chained curve
-// smooth. Works similarly to gen_cubic_bezier_curve_points()
-// http://www.inf.ed.ac.uk/teaching/courses/cg/d3/bezierJoin.html
-//
-pub fn extend_cubic_bezier_curve(
-    prev_pn: (f64, f64),
-    prev_pn_minus_1: (f64, f64),
-    //no p0 or p1, above data structures work instead
+// Description
+fn quadratic_bezier_curve_point(
+    p0: (f64, f64), // Point args obtained from perlin
+    p1: (f64, f64),
     p2: (f64, f64),
-    p3: (f64, f64),
-) -> [(f64, f64); BUFF_LENGTH + 1] {
-    let mut points: [(f64, f64); BUFF_LENGTH + 1] = [(-1.0, -1.0); BUFF_LENGTH + 1];
-
-    //Calculate p1
-    let mut p1: (f64, f64) = (0.0, 0.0);
-
-    p1.0 = prev_pn.0 + (prev_pn.0 - prev_pn_minus_1.0);
-    p1.1 = prev_pn.1 + (prev_pn.1 - prev_pn_minus_1.1);
-
-    for t in 0..BUFF_LENGTH {
-        let point = t as f64;
-        //points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / 32.0);
-        points[t] = cubic_bezier_curve_point(prev_pn, p1, p2, p3, point / BUFF_LENGTH as f64);
-    }
-    return points;
+    t: f64, // t = Point range 0-1 of the curve
+) -> (f64, f64) {
+    let x_value = (1.0 - t) * ((1.0 - t) * p0.0 + t * p1.0) + t * ((1.0 - t) * p1.0 + t * p2.0);
+    let y_value = (1.0 - t) * ((1.0 - t) * p0.1 + t * p1.1) + t * ((1.0 - t) * p1.1 + t * p2.1);
+    return (x_value, y_value);
 }
 
+/******      Perlin primary functions      ***** */
+
+// Description
 pub fn gen_perlin_hill_point(i: usize, freq: f32, amp: f32, modifier: f32, mul: f32) -> i16 {
     for j in 0..720 {
         let cord = (i, j);
@@ -601,16 +580,29 @@ pub fn gen_perlin_hill_point(i: usize, freq: f32, amp: f32, modifier: f32, mul: 
     return 720 as i16;
 }
 
-fn fade_1d(t: f32) -> f32 {
+/******      Perlin helper functions      ***** */
+
+// Description
+fn fade_2d(t: f64) -> f64 {
     return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
 }
 
-fn grad_1d(p: f32) -> f32 {
-    let v: f32 = 0.0;
+// Description
+fn grad_2d(random: &[[(i32, i32); 256]; 256], p: (f64, f64)) -> (f64, f64) {
+    let pre_v = random[p.0 as usize % 256][p.1 as usize % 256];
 
-    return if v > 0.5 { 1.0 } else { -1.0 };
+    let v = (pre_v.0 as f64 / 256.0, pre_v.1 as f64 / 256.0);
+
+    let n = (v.0 * 2.0 - 1.0, v.1 * 2.0 - 1.0);
+
+    let length = (n.0 * n.0 + n.1 * n.1).sqrt();
+
+    let unit = (n.0 / length, n.1 / length);
+
+    return unit;
 }
 
+// Description
 fn noise_1d(p: f32) -> f32 {
     let p0 = p.floor();
     let p1 = p0 + 1.0;
@@ -624,15 +616,38 @@ fn noise_1d(p: f32) -> f32 {
     return ((1.0 - ft) * g0 * (p - p0) + ft * g1 * (p - p1));
 }
 
-impl Distribution<StaticObject> for Standard {
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> StaticObject {
-        // match rng.gen_range(0, 3) { // rand 0.5, 0.6, 0.7
-        match rng.gen_range(0..=3) {
-            // rand 0.8
-            0 => StaticObject::Coin,
-            1 => StaticObject::Statue,
-            2 => StaticObject::Spring,
-            _ => StaticObject::Power,
-        }
-    }
+// Description
+pub fn noise_2d(random: &[[(i32, i32); 256]; 256], p: (f64, f64)) -> f64 {
+    let p0 = (p.0.floor(), p.1.floor());
+    let p1 = (p0.0 + 1.0, p0.1);
+    let p2 = (p0.0, p0.1 + 1.0);
+    let p3 = (p0.0 + 1.0, p0.1 + 1.0);
+
+    let g0 = grad_2d(&random, p0);
+    let g1 = grad_2d(&random, p1);
+    let g2 = grad_2d(&random, p2);
+    let g3 = grad_2d(&random, p3);
+
+    let t0 = p.0 - p0.0;
+    let fade_t0 = fade_2d(t0);
+
+    let t1 = p.1 - p0.1;
+    let fade_t1 = fade_2d(t1);
+
+    let p_minus_p0 = (p.0 - p0.0, p.1 - p0.1);
+    let p_minus_p1 = (p.0 - p1.0, p.1 - p1.1);
+    let p_minus_p2 = (p.0 - p2.0, p.1 - p2.1);
+    let p_minus_p3 = (p.0 - p3.0, p.1 - p3.1);
+
+    let g0_dot_p0 = g0.0 * p_minus_p0.0 + g0.1 * p_minus_p0.1;
+    let g1_dot_p1 = g1.0 * p_minus_p1.0 + g1.1 * p_minus_p1.1;
+    let g2_dot_p2 = g2.0 * p_minus_p2.0 + g2.1 * p_minus_p2.1;
+    let g3_dot_p3 = g3.0 * p_minus_p3.0 + g3.1 * p_minus_p3.1;
+
+    let p0p1 = (1.0 - fade_t0) * g0_dot_p0 + fade_t0 * g1_dot_p1;
+    let p2p3 = (1.0 - fade_t0) * g2_dot_p2 + fade_t0 * g3_dot_p3;
+
+    let result = (1.0 - fade_t1) * p0p1 + fade_t1 * p2p3;
+
+    return result;
 }

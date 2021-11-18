@@ -128,8 +128,9 @@ impl Game for Runner {
         let mut game_over: bool = false;
         let mut power_override: bool = false;
 
-        // number of frames to delay the end of the game by for demonstrating player collision
-        // this should be removed once the camera tracks the player properly
+        // number of frames to delay the end of the game by for demonstrating player
+        // collision this should be removed once the camera tracks the player
+        // properly
         let mut game_over_timer = 120;
 
         // FPS tracking
@@ -294,8 +295,9 @@ impl Game for Runner {
 
                     initial_pause = false;
                 }
-                // Remove "&& game_over_timer <= 0" once the camera properly tracks the player.
-                // For now, it is only here to delay the game end and demonstrate collision.
+                // Remove "&& game_over_timer <= 0" once the camera properly
+                // tracks the player. For now, it is only here
+                // to delay the game end and demonstrate collision.
             } else {
                 if game_over {
                     game_over_timer -= 1;
@@ -327,8 +329,11 @@ impl Game for Runner {
                 let angle = ((next_ground.y() as f64 - current_ground.y() as f64)
                     / (TILE_SIZE as f64))
                     .atan();
-                // This conditional statement is here so that the game will go on for a few more frames without player input once the player has died. The reason for this is to demonstrate collisions even though the camera does not follow the player.
-                // NOTE: Once the camera properly follows the player, this conditional should be removed.
+                // This conditional statement is here so that the game will go on for a few more
+                // frames without player input once the player has died. The reason for this is
+                // to demonstrate collisions even though the camera does not follow the player.
+                // NOTE: Once the camera properly follows the player, this conditional should be
+                // removed.
                 if !game_over {
                     for event in core.event_pump.poll_iter() {
                         match event {
@@ -379,7 +384,8 @@ impl Game for Runner {
                             continue;
                         }*/
                         //Temp option: can add these 2 lines to end game upon obstacle collsions
-                        //INVICIBILTY: chane true to power_override (when you dont wanna be invincible)
+                        //INVICIBILTY: chane true to power_override (when you dont wanna be
+                        // invincible)
                         /*shielded = false;
                         if let Some(powers::PowerUps::Shield) = power {
                             shielded = true;
@@ -393,8 +399,8 @@ impl Game for Runner {
                         // o.update_vel(0.0,0.0);   //these args do nothing
                         // o.update_pos(Point::new(0,0), 3.0);  //the 3 makes the obstacle spin
                         // println!("ypos{} vyo{} ayo{}  ", o.pos.1, o.velocity.1, o.accel.1 );
-                        //Real Solution: need to actually resolve the collision, should go something like this
-                        //player.collide(o);
+                        //Real Solution: need to actually resolve the collision, should go
+                        // something like this player.collide(o);
                         // Physics::apply_gravity(o, 0.0, 0.3); //maybe...
                         continue;
                     };
@@ -407,15 +413,18 @@ impl Game for Runner {
                             //so you only collect each coin once
                             c.collect(); //deletes the coin once collected (but takes too long)
                             coin_count += 1;
-                            tick_score += c.value(); //increments the score based on the coins value
-                                                     //maybe print next to score: "+ c.value()""
+                            tick_score += c.value(); //increments the score
+                                                     // based on the coins value
+                                                     // maybe print next to
+                                                     // score: "+ c.value()""
                         }
 
                         continue;
                     }
                 }
 
-                // Roughly the code needed for collecting power objects as it should follow the coin idea closely.
+                // Roughly the code needed for collecting power objects as it should follow the
+                // coin idea closely.
                 for p in powers.iter_mut() {
                     if Physics::check_power(&mut player, p) {
                         if !p.collected() {
@@ -508,8 +517,9 @@ impl Game for Runner {
                 }
 
                 //applies gravity, normal & friction now
-                //friciton is currently way OP (stronger than grav) bc cast to i32 in apply_force
-                //so to ever have an effect, it needs to be set > 1 for now...
+                //friciton is currently way OP (stronger than grav) bc cast to i32 in
+                // apply_force so to ever have an effect, it needs to be set > 1
+                // for now...
                 Physics::apply_gravity(&mut player, angle, 0.3);
 
                 //apply friction
@@ -517,7 +527,9 @@ impl Game for Runner {
 
                 for o in obstacles.iter_mut() {
                     o.update_vel(0.0, 0.0); //these args do nothing
-                    o.update_pos(Point::new(0, 0), 15.0, false); //the 3 makes the obstacle spin
+                    o.update_pos(Point::new(0, 0), 15.0, false); //the 3 makes
+                                                                 // the obstacle
+                                                                 // spin
                 }
                 player.update_pos(current_ground, angle, game_over);
                 player.update_vel(player_accel_rate, player_speed_adjust);
@@ -673,7 +685,7 @@ impl Game for Runner {
                         }
                     }
 
-                    //Object spawning
+                    // Object spawning
                     if object_spawn > 0 && object_spawn < SIZE {
                         /* println!(
                             "{:?} | {:?}",
@@ -685,7 +697,8 @@ impl Game for Runner {
                             Some(proceduralgen::StaticObject::Statue) => {
                                 //update physics obstacle position
                                 for s in obstacles.iter_mut() {
-                                    //this is hacky & dumb (will only work if one obstacle spawned at a time)
+                                    //this is hacky & dumb (will only work if one obstacle spawned
+                                    // at a time)
                                     if !s.collided() && s.mass > 1.0 {
                                         //once it collides we can't draw it like this
                                         s.hitbox = rect!(
@@ -720,7 +733,8 @@ impl Game for Runner {
                             Some(proceduralgen::StaticObject::Spring) => {
                                 //update physics obstacle position
                                 for s in obstacles.iter_mut() {
-                                    //this is hacky & dumb (will only work if one obstacle spawned at a time)
+                                    //this is hacky & dumb (will only work if one obstacle spawned
+                                    // at a time)
                                     if !s.collided() && s.mass < 2.0 {
                                         //gaurantees spring for now
                                         //once it collides we can't draw it like this
@@ -756,7 +770,7 @@ impl Game for Runner {
                     }
                 }
 
-                /*   Begin Camera Section   */
+                /* Begin Camera Section */
                 /*  Camera adjustments to keep player in PLAYER_x_BOUND,
                     and everything else placed properly relative to that.
                     Should be calculated after physics postion updates,
@@ -799,7 +813,7 @@ impl Game for Runner {
                     crv.camera_adj(camera_adj_x, camera_adj_y);
                 }
                 */
-                /*   End Camera Section   */
+                /* End Camera Section */
 
                 core.wincan.set_draw_color(Color::RGBA(0, 0, 0, 255));
                 core.wincan.fill_rect(rect!(0, 470, CAM_W, CAM_H))?;
@@ -841,6 +855,7 @@ impl Game for Runner {
                         CAM_H as i16
                     ))?;
 
+                    /*
                     // Ground
                     core.wincan.set_draw_color(Color::RGBA(13, 66, 31, 255));
                     core.wincan.fill_rect(rect!(
@@ -849,6 +864,7 @@ impl Game for Runner {
                         CAM_W as usize / SIZE,
                         CAM_H as i16
                     ))?;
+                    */
                 }
 
                 //Power asset drawing
@@ -913,33 +929,24 @@ impl Game for Runner {
                 }
 
                 // Draw player
-                // Ideally draw offset could be part of position calculations, and that var could be removed from the second rect
+                // Ideally draw offset could be part of position calculations, and that var
+                // could be removed from the second rect
                 if shielded {
                     core.wincan.copy_ex(
                         &shielded_player,
                         rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
-                        rect!(
-                            player.x(), /* + camera_adj_x*/
-                            player.y(), /* + camera_adj_y*/
-                            TILE_SIZE,
-                            TILE_SIZE
-                        ),
+                        rect!(player.x(), player.y(), TILE_SIZE, TILE_SIZE),
                         player.theta() * 180.0 / std::f64::consts::PI,
                         None,
                         false,
                         false,
                     )?;
                 }
-                
+
                 core.wincan.copy_ex(
                     player.texture(),
                     rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
-                    rect!(
-                        player.x(), /* + camera_adj_x*/
-                        player.y(), /* + camera_adj_y*/
-                        TILE_SIZE,
-                        TILE_SIZE
-                    ),
+                    rect!(player.x(), player.y(), TILE_SIZE, TILE_SIZE),
                     player.theta() * 180.0 / std::f64::consts::PI,
                     None,
                     false,
@@ -947,16 +954,7 @@ impl Game for Runner {
                 )?;
                 core.wincan.set_draw_color(Color::BLACK);
 
-
-                /*
-                // Hacky way of adjusting player's hitbox with the draw offset
-                // Ideally draw offset could be part of position calculations, and this could be a regular iter
-                for h in player.hitbox().iter_mut() {
-                    (*h).set_x((*h).x() + camera_adj_x);
-                    (*h).set_y((*h).y() + camera_adj_y);
-                    core.wincan.draw_rect(*h)?;
-                }
-                */
+                // Draw player's hitbox
                 for h in player.hitbox().iter() {
                     core.wincan.draw_rect(*h)?;
                 }
@@ -965,7 +963,8 @@ impl Game for Runner {
                 for o in obstacles.iter() {
                     if (o.x() > 50 && o.y() > 20) {
                         //hacky - will not work if more than one obstacle spawned
-                        //println!("XXXXX ypos{} vyo{} ayo{}  ", o.pos.1, o.velocity.1, o.accel.1 );
+                        //println!("XXXXX ypos{} vyo{} ayo{}  ", o.pos.1, o.velocity.1, o.accel.1
+                        // );
                         match o.o_type {
                             ObstacleType::Statue => {
                                 core.wincan.copy_ex(
@@ -1003,7 +1002,7 @@ impl Game for Runner {
                     }*/
                 }
 
-                //Draw coins
+                // Draw coins
                 for c in coins.iter() {
                     //need a method to delete it from vector, possibly somwthing like this
                     /*if c.collected(){
@@ -1026,7 +1025,7 @@ impl Game for Runner {
                     }
                 }
 
-                //Draw power
+                // Draw power
                 for p in powers.iter() {
                     //need a method to delete it from vector, possibly somwthing like this
                     /*if p.collected(){
@@ -1064,7 +1063,8 @@ impl Game for Runner {
                     .copy(&score_texture, None, Some(rect!(10, 10, 100, 50)))?;
 
                 if game_over {
-                    // decrement the amount of frames until the game ends in order to demonstrate the collision
+                    // decrement the amount of frames until the game ends in order to demonstrate
+                    // the collision
                     let game_over_texture = texture_creator
                         .create_texture_from_surface(
                             &font
