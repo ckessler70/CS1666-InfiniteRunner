@@ -57,7 +57,7 @@ const BUFF_LENGTH: usize = CAM_W as usize / 4;
 
 const FRONT_HILL_INDEX: usize = 0;
 const BACK_HILL_INDEX: usize = 1;
-const GROUND_INDEX: usize = 2;
+// const GROUND_INDEX: usize = 2;
 
 // Bounds to keep the player within
 // Used for camera postioning
@@ -157,18 +157,22 @@ impl Game for Runner {
         let mut player_jump_change: f64 = 0.0;
         let mut player_speed_adjust: f64 = 0.0;
 
-        // bg[0] = Front hills
-        // bg[1] = Back hills
-        // bg[2] = Ground
-        let mut bg: [[i16; SIZE]; 3] = [[0; SIZE]; 3];
+        // Sine waves the player doesn't interact with
+        // background_curves[0] = Front hills
+        // background_curves[1] = Back hills
+        let mut background_curves: [[i16; SIZE]; 2] = [[0; SIZE]; 2]; // renamed from bg
 
+        // Description
         let mut ground_buffer: [(f64, f64); BUFF_LENGTH + 1] = [(0.0, 0.0); BUFF_LENGTH + 1];
         let mut buff_idx = 0;
 
+        // Description
         let mut rng = rand::thread_rng();
 
+        // Description
         let freq: f32 = rng.gen::<f32>() * 1000.0 + 100.0;
 
+        // Description
         let amp_1: f32 = rng.gen::<f32>() * 4.0 + 1.0;
         let amp_2: f32 = rng.gen::<f32>() * 2.0 + amp_1;
         let amp_3: f32 = rng.gen::<f32>() * 2.0 + 1.0;
@@ -193,22 +197,25 @@ impl Game for Runner {
             false,
         );
 
+        // Generate sine waves (I think?)
         while ct < SIZE as usize {
-            bg[FRONT_HILL_INDEX][ct] =
+            background_curves[FRONT_HILL_INDEX][ct] =
                 proceduralgen::gen_perlin_hill_point((ct + buff_1), freq, amp_1, 0.5, 600.0);
-            bg[BACK_HILL_INDEX][ct] =
+            background_curves[BACK_HILL_INDEX][ct] =
                 proceduralgen::gen_perlin_hill_point((ct + buff_2), freq, amp_2, 1.0, 820.0);
-            bg[GROUND_INDEX][ct] = ground_buffer[buff_idx].1 as i16;
+
+            // background_curves[GROUND_INDEX][ct] = ground_buffer[buff_idx].1 as i16;
+
             ct += 1;
             buff_idx += 1;
         }
 
+        /* ~~~~~~ Main Game Loop ~~~~~~ */
         'gameloop: loop {
-            // FPS tracking
-            last_raw_time = Instant::now();
+            last_raw_time = Instant::now(); // FPS tracking
 
+            // Pausing handler
             if game_paused {
-                // Game paused handler
                 for event in core.event_pump.poll_iter() {
                     match event {
                         Event::Quit { .. }
@@ -237,9 +244,11 @@ impl Game for Runner {
                         },
                         _ => {}
                     }
-                }
+                } // End Loop
 
-                // Draw it to screen once and then wait due to BlendMode
+                // Is this section for initalizing pause screen stuff upon the first pause?
+                // If so, can it be moved outside the game loop?
+                // Draw it (what is "it"?) to screen once and then wait due to BlendMode
                 if initial_pause {
                     let resume_texture = texture_creator
                         .create_texture_from_surface(
@@ -277,11 +286,11 @@ impl Game for Runner {
                         )
                         .map_err(|e| e.to_string())?;
 
-                    // Grey out screen
+                    // Pause screen background, semitransparent grey
                     core.wincan.set_draw_color(Color::RGBA(0, 0, 0, 128));
                     core.wincan.fill_rect(rect!(0, 0, CAM_W, CAM_H))?;
 
-                    // Draw text
+                    // Draw pause screen text
                     core.wincan
                         .copy(&resume_texture, None, Some(rect!(100, 100, 1000, 125)))?;
                     core.wincan
@@ -292,43 +301,55 @@ impl Game for Runner {
                         .copy(&quit_texture, None, Some(rect!(100, 550, 600, 125)))?;
 
                     core.wincan.present();
-
                     initial_pause = false;
                 }
                 // Remove "&& game_over_timer <= 0" once the camera properly
                 // tracks the player. For now, it is only here
                 // to delay the game end and demonstrate collision.
-            } else {
+            }
+            // Normal unpaused game state
+            else {
+                // End game loop, 'player has lost' state
                 if game_over {
-                    game_over_timer -= 1;
+                    game_over_timer -= 1; // Animation buffer?
                     if game_over_timer == 0 {
                         break 'gameloop;
                     }
                 }
 
+                /*  What the fuck
+                    Statements will always be false with an implemented camera
                 if player.x() < PLAYER_LEFT_BOUND {
                     continue 'gameloop;
                 } else if player.x() > PLAYER_RIGHT_BOUND {
                     continue 'gameloop;
                 }
+                */
 
+                /*  An equivalant of this will be implemented in proceduralgen,
+                    and sent here within a struct for each piece of terrain.
                 // Left ground position
                 let current_ground = Point::new(
                     player.x(),
                     CAM_H as i32
-                        - bg[2][(player.x() as usize) / (CAM_W / SIZE as u32) as usize] as i32,
+                        - background_curves[2]
+                            [(player.x() as usize) / (CAM_W / SIZE as u32) as usize]
+                            as i32,
                 );
                 // Right ground position
                 let next_ground = Point::new(
                     player.x() + TILE_SIZE as i32,
                     CAM_H as i32
-                        - bg[2][(((player.x() + TILE_SIZE as i32) as usize)
+                        - background_curves[2][(((player.x() + TILE_SIZE as i32) as usize)
                             / (CAM_W / SIZE as u32) as usize)] as i32,
                 );
                 // Angle between
                 let angle = ((next_ground.y() as f64 - current_ground.y() as f64)
                     / (TILE_SIZE as f64))
                     .atan();
+                */
+
+                /* Your time has come (refractor)
                 // This conditional statement is here so that the game will go on for a few more
                 // frames without player input once the player has died. The reason for this is
                 // to demonstrate collisions even though the camera does not follow the player.
@@ -368,7 +389,9 @@ impl Game for Runner {
 
                     tick_score = 1;
                 }
+                */
 
+                // Description
                 //in the future when obstacles & coins are proc genned we will probs wanna
                 //only check for obstacles/coins based on their location relative to players x
                 // cord
@@ -406,6 +429,7 @@ impl Game for Runner {
                     };
                 }
 
+                // Description
                 for c in coins.iter_mut() {
                     //check collection
                     if Physics::check_collection(&mut player, c) {
@@ -418,7 +442,6 @@ impl Game for Runner {
                                                      // maybe print next to
                                                      // score: "+ c.value()""
                         }
-
                         continue;
                     }
                 }
@@ -460,7 +483,7 @@ impl Game for Runner {
                     }
                 }
 
-                //Power handling
+                // Power handling
                 if power_tick > 0 {
                     power_tick -= 1;
                     match power {
@@ -476,6 +499,7 @@ impl Game for Runner {
                         Some(powers::PowerUps::BouncyShoes) => {
                             // Forces jumping while active and jumps 0.3 velocity units higher
                             player_jump_change = 0.3;
+                            // This will need changed for refractor
                             player.jump(current_ground, true, player_jump_change);
                         }
                         Some(powers::PowerUps::LowerGravity) => {
@@ -516,6 +540,7 @@ impl Game for Runner {
                     power = None;
                 }
 
+                /* Removing player temporarily for refractor
                 //applies gravity, normal & friction now
                 //friciton is currently way OP (stronger than grav) bc cast to i32 in
                 // apply_force so to ever have an effect, it needs to be set > 1
@@ -526,10 +551,8 @@ impl Game for Runner {
                 //Physics::apply_friction(&mut player, 1.0);
 
                 for o in obstacles.iter_mut() {
-                    o.update_vel(0.0, 0.0); //these args do nothing
-                    o.update_pos(Point::new(0, 0), 15.0, false); //the 3 makes
-                                                                 // the obstacle
-                                                                 // spin
+                    o.update_vel(0.0, 0.0); // These args do nothing
+                    o.update_pos(Point::new(0, 0), 15.0, false);
                 }
                 player.update_pos(current_ground, angle, game_over);
                 player.update_vel(player_accel_rate, player_speed_adjust);
@@ -550,6 +573,7 @@ impl Game for Runner {
                     initial_pause = true;
                     continue;
                 }
+                */
 
                 core.wincan.set_draw_color(Color::RGBA(3, 120, 206, 255));
                 core.wincan.clear();
@@ -557,13 +581,17 @@ impl Game for Runner {
                 core.wincan
                     .copy(&tex_grad, None, rect!(0, -128, CAM_W, CAM_H))?;
 
+                // Generate more terrain if player hasn't died
                 if !game_over {
                     // Every tick, build a new ground segment
                     if tick % 1 == 0 {
                         if buff_idx == BUFF_LENGTH {
                             ground_buffer = proceduralgen::ProceduralGen::gen_bezier_land(
                                 &random,
-                                (0.0, bg[GROUND_INDEX][(SIZE - 1) as usize] as f64),
+                                (
+                                    0.0,
+                                    background_curves[GROUND_INDEX][(SIZE - 1) as usize] as f64,
+                                ),
                                 CAM_W as i32,
                                 CAM_H as i32,
                                 false,
@@ -574,10 +602,12 @@ impl Game for Runner {
                         }
 
                         for i in 0..(SIZE as usize - 1) {
-                            bg[GROUND_INDEX][i] = bg[GROUND_INDEX][i + 1];
+                            background_curves[GROUND_INDEX][i] =
+                                background_curves[GROUND_INDEX][i + 1];
                         }
 
-                        bg[GROUND_INDEX][(SIZE - 1) as usize] = ground_buffer[buff_idx].1 as i16;
+                        background_curves[GROUND_INDEX][(SIZE - 1) as usize] =
+                            ground_buffer[buff_idx].1 as i16;
 
                         buff_idx += 1;
 
@@ -591,7 +621,8 @@ impl Game for Runner {
                     // Every 3 ticks, build a new front mountain segment
                     if tick % 3 == 0 {
                         for i in 0..(SIZE as usize - 1) {
-                            bg[FRONT_HILL_INDEX][i] = bg[FRONT_HILL_INDEX][i + 1];
+                            background_curves[FRONT_HILL_INDEX][i] =
+                                background_curves[FRONT_HILL_INDEX][i + 1];
                         }
                         buff_1 += 1;
                         let chunk_1 = proceduralgen::gen_perlin_hill_point(
@@ -601,13 +632,14 @@ impl Game for Runner {
                             0.5,
                             600.0,
                         );
-                        bg[FRONT_HILL_INDEX][(SIZE - 1) as usize] = chunk_1;
+                        background_curves[FRONT_HILL_INDEX][(SIZE - 1) as usize] = chunk_1;
                     }
 
                     // Every 5 ticks, build a new back mountain segment
                     if tick % 5 == 0 {
                         for i in 0..(SIZE as usize - 1) {
-                            bg[BACK_HILL_INDEX][i] = bg[BACK_HILL_INDEX][i + 1];
+                            background_curves[BACK_HILL_INDEX][i] =
+                                background_curves[BACK_HILL_INDEX][i + 1];
                         }
                         buff_2 += 1;
                         let chunk_2 = proceduralgen::gen_perlin_hill_point(
@@ -617,7 +649,7 @@ impl Game for Runner {
                             1.0,
                             820.0,
                         );
-                        bg[BACK_HILL_INDEX][(SIZE - 1) as usize] = chunk_2;
+                        background_curves[BACK_HILL_INDEX][(SIZE - 1) as usize] = chunk_2;
                     }
 
                     if object_spawn == 0 {
@@ -690,7 +722,7 @@ impl Game for Runner {
                         /* println!(
                             "{:?} | {:?}",
                             object_spawn * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
-                            CAM_H as i16 - bg[GROUND_INDEX][object_spawn]
+                            CAM_H as i16 - background_curves[GROUND_INDEX][object_spawn]
                         );*/
 
                         match object {
@@ -705,7 +737,7 @@ impl Game for Runner {
                                             object_spawn * CAM_W as usize / SIZE
                                                 + CAM_W as usize / SIZE / 2,
                                             CAM_H as i16
-                                                - bg[GROUND_INDEX][object_spawn]
+                                                - background_curves[GROUND_INDEX][object_spawn]
                                                 - TILE_SIZE as i16,
                                             TILE_SIZE,
                                             TILE_SIZE
@@ -722,7 +754,7 @@ impl Game for Runner {
                                         object_spawn * CAM_W as usize / SIZE
                                             + CAM_W as usize / SIZE / 2,
                                         CAM_H as i16
-                                            - bg[GROUND_INDEX][object_spawn]
+                                            - background_curves[GROUND_INDEX][object_spawn]
                                             - TILE_SIZE as i16,
                                         TILE_SIZE,
                                         TILE_SIZE
@@ -742,7 +774,7 @@ impl Game for Runner {
                                             object_spawn * CAM_W as usize / SIZE
                                                 + CAM_W as usize / SIZE / 2,
                                             (CAM_H as i16
-                                                - bg[GROUND_INDEX][object_spawn]
+                                                - background_curves[GROUND_INDEX][object_spawn]
                                                 - (TILE_SIZE / 4) as i16),
                                             TILE_SIZE,
                                             TILE_SIZE / 4
@@ -758,7 +790,7 @@ impl Game for Runner {
                                         object_spawn * CAM_W as usize / SIZE
                                             + CAM_W as usize / SIZE / 2,
                                         CAM_H as i16
-                                            - bg[GROUND_INDEX][object_spawn]
+                                            - background_curves[GROUND_INDEX][object_spawn]
                                             - TILE_SIZE as i16,
                                         TILE_SIZE,
                                         TILE_SIZE
@@ -836,12 +868,12 @@ impl Game for Runner {
                     rect!(CAM_W as i32 + bg_buff, 0, CAM_W, CAM_H / 3),
                 )?;
 
-                for i in 0..bg[FRONT_HILL_INDEX].len() - 1 {
+                for i in 0..background_curves[FRONT_HILL_INDEX].len() - 1 {
                     // Furthest back mountains
                     core.wincan.set_draw_color(Color::RGBA(128, 51, 6, 255));
                     core.wincan.fill_rect(rect!(
                         i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
-                        CAM_H as i16 - bg[BACK_HILL_INDEX][i],
+                        CAM_H as i16 - background_curves[BACK_HILL_INDEX][i],
                         CAM_W as usize / SIZE,
                         CAM_H as i16
                     ))?;
@@ -850,7 +882,7 @@ impl Game for Runner {
                     core.wincan.set_draw_color(Color::RGBA(96, 161, 152, 255));
                     core.wincan.fill_rect(rect!(
                         i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
-                        CAM_H as i16 - bg[FRONT_HILL_INDEX][i],
+                        CAM_H as i16 - background_curves[FRONT_HILL_INDEX][i],
                         CAM_W as usize / SIZE,
                         CAM_H as i16
                     ))?;
@@ -860,7 +892,7 @@ impl Game for Runner {
                     core.wincan.set_draw_color(Color::RGBA(13, 66, 31, 255));
                     core.wincan.fill_rect(rect!(
                         i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
-                        CAM_H as i16 - bg[GROUND_INDEX][i],
+                        CAM_H as i16 - background_curves[GROUND_INDEX][i],
                         CAM_W as usize / SIZE,
                         CAM_H as i16
                     ))?;
@@ -1096,26 +1128,27 @@ impl Game for Runner {
                 core.wincan.present();*/
             }
 
-            // FPS Calculation
-            // the time taken to display the last frame
+            /* ~~~~~~ FPS Calculation ~~~~~~ */
+            // Time taken to display the last frame
             let raw_frame_time = last_raw_time.elapsed().as_secs_f64();
             let delay = FRAME_TIME - raw_frame_time;
-            // if the amount of time to display the last frame was less than expected, sleep
+            // If the amount of time to display the last frame was less than expected, sleep
             // until the expected amount of time has passed
             if delay > 0.0 {
-                // using sleep to delay will always cause slightly more delay than intended due
+                // Using sleep to delay will always cause slightly more delay than intended due
                 // to CPU scheduling; possibly find a better way to delay
                 sleep(Duration::from_secs_f64(delay));
             }
-            // let adjusted_frame_time = last_adjusted_time.elapsed().as_secs_f64();
             all_frames += 1;
             let time_since_last_measurement = last_measurement_time.elapsed();
-            // measure the FPS once every second
+            // Measures the FPS once per second
             if time_since_last_measurement > Duration::from_secs(1) {
                 all_frames = 0;
                 last_measurement_time = Instant::now();
             }
 
+            // The very last thing in the game loop
+            // Is this some kind of physics thing that I'm too proceduralgen to understand?
             player.reset_accel();
         }
 
@@ -1126,7 +1159,8 @@ impl Game for Runner {
     }
 }
 
-//Remaking rand::random() to fit with powers.
+/* Equivalant should be implemented in proceduralgen
+// Remaking rand::random() to fit with powers.
 impl Distribution<powers::PowerUps> for Standard {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> powers::PowerUps {
         // match rng.gen_range(0, 3) { // rand 0.5, 0.6, 0.7
@@ -1140,3 +1174,4 @@ impl Distribution<powers::PowerUps> for Standard {
         }
     }
 }
+*/

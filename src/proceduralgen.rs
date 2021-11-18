@@ -6,7 +6,9 @@ use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::Texture;
 
-const BUFF_LENGTH: usize = 320;
+const CAM_W: u32 = 1280;
+const SIZE: usize = CAM_W as usize / 10; // Size of what?
+const BUFF_LENGTH: usize = CAM_W as usize / 4; // Why 1/4 of screen width specifically?
 
 pub struct ProceduralGen; // This is getting axed for the refractor I think
 
@@ -24,11 +26,13 @@ pub enum StaticObject {
     Spring,
 }
 
-// Old code, starting point for the overall goal of this refractor
+// Starting point for the overall goal of this refractor
 pub struct TerrainSegment {
-    pos: Rect,
-    // curve: Bezier Curve,
-    terrainType: TerrainType,
+    pos: Rect,          // Bounding box
+    curve: [i16; SIZE], // Array of points defining the bezier curve
+    angle_from_last: f64, /* Angle between previous segment and this segment, should trend
+                         * downward on average */
+    terrain_type: TerrainType,
     color: Color,
 }
 
@@ -89,9 +93,10 @@ impl ProceduralGen {
     /*
      *
      */
-    pub fn init_terrain<'a>(cam_w: i32, cam_h: i32, texture: &'a Texture<'a>) /*-> TerrainSegment*/
+    pub fn init_terrain<'a>(cam_w: i32, cam_h: i32, texture: &'a Texture<'a>) /* -> TerrainSegment */
     {
-        // TerrainSegment::new(rect!(0, cam_h * 2 / 3, cam_w, cam_h / 3), &texture)
+        // TerrainSegment::new(rect!(0, cam_h * 2 / 3, cam_w, cam_h / 3),
+        // &texture)
     }
 
     /*
@@ -106,7 +111,7 @@ impl ProceduralGen {
         _is_flat: bool,
         _is_cliff: bool,
         texture: &'a Texture<'a>,
-    ) /*-> TerrainSegment*/
+    ) /* -> TerrainSegment */
     {
         //TODO
 
@@ -313,10 +318,9 @@ impl ProceduralGen {
      *
      *  - Takes in `random` which is the array of random tuples of (i32, i32)
      *    Needs to be the same values on each run for porper noise output
-     *    Represents the gradient value for points.
-     *    Passed into gen_point_mod
-     *  - Takes in `min_length` and `max_length` which
-     *    control min/max distance to this obstacle arriving
+     *    Represents the gradient value for points. Passed into gen_point_mod
+     *  - Takes in `min_length` and `max_length` which control min/max distance
+     *    to this obstacle arriving
      *
      *  - Returns the random StaticObject type and length to that object
      */
@@ -351,8 +355,8 @@ impl ProceduralGen {
     }
 }
 
-/*  Function for extending a cubic bezier curve while keeping the chained curve
- *  smooth. Works similarly to gen_cubic_bezier_curve_points()
+/*  Function for extending a cubic bezier curve while keeping the chained
+ * curve  smooth. Works similarly to gen_cubic_bezier_curve_points()
  *      http://www.inf.ed.ac.uk/teaching/courses/cg/d3/bezierJoin.html
  */
 pub fn extend_cubic_bezier_curve(
@@ -381,8 +385,8 @@ pub fn extend_cubic_bezier_curve(
 /* Randomly choose a TerrainType.
  * Heavily weighted to pick Grass as that should be most common
  *
- *  - Takes in `upper` which is the top of of the gen_range.
- *    Should be >= 3. Higher it is, more weighted to choose Grass
+ *  - Takes in `upper` which is the top of of the gen_range. Should be >= 3.
+ *    Higher it is, more weighted to choose Grass
  *
  *  - Returns a random TerrainType
  */
@@ -399,7 +403,8 @@ fn get_random_terrain(upper: i32) -> TerrainType {
     }
 }
 
-/* Overwriting of `rand::random()` for our use to determine a random StaticObject
+/* Overwriting of `rand::random()` for our use to determine a random
+ * StaticObject
  *
  *  - Returns a random StaticObject
  */
@@ -555,9 +560,11 @@ fn quadratic_bezier_curve_point(
  *  - Takes in point `i` which is the x value we want to get the y of
  *  - Takes in `freq` which is a control value on the cord
  *  - Takes in `amp` which is a control value on the noise_1d outputs
- *  - Takes in `mul` which is a control value on the entire augmented noise_1d outputs
+ *  - Takes in `mul` which is a control value on the entire augmented
+ *    noise_1d outputs
  *
- *  - Returns the y position associated witht the output of the augmented outputs
+ *  - Returns the y position associated witht the output of the augmented
+ *    outputs
  */
 pub fn gen_perlin_hill_point(i: usize, freq: f32, amp: f32, modifier: f32, mul: f32) -> i16 {
     for j in 0..720 {
@@ -584,7 +591,8 @@ pub fn gen_perlin_hill_point(i: usize, freq: f32, amp: f32, modifier: f32, mul: 
  *
  *  - Takes in `random` which is the array of random tuples of (i32, i32)
  *    Needs to be the same values on each run for porper noise output
- *    Represents the gradient value for points. Passed into noise_2d each time it is called
+ *    Represents the gradient value for points. Passed into noise_2d each
+ *    time it is called
  *  - Takes in `freq` which is a control value on the cord
  *  - Takes in `amp` which is a control value on the noise_2d outputs
  *
@@ -621,13 +629,14 @@ fn gen_perlin_noise(random: &[[(i32, i32); 256]; 256], freq: f64, amp: f64) -> [
  *
  *  - Takes in `random` which is the array of random tuples of (i32, i32)
  *    Needs to be the same values on each run for porper noise output
- *    Represents the gradient value for points.
- *    Passed into noise_2d each time it is called
+ *    Represents the gradient value for points. Passed into noise_2d each
+ *    time it is called
  *  - Takes in point values `cord` to get the noise values of
  *  - Takes in `freq` which is a control value on the cord
  *  - Takes in `amp` which is a control value on the noise_2d outputs
  *
- *  - Returns the advanced perlin noise value for given point augmented by control values
+ *  - Returns the advanced perlin noise value for given point augmented by
+ *    control values
  */
 fn gen_point_mod(random: &[[(i32, i32); 256]; 256], cord: (i32, i32), freq: f64, amp: f64) -> f64 {
     let n = noise_2d(&random, (cord.0 as f64 / (freq), cord.1 as f64 / (freq))) * (amp)
