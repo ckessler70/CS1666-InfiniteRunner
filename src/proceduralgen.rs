@@ -43,6 +43,7 @@ pub enum StaticObject {
 
 // Terrain Segment Definitions
 impl TerrainSegment {
+    // Initializors
     pub fn new(
         pos: Rect,
         curve: [(i32, i32); SIZE],
@@ -58,6 +59,10 @@ impl TerrainSegment {
             terrain_type: TerrainType::Grass,
             color: Color::GREEN,
         }
+    }
+
+    pub fn init_terrain() {
+        TerrainSegment::new(/* Args for the consistent initial segment */)
     }
 
     // Mutators

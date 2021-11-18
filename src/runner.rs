@@ -12,8 +12,8 @@ use crate::physics::Player;
 use crate::physics::Power;
 
 use crate::proceduralgen;
+use crate::proceduralgen::TerrainSegment;
 // use crate::proceduralgen::ProceduralGen;
-// use crate::proceduralgen::TerrainSegment;
 
 use crate::powers;
 
@@ -95,6 +95,10 @@ impl Game for Runner {
         let shielded_player = texture_creator.load_texture("assets/shielded_player.png")?;
 
         let mut bg_buff = 0;
+
+        // Create terrain vector with starting segment
+        let mut all_terrain = Vec::new();
+        all_terrain.push(TerrainSegment::init_terrain())
 
         // Create player at default position
         let mut player = Player::new(
