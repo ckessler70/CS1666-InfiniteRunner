@@ -24,7 +24,7 @@ pub enum StaticObject {
     Spring,
 }
 
-/* Old code, starting point for the overall goal of this refractor
+// Old code, starting point for the overall goal of this refractor
 pub struct TerrainSegment {
     pos: Rect,
     // curve: Bezier Curve,
@@ -32,9 +32,18 @@ pub struct TerrainSegment {
     color: Color,
 }
 
-impl<'a> TerrainSegment<'a> {
-    pub fn new(pos: Rect, texture: &'a Texture<'a>) -> TerrainSegment {
-        TerrainSegment { pos, color }
+impl TerrainSegment {
+    pub fn new(
+        pos: Rect,
+        texture: &Texture,
+        color: Color,
+        terrainType: TerrainType,
+    ) -> TerrainSegment {
+        TerrainSegment {
+            pos,
+            terrainType,
+            color,
+        }
     }
 
     pub fn x(&self) -> i32 {
@@ -57,7 +66,7 @@ impl<'a> TerrainSegment<'a> {
         &self.pos
     }
 
-    pub fn color(&self) -> Color {
+    pub fn color(&self) -> &Color {
         &self.color
     }
 
@@ -66,26 +75,28 @@ impl<'a> TerrainSegment<'a> {
         self.pos.set_y(self.pos.y() + y_adj);
     }
 }
-*/
 
-// I don't understand a lot of what's going on in this impl,
-// but it needs cleaning
+/*  I don't understand a lot of what's going on in this impl,
+ *  but it needs cleaning
+ *
+ */
 #[allow(dead_code)]
 impl ProceduralGen {
     pub fn init() -> Result<Self, String> {
         Ok(ProceduralGen {})
     }
 
-    // Description
-    pub fn init_terrain<'a>(
-        cam_w: i32,
-        cam_h: i32,
-        texture: &'a Texture<'a>,
-    ) -> TerrainSegment<'a> {
-        TerrainSegment::new(rect!(0, cam_h * 2 / 3, cam_w, cam_h / 3), &texture)
+    /*
+     *
+     */
+    pub fn init_terrain<'a>(cam_w: i32, cam_h: i32, texture: &'a Texture<'a>) /*-> TerrainSegment*/
+    {
+        // TerrainSegment::new(rect!(0, cam_h * 2 / 3, cam_w, cam_h / 3), &texture)
     }
 
-    // Description
+    /*
+     *
+     */
     pub fn gen_land<'a>(
         random: &[[(i32, i32); 256]; 256],
         prev_segment: &TerrainSegment,
@@ -95,7 +106,8 @@ impl ProceduralGen {
         _is_flat: bool,
         _is_cliff: bool,
         texture: &'a Texture<'a>,
-    ) -> TerrainSegment<'a> {
+    ) /*-> TerrainSegment*/
+    {
         //TODO
 
         let mut rng = rand::thread_rng();
@@ -162,18 +174,21 @@ impl ProceduralGen {
         //is_flat - binary tick, next batch of land will be flat or mostly flat
         // (shallow curve) is_cliff - binary tick, next batch of land
         // will have a point where it drops down into a cliff face
-        TerrainSegment::new(
-            rect!(
-                prev_segment.x() + prev_segment.w(),
-                prev_segment.y(),
-                cam_w,
-                cam_h / 3
-            ),
-            &texture,
-        )
+
+        // TerrainSegment::new(
+        //     rect!(
+        //         prev_segment.x() + prev_segment.w(),
+        //         prev_segment.y(),
+        //         cam_w,
+        //         cam_h / 3
+        //     ),
+        //     &texture,
+        // )
     }
 
-    // Description
+    /*
+     *
+     */
     pub fn gen_bezier_land(
         random: &[[(i32, i32); 256]; 256],
         mut prev_point: (f64, f64),
@@ -293,7 +308,18 @@ impl ProceduralGen {
         return (curve);
     }
 
-    // Description
+    /* Handles the object spawning for the game.
+     * Includes determining object type and how long until it comes up
+     *
+     *  - Takes in `random` which is the array of random tuples of (i32, i32)
+     *    Needs to be the same values on each run for porper noise output
+     *    Represents the gradient value for points.
+     *    Passed into gen_point_mod
+     *  - Takes in `min_length` and `max_length` which
+     *    control min/max distance to this obstacle arriving
+     *
+     *  - Returns the random StaticObject type and length to that object
+     */
     pub fn spawn_object(
         random: &[[(i32, i32); 256]; 256],
         min_length: i32,
@@ -325,52 +351,6 @@ impl ProceduralGen {
     }
 }
 
-// Description
-fn gen_perlin_noise(random: &[[(i32, i32); 256]; 256], freq: f64, amp: f64) -> [[f64; 128]; 128] {
-    let mut out = [[0.0; 128]; 128];
-
-    for i in 0..(out.len() - 1) {
-        for j in 0..(out.len() - 1) {
-            let cord = (i, j);
-
-            let n = noise_2d(&random, (cord.0 as f64 / 64.0, cord.1 as f64 / (freq))) * (amp)
-                + noise_2d(
-                    &random,
-                    (cord.0 as f64 / 32.0, cord.1 as f64 / (freq / 2.0)),
-                ) * (amp / 2.0)
-                + noise_2d(
-                    &random,
-                    (cord.0 as f64 / 16.0, cord.1 as f64 / (freq / 4.0)),
-                ) * (amp / 4.0)
-                + noise_2d(&random, (cord.0 as f64 / 8.0, cord.1 as f64 / (freq / 8.0)))
-                    * (amp / 8.0);
-            let modifier = n * 0.5 + 0.5;
-
-            out[i][j] = modifier;
-        }
-    }
-    return out;
-}
-
-// Description
-fn gen_point_mod(random: &[[(i32, i32); 256]; 256], cord: (i32, i32), freq: f64, amp: f64) -> f64 {
-    let n = noise_2d(&random, (cord.0 as f64 / (freq), cord.1 as f64 / (freq))) * (amp)
-        + noise_2d(
-            &random,
-            (cord.0 as f64 / (freq / 2.0), cord.1 as f64 / (freq / 2.0)),
-        ) * (amp / 2.0)
-        + noise_2d(
-            &random,
-            (cord.0 as f64 / (freq / 4.0), cord.1 as f64 / (freq / 4.0)),
-        ) * (amp / 4.0)
-        + noise_2d(
-            &random,
-            (cord.0 as f64 / (freq / 8.0), cord.1 as f64 / (freq / 8.0)),
-        ) * (amp / 8.0);
-    let modifier = n * 0.5 + 0.5;
-    return modifier;
-}
-
 /*  Function for extending a cubic bezier curve while keeping the chained curve
  *  smooth. Works similarly to gen_cubic_bezier_curve_points()
  *      http://www.inf.ed.ac.uk/teaching/courses/cg/d3/bezierJoin.html
@@ -398,19 +378,31 @@ pub fn extend_cubic_bezier_curve(
     return points;
 }
 
-// Description
-fn fade_1d(t: f32) -> f32 {
-    return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+/* Randomly choose a TerrainType.
+ * Heavily weighted to pick Grass as that should be most common
+ *
+ *  - Takes in `upper` which is the top of of the gen_range.
+ *    Should be >= 3. Higher it is, more weighted to choose Grass
+ *
+ *  - Returns a random TerrainType
+ */
+fn get_random_terrain(upper: i32) -> TerrainType {
+    let mut rng = rand::thread_rng();
+
+    let upper = upper.clamp(3, i32::MAX);
+
+    match rng.gen_range(0..=10) {
+        0 => TerrainType::Asphalt,
+        1 => TerrainType::Sand,
+        2 => TerrainType::Water,
+        _ => TerrainType::Grass,
+    }
 }
 
-// Description
-fn grad_1d(p: f32) -> f32 {
-    let v: f32 = 0.0;
-
-    return if v > 0.5 { 1.0 } else { -1.0 };
-}
-
-// Description
+/* Overwriting of `rand::random()` for our use to determine a random StaticObject
+ *
+ *  - Returns a random StaticObject
+ */
 impl Distribution<StaticObject> for Standard {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> StaticObject {
         // match rng.gen_range(0, 3) { // rand 0.5, 0.6, 0.7
@@ -423,7 +415,6 @@ impl Distribution<StaticObject> for Standard {
         }
     }
 }
-
 
 /******      Bezier primary functions      ***** */
 
@@ -559,7 +550,15 @@ fn quadratic_bezier_curve_point(
 
 /******      Perlin primary functions      ***** */
 
-// Description
+/* Generates a single value from the 1d perlin noise
+ *
+ *  - Takes in point `i` which is the x value we want to get the y of
+ *  - Takes in `freq` which is a control value on the cord
+ *  - Takes in `amp` which is a control value on the noise_1d outputs
+ *  - Takes in `mul` which is a control value on the entire augmented noise_1d outputs
+ *
+ *  - Returns the y position associated witht the output of the augmented outputs
+ */
 pub fn gen_perlin_hill_point(i: usize, freq: f32, amp: f32, modifier: f32, mul: f32) -> i16 {
     for j in 0..720 {
         let cord = (i, j);
@@ -580,14 +579,98 @@ pub fn gen_perlin_hill_point(i: usize, freq: f32, amp: f32, modifier: f32, mul: 
     return 720 as i16;
 }
 
-/******      Perlin helper functions      ***** */
+/* Not currently utilized...Can probably be removed
+ *  Generates entire perlin map of 128x128
+ *
+ *  - Takes in `random` which is the array of random tuples of (i32, i32)
+ *    Needs to be the same values on each run for porper noise output
+ *    Represents the gradient value for points. Passed into noise_2d each time it is called
+ *  - Takes in `freq` which is a control value on the cord
+ *  - Takes in `amp` which is a control value on the noise_2d outputs
+ *
+ *  - Returns the entire 128x128 perlin noise map values
+ */
+fn gen_perlin_noise(random: &[[(i32, i32); 256]; 256], freq: f64, amp: f64) -> [[f64; 128]; 128] {
+    let mut out = [[0.0; 128]; 128];
 
-// Description
-fn fade_2d(t: f64) -> f64 {
+    for i in 0..(out.len() - 1) {
+        for j in 0..(out.len() - 1) {
+            let cord = (i, j);
+
+            let n = noise_2d(&random, (cord.0 as f64 / 64.0, cord.1 as f64 / (freq))) * (amp)
+                + noise_2d(
+                    &random,
+                    (cord.0 as f64 / 32.0, cord.1 as f64 / (freq / 2.0)),
+                ) * (amp / 2.0)
+                + noise_2d(
+                    &random,
+                    (cord.0 as f64 / 16.0, cord.1 as f64 / (freq / 4.0)),
+                ) * (amp / 4.0)
+                + noise_2d(&random, (cord.0 as f64 / 8.0, cord.1 as f64 / (freq / 8.0)))
+                    * (amp / 8.0);
+            let modifier = n * 0.5 + 0.5;
+
+            out[i][j] = modifier;
+        }
+    }
+    return out;
+}
+
+/* Generates the advanced perlin noise value for a single point.
+ *  Calls noise_2d 4 times to make output more "interesting"
+ *
+ *  - Takes in `random` which is the array of random tuples of (i32, i32)
+ *    Needs to be the same values on each run for porper noise output
+ *    Represents the gradient value for points.
+ *    Passed into noise_2d each time it is called
+ *  - Takes in point values `cord` to get the noise values of
+ *  - Takes in `freq` which is a control value on the cord
+ *  - Takes in `amp` which is a control value on the noise_2d outputs
+ *
+ *  - Returns the advanced perlin noise value for given point augmented by control values
+ */
+fn gen_point_mod(random: &[[(i32, i32); 256]; 256], cord: (i32, i32), freq: f64, amp: f64) -> f64 {
+    let n = noise_2d(&random, (cord.0 as f64 / (freq), cord.1 as f64 / (freq))) * (amp)
+        + noise_2d(
+            &random,
+            (cord.0 as f64 / (freq / 2.0), cord.1 as f64 / (freq / 2.0)),
+        ) * (amp / 2.0)
+        + noise_2d(
+            &random,
+            (cord.0 as f64 / (freq / 4.0), cord.1 as f64 / (freq / 4.0)),
+        ) * (amp / 4.0)
+        + noise_2d(
+            &random,
+            (cord.0 as f64 / (freq / 8.0), cord.1 as f64 / (freq / 8.0)),
+        ) * (amp / 8.0);
+    let modifier = n * 0.5 + 0.5;
+    return modifier;
+}
+
+/******      Perlin helper functions      ***** */
+// Implementation adapted from https://gpfault.net/posts/perlin-noise.txt.html
+
+/* Smoothing the input value so the result isn't as "sharp"
+ *  Used for interpolation step of Perlin Noise Algorithm.
+ *  Interchangeable between 1d and 2d implementation
+ *
+ *  - Takes in value `t` to apply fade upon
+ *
+ *  - Returns smoothed value
+ */
+fn fade(t: f64) -> f64 {
     return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
 }
 
-// Description
+/* Determine gradient value for given point p
+ *
+ *  - Takes in `random` which is the array of random tuples of (i32, i32)
+ *    Needs to be the same values on each run for porper noise output
+ *    Represents the gradient value for points
+ *  - Takes in point `p` to determine gradient of
+ *
+ *  - Returns unit vector of gradient vector
+ */
 fn grad_2d(random: &[[(i32, i32); 256]; 256], p: (f64, f64)) -> (f64, f64) {
     let pre_v = random[p.0 as usize % 256][p.1 as usize % 256];
 
@@ -602,21 +685,15 @@ fn grad_2d(random: &[[(i32, i32); 256]; 256], p: (f64, f64)) -> (f64, f64) {
     return unit;
 }
 
-// Description
-fn noise_1d(p: f32) -> f32 {
-    let p0 = p.floor();
-    let p1 = p0 + 1.0;
-
-    let t = p - p0;
-    let ft = fade_1d(t);
-
-    let g0 = grad_1d(p0);
-    let g1 = grad_1d(p1);
-
-    return ((1.0 - ft) * g0 * (p - p0) + ft * g1 * (p - p1));
-}
-
-// Description
+/* Putting everything together for making the 2d noise
+ *
+ *  - Takes in `random` which is the array of random tuples of (i32, i32)
+ *    Needs to be the same values on each run for porper noise output
+ *    Represents the gradient value for points. Passed into grad_2d
+ *  - Takes in point values `p` to give noise output on
+ *
+ *  - Returns noise output for given values
+ */
 pub fn noise_2d(random: &[[(i32, i32); 256]; 256], p: (f64, f64)) -> f64 {
     let p0 = (p.0.floor(), p.1.floor());
     let p1 = (p0.0 + 1.0, p0.1);
@@ -629,10 +706,10 @@ pub fn noise_2d(random: &[[(i32, i32); 256]; 256], p: (f64, f64)) -> f64 {
     let g3 = grad_2d(&random, p3);
 
     let t0 = p.0 - p0.0;
-    let fade_t0 = fade_2d(t0);
+    let fade_t0 = fade(t0);
 
     let t1 = p.1 - p0.1;
-    let fade_t1 = fade_2d(t1);
+    let fade_t1 = fade(t1);
 
     let p_minus_p0 = (p.0 - p0.0, p.1 - p0.1);
     let p_minus_p1 = (p.0 - p1.0, p.1 - p1.1);
@@ -650,4 +727,38 @@ pub fn noise_2d(random: &[[(i32, i32); 256]; 256], p: (f64, f64)) -> f64 {
     let result = (1.0 - fade_t1) * p0p1 + fade_t1 * p2p3;
 
     return result;
+}
+
+/* Determine gradient value for given value p
+ *  *NOTE*: Some wierdness taking in the random values array but
+ *    setting value to consistently output either -1 always or 1 always
+ *    gives expected output
+ *
+ *  - Takes in point `p` to determine gradient of
+ *
+ *  - Returns binary output (-1 or 1)
+ */
+fn grad_1d(p: f32) -> f32 {
+    let v: f32 = 0.0;
+
+    return if v > 0.5 { 1.0 } else { -1.0 };
+}
+
+/* Putting everything together for making the 1d noise
+ *
+ *  - Takes in point value `p` to give noise output on
+ *
+ *  - Returns noise output for given value
+ */
+fn noise_1d(p: f32) -> f32 {
+    let p0 = p.floor();
+    let p1 = p0 + 1.0;
+
+    let t = p - p0;
+    let ft = fade(t as f64) as f32;
+
+    let g0 = grad_1d(p0);
+    let g1 = grad_1d(p1);
+
+    return ((1.0 - ft) * g0 * (p - p0) + ft * g1 * (p - p1));
 }
