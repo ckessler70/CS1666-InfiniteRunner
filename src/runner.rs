@@ -443,6 +443,7 @@ impl Game for Runner {
                             player_accel_rate = -10.0;
                             player_jump_change = 0.0;
                             player_speed_adjust = 0.0;
+                            shielded = false;
 
                             p.collect();
                             power_tick = 360;
@@ -930,7 +931,7 @@ impl Game for Runner {
                         false,
                     )?;
                 }
-                
+
                 core.wincan.copy_ex(
                     player.texture(),
                     rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
@@ -946,7 +947,6 @@ impl Game for Runner {
                     false,
                 )?;
                 core.wincan.set_draw_color(Color::BLACK);
-
 
                 /*
                 // Hacky way of adjusting player's hitbox with the draw offset
