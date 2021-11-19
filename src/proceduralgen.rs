@@ -283,15 +283,6 @@ impl ProceduralGen {
             rng.gen::<f64>()
         };
 
-        // //Generates perlin noise map each terrain
-        // let perlin_noise: [[f64; 128]; 128] = gen_perlin_noise(freq, amp);
-
-        // // As mod is closer to 1, it should be higher. As it is closer to 0, it
-        // should be lower let point_mod: f64 = perlin_noise
-        //     [((rng.gen::<f64>() * (perlin_noise.len() - 1) as f64).floor()) as usize]
-        //     [((rng.gen::<f64>() * (perlin_noise.len() - 1) as f64).floor()) as
-        // usize];
-
         // Generates perlin noise for random point instead of whole map
         let map_size = 128;
         let point_mod_1a: f64 = gen_point_mod(
@@ -492,7 +483,7 @@ fn gen_bezier_curve(
     point_mod_3: (f64, f64),
     buffer: i32,
 ) -> [(f64, f64); BUFF_LENGTH + 1] {
-    //TODO
+    //TODO - CONTROL POINT LOGIC NEEDS TO BE REFINED
     //Bezier curve
 
     let mut rng = rand::thread_rng();
@@ -506,8 +497,6 @@ fn gen_bezier_curve(
         );
 
         let p2: (f64, f64) = (length as f64 + p0.0, point_mod_2.1 * (height / 3) as f64);
-
-        println!("Quadratic");
 
         let group_of_points: [(f64, f64); BUFF_LENGTH + 1] =
             gen_quadratic_bezier_curve_points(p0, p1, p2);
@@ -535,8 +524,6 @@ fn gen_bezier_curve(
 
         let p3: (f64, f64) = (length as f64 + p0.0, point_mod_3.1 * (height / 3) as f64);
 
-        println!("Cubic");
-
         let group_of_points: [(f64, f64); BUFF_LENGTH + 1] =
             gen_cubic_bezier_curve_points(p0, p1, p2, p3);
 
@@ -544,7 +531,12 @@ fn gen_bezier_curve(
     }
 }
 
-// Description
+/*
+ *
+ *
+ *
+ *
+ */
 // Returns an array of the points' (x,y) values
 pub fn gen_cubic_bezier_curve_points(
     p0: (f64, f64),
@@ -562,7 +554,12 @@ pub fn gen_cubic_bezier_curve_points(
     return points;
 }
 
-// Description
+/*
+ *
+ *
+ *
+ *
+ */
 // Returns an array of the points' (x,y) values
 pub fn gen_quadratic_bezier_curve_points(
     p0: (f64, f64), // Start point
@@ -580,12 +577,17 @@ pub fn gen_quadratic_bezier_curve_points(
 
 /******      Bezier helper functions      ***** */
 
-// Description
+/*
+ *
+ *
+ *
+ *
+ */
 fn cubic_bezier_curve_point(
-    p0: (f64, f64),
-    p1: (f64, f64),
-    p2: (f64, f64),
-    p3: (f64, f64),
+    p0: (f64, f64), // Start point
+    p1: (f64, f64), // Mid_0 point
+    p2: (f64, f64), // Mid_1 point
+    p3: (f64, f64), // End point
     t: f64,
 ) -> (f64, f64) {
     let x_value = (1.0 - t) * (1.0 - t) * (1.0 - t) * p0.0
@@ -600,12 +602,18 @@ fn cubic_bezier_curve_point(
     return (x_value, y_value);
 }
 
-// Description
+/*
+ *
+ *
+ *
+ *
+ */
 fn quadratic_bezier_curve_point(
-    p0: (f64, f64), // Point args obtained from perlin
-    p1: (f64, f64),
-    p2: (f64, f64),
-    t: f64, // t = Point range 0-1 of the curve
+    // Point args obtained from perlin
+    p0: (f64, f64), // Start point
+    p1: (f64, f64), // Mid point
+    p2: (f64, f64), // End point
+    t: f64,         // t = Point range 0-1 of the curve
 ) -> (f64, f64) {
     let x_value = (1.0 - t) * ((1.0 - t) * p0.0 + t * p1.0) + t * ((1.0 - t) * p1.0 + t * p2.0);
     let y_value = (1.0 - t) * ((1.0 - t) * p0.1 + t * p1.1) + t * ((1.0 - t) * p1.1 + t * p2.1);
