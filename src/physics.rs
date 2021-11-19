@@ -43,7 +43,7 @@ impl Physics {
     }
     //applies gravity, normal & friction forces
     //depends on whether or not player is on ground
-    pub fn apply_gravity<'a>(body: &mut impl Body<'a>, angle: f64, coeff: f64) {
+    pub fn apply_gravity<'a>(body: &mut impl Body<'a>, angle: f64) {
         //onground --> apply gravity in x & y direction based on angle of the ground
         //Note: "angle" is positive going downhill & negative going uphill
         //---- but we always need a negative force in y direction...
@@ -51,7 +51,20 @@ impl Physics {
         if body.is_onground() {
             // -angle
             //apply gravity in -x & -y
-            // body.apply_force((body.mass() * angle.sin(), body.mass() * angle.cos()));
+            if(angle<0.0){
+                //gravity
+                body.apply_force((body.mass() * angle.sin(), body.mass() * angle.cos()));
+                //normal
+                body.apply_force((-body.mass() * angle.sin(), -body.mass() * angle.cos()));
+            }
+            else{
+                //gravity
+                body.apply_force((-body.mass() * angle.sin(), -body.mass() * angle.cos()));
+                //normal
+                body.apply_force((body.mass() * angle.sin(), body.mass() * angle.cos()));
+            }
+            
+            
             //apply grav in -y
             //body.apply_force((0.0, -body.mass()));
 
@@ -59,15 +72,8 @@ impl Physics {
             // body.apply_force((0.0, -body.mass() * angle.cos()));
             //apply normal in -x & +y
             // The y direction force here should be 0; the normal force in the y direction
-            body.apply_force((body.mass() * angle.sin(), -body.mass() * angle.cos()));
+           // body.apply_force((-body.mass() * angle.sin(), -body.mass() * angle.cos()));
 
-            //apply friction (same as gravity in -x)
-            // body.apply_force(((body.mass() * angle.sin() * coeff), 0.0));
-            //apply fricition in -x & -y
-            body.apply_force((
-                -coeff * body.mass() * angle.cos(),
-                coeff * body.mass() * angle.sin(),
-            ));
         } else {
             //player in the air
             //apply entirity of gravity force in -y direction (bc player not on ground)
@@ -76,7 +82,7 @@ impl Physics {
         }
     }
 
-    pub fn apply_friction<'a>(body: &mut impl Body<'a>, coeff: f64) {
+    pub fn apply_friction<'a>(body: &mut impl Body<'a>, angle: f64, coeff: f64) {
         // TODO
         // fn apply_friction(&player: Player, &surface:
         // Option<Box<ProceduralGen::Surface>>) {      Completely made
@@ -96,8 +102,21 @@ impl Physics {
         //      }
         //
         // }
-        body.apply_force(((-coeff * body.mass()), 0.0));
-    }
+            if body.is_onground(){ //apply friction (same as gravity in -x)
+                // body.apply_force(((body.mass() * angle.sin() * coeff), 0.0));
+                //apply fricition in -x & -y
+                if(angle<0.0){
+                    body.apply_force(( coeff * body.mass() * angle.cos(), coeff * body.mass() * angle.sin(),));
+                }
+                else{
+                    body.apply_force(( -coeff * body.mass() * angle.cos(), -coeff * body.mass() * angle.sin(),));
+                }
+            }
+
+            
+        }
+       // body.apply_force(((-coeff * body.mass()), 0.0));
+    
 
     fn bounce(player: &Player, obstacle: &Obstacle) {
         // TODO
@@ -231,7 +250,7 @@ pub trait Dynamic<'a>: Entity<'a> {
     /// Returns the `Body`'s rate of rotation
     fn omega(&self) -> f64;
     /// Modifies the velocity of the `Dynamic` `Entity`
-    fn update_vel(&mut self, fall_rate: f64, speed_adjust: f64);
+    fn update_vel(&mut self);
     // /// Modifies the rotation speed of the `Dynamic` `Entity`
     fn update_omega(&mut self);
 }
@@ -356,12 +375,12 @@ impl<'a> Player<'a> {
     }
 
     // Returns true if a jump was initiated
-    pub fn jump(&mut self, ground: Point, bouncy: bool, change: f64) -> bool {
+    pub fn jump(&mut self, ground: Point, bouncy: bool) -> bool {
         // Bouncy will not set flipping to true by default if true
         // Change is a way to change height of jump depending on value
         if bouncy {
             if self.hitbox.contains_point(ground) {
-                self.velocity.1 = 25.0 + change;
+                self.velocity.1 = 25.0;
                 self.jumping = true;
                 self.onground = false;
 
@@ -374,7 +393,7 @@ impl<'a> Player<'a> {
             }
         } else {
             if self.hitbox.contains_point(ground) {
-                self.velocity.1 = 25.0 + change;
+                self.velocity.1 = 25.0;
                 self.jumping = true;
                 self.onground = false;
 
@@ -517,13 +536,13 @@ impl<'a> Dynamic<'a> for Player<'a> {
 
     // Fall rate is the lower clamp value for the y velocity
     // Speed adjust is the augmenting value for the x velocity
-    fn update_vel(&mut self, fall_rate: f64, speed_adjust: f64) {
+    fn update_vel(&mut self) {
         // Update to make the TOTAL MAX VELOCITY constant
         // Right now it's UPPER_SPEED in one direction and UPPER_SPEED*sqrt(2)
         // diagonally
-        self.velocity.0 =
-            (self.velocity.0 + self.accel.0 + speed_adjust).clamp(LOWER_SPEED, UPPER_SPEED);
-        self.velocity.1 = (self.velocity.1 + self.accel.1).clamp(fall_rate, 1000.0);
+        self.velocity.0 = (self.velocity.0 + self.accel.0).clamp(LOWER_SPEED, UPPER_SPEED);
+        self.velocity.1 = (self.velocity.1 + self.accel.1).clamp(2.0*LOWER_SPEED, 5.0*UPPER_SPEED);
+
     }
 
     fn update_omega(&mut self) {
@@ -574,8 +593,8 @@ impl<'a> Collider<'a> for Player<'a> {
             // println!("\tplayer initial velocity: ({},{})", p_vx, p_vy);
             // println!("\tobject initial velocity: ({},{})", 0, 0);
             // println!("\tangle from player to object in rads: {}", angle);
-            println!("\tplayer final velocity({},{})", p_vx_f, p_vy_f);
-            println!("\tobject final velocity({},{})", o_vx_f, o_vy_f);
+            //println!("\tplayer final velocity({},{})", p_vx_f, p_vy_f);
+            //println!("\tobject final velocity({},{})", o_vx_f, o_vy_f);
             obstacle.velocity.0 = o_vx_f;
             obstacle.velocity.1 = o_vy_f;
             // if o_vy_f >= 0.0 || !obstacle.is_onground() {
@@ -589,7 +608,7 @@ impl<'a> Collider<'a> for Player<'a> {
             // Implicitly apply the force of collision to the player by updating its x and y velocity to the values calculated from the collision equation
             self.velocity.0 = p_vx_f;
             self.velocity.1 = p_vy_f;
-            Physics::apply_gravity(obstacle, 0.0, 0.3);
+            Physics::apply_gravity(obstacle, angle);
             /***************************************************/
             match obstacle.o_type {
                 ObstacleType::Statue => {
@@ -731,6 +750,7 @@ pub struct Obstacle<'a> {
     jumping: bool,
     flipping: bool,
     collided: bool,
+    pub delete_me: bool,
 }
 
 pub enum ObstacleType {
@@ -762,7 +782,23 @@ impl<'a> Obstacle<'a> {
             jumping: false,
             flipping: false,
             collided: false,
+            delete_me: false,
         }
+    }
+
+    pub fn collide_terrain(&mut self, ground: Point, angle: f64){
+        if self.hitbox.contains_point(ground) {
+            
+            self.velocity.1 = 0.0;
+            
+            self.pos.1 = (ground.y() as f64) - 0.95 * TILE_SIZE;
+            self.align_hitbox_to_pos();
+
+            // This is normal force ... is this being applied twice in our code?
+            self.apply_force((0.0, self.mass()));
+        }
+
+
     }
 
     pub fn mass(&self) -> f64 {
@@ -772,6 +808,8 @@ impl<'a> Obstacle<'a> {
     pub fn collided(&self) -> bool {
         self.collided
     }
+
+   
 
     //This is gonna need a better implementation
     //right now: just detects collision w/ image Rect
@@ -873,14 +911,9 @@ impl<'a> Dynamic<'a> for Obstacle<'a> {
 
     // Fall rate is the lower clamp value for the y velocity
     // Speed adjust is the augmenting value for the x velocity
-    fn update_vel(&mut self, fall_rate: f64, speed_adjust: f64) {
-        // Update to make the TOTAL MAX VELOCITY constant
-        // Right now it's UPPER_SPEED in one direction and UPPER_SPEED*sqrt(2)
-        // diagonally
+    fn update_vel(&mut self) {
         self.velocity.0 = (self.velocity.0 + self.accel.0).clamp(-20.0, 20.0);
         self.velocity.1 = (self.velocity.1 + self.accel.1).clamp(-20.0, 20.0);
-        //(self.velocity.0 + self.accel.0 + speed_adjust).clamp(LOWER_SPEED, UPPER_SPEED);
-        //self.velocity.1 = (self.velocity.1 + self.accel.1).clamp(fall_rate, 1000.0);
     }
 
     fn update_omega(&mut self) {
@@ -929,8 +962,9 @@ impl<'a> Body<'a> for Obstacle<'a> {
     // Should we take in force as a magnitude and an angle? Makes the friction
     // calculation above simpler
     fn apply_force(&mut self, force: (f64, f64)) {
-        self.accel.0 += force.0 / self.mass;
-        self.accel.1 += force.1 / self.mass;
+        self.accel.0 += (force.0 / self.mass);//.clamp(-2.0,2.0);
+        self.accel.1 += (force.0 / self.mass);//.clamp(-1.0,2.0);
+
     }
 
     fn apply_torque(&mut self, force: f64, radius: f64) {

@@ -340,7 +340,7 @@ impl Game for Runner {
                                     if player.is_jumping() {
                                         player.resume_flipping();
                                     } else {
-                                        player.jump(current_ground, true, player_jump_change);
+                                        player.jump(current_ground, true);
                                     }
                                 }
                                 Keycode::Escape => {
@@ -364,38 +364,21 @@ impl Game for Runner {
                     tick_score = 1;
                 }
 
-                //in the future when obstacles & coins are proc genned we will probs wanna
+                //in the future (maybee:
                 //only check for obstacles/coins based on their location relative to players x
-                // cord
-                //(also: idt this can be a for loop bc it moves the obstacles values?)
-                for o in obstacles.iter_mut() {
-                    //.filter(|near by obstacles|).collect()
+                for o in obstacles.iter_mut() { //.filter(|near by obstacles|).collect()
                     if let Some(collision_boxes) = player.check_collision(o) {
-                        //Bad way to ignore collision with a shield
-                        /*if power_override {
-                            // if !player.collide(o, collision_boxes) {
-                            //     Apply some simulation/annimation on the obstacle knocking it over
-                            // }
-                            continue;
-                        }*/
-                        //Temp option: can add these 2 lines to end game upon obstacle collsions
-                        //INVICIBILTY: chane true to power_override (when you dont wanna be invincible)
-                        /*shielded = false;
-                        if let Some(powers::PowerUps::Shield) = power {
-                            shielded = true;
-                        }*/
+                        
+                        //shielded: when true player will not be affected by collision, only obstacle
+                        //collide() - returns true if game ending collision
                         if !player.collide(o, collision_boxes, shielded) {
                             game_over = true;
                             initial_pause = true;
                             continue 'gameloop;
                         }
+                        //DEBUG:
                         //println!("ypos{} vyo{} ayo{}  ", o.pos.1, o.velocity.1, o.accel.1 );
-                        // o.update_vel(0.0,0.0);   //these args do nothing
-                        // o.update_pos(Point::new(0,0), 3.0);  //the 3 makes the obstacle spin
-                        // println!("ypos{} vyo{} ayo{}  ", o.pos.1, o.velocity.1, o.accel.1 );
-                        //Real Solution: need to actually resolve the collision, should go something like this
-                        //player.collide(o);
-                        // Physics::apply_gravity(o, 0.0, 0.3); //maybe...
+    
                         continue;
                     };
                 }
@@ -439,7 +422,6 @@ impl Game for Runner {
                             }
 
                             // Reset any previously active power values to default
-                            power_override = false;
                             player_accel_rate = -10.0;
                             player_jump_change = 0.0;
                             player_speed_adjust = 0.0;
@@ -468,7 +450,7 @@ impl Game for Runner {
                         Some(powers::PowerUps::BouncyShoes) => {
                             // Forces jumping while active and jumps 0.3 velocity units higher
                             player_jump_change = 0.3;
-                            player.jump(current_ground, true, player_jump_change);
+                            player.jump(current_ground, true);
                         }
                         Some(powers::PowerUps::LowerGravity) => {
                             // Accel rate is how the y velocity is clamped
@@ -511,18 +493,21 @@ impl Game for Runner {
                 //applies gravity, normal & friction now
                 //friciton is currently way OP (stronger than grav) bc cast to i32 in apply_force
                 //so to ever have an effect, it needs to be set > 1 for now...
-                Physics::apply_gravity(&mut player, angle, 0.3);
-
-                //apply friction
-                //Physics::apply_friction(&mut player, 1.0);
+                Physics::apply_gravity(&mut player, angle);
+                Physics::apply_friction(&mut player,angle, 1.0);
+                player.update_pos(current_ground, angle, game_over);
+                player.update_vel();
+                player.flip();
 
                 for o in obstacles.iter_mut() {
-                    o.update_vel(0.0, 0.0); //these args do nothing
+                    //Physics::apply_gravity(&mut o, angle);
+                   // Physics::apply_friction(&mut o,angle, 1.0);
+                    o.update_vel(); //these args do nothing
                     o.update_pos(Point::new(0, 0), 15.0, false); //the 3 makes the obstacle spin
+                    //keeps obstacle from falling off map, but will not end game if it collides at odd angle
+                    //o.collide_terrain(current_ground, angle);
                 }
-                player.update_pos(current_ground, angle, game_over);
-                player.update_vel(player_accel_rate, player_speed_adjust);
-                player.flip();
+                
 
                 //kinematics change, scroll speed does not :(
                 //can see best when super curvy map generated
@@ -740,13 +725,20 @@ impl Game for Runner {
                             }
                             Some(proceduralgen::StaticObject::Power) => {
                                 //update physics power position
+                                //get rid of "- 75" for ground level power ups
+
+                                //place power up at a random height
+                                //rn less than top of screen, but should also cap @ max jump height t
+                                /*let max_height: i16 = CAM_H as i16 - bg[GROUND_INDEX][object_spawn] - TILE_SIZE as i16;
+                                let height: i16 = rng.gen_range(0..=max_height);  */
+     
                                 for p in powers.iter_mut() {
                                     p.pos = rect!(
                                         object_spawn * CAM_W as usize / SIZE
                                             + CAM_W as usize / SIZE / 2,
                                         CAM_H as i16
                                             - bg[GROUND_INDEX][object_spawn]
-                                            - TILE_SIZE as i16,
+                                            - TILE_SIZE as i16 - 75,
                                         TILE_SIZE,
                                         TILE_SIZE
                                     );
@@ -957,13 +949,14 @@ impl Game for Runner {
                     core.wincan.draw_rect(*h)?;
                 }
                 */
-                for h in player.hitbox().iter() {
+                for h in player.hitbox().iter_mut() {
                     core.wincan.draw_rect(*h)?;
                 }
-
+                let mut i: usize = 0;
                 // Draw obstacles
-                for o in obstacles.iter() {
-                    if (o.x() > 50 && o.y() > 20) {
+                for o in obstacles.iter_mut() {
+                    //draw obstacle if on screen, if not delete it from the vector
+                    if (o.x() > 20 && o.y() > 20 && o.y() < CAM_H as i32) {
                         //hacky - will not work if more than one obstacle spawned
                         //println!("XXXXX ypos{} vyo{} ayo{}  ", o.pos.1, o.velocity.1, o.accel.1 );
                         match o.o_type {
@@ -997,11 +990,19 @@ impl Game for Runner {
                             _ => {}
                         }
                     }
-                    /*else{
-                        drop(o);
-                        object_count-= 1;
-                    }*/
+                    else{
+                        o.delete_me = true;
+                        //object_count-= 1;
+                    }
+                    if(o.collided() && o.x() > CAM_W as i32){   //if it collided & goes off screen right
+                        o.delete_me = true;
+                    }
+                    i+=1;
                 }
+
+                //only keep obstacles that dont want deleted
+                //see above but they "want deleted" bc they are now off screen
+                obstacles.retain(|o| o.delete_me);
 
                 //Draw coins
                 for c in coins.iter() {
