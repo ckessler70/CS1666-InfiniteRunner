@@ -48,7 +48,6 @@ const CAM_H: u32 = 720;
 const CAM_W: u32 = 1280;
 pub const TILE_SIZE: u32 = 100;
 
-// Ensure that SIZE is not a decimal -- Why?
 const SIZE: usize = CAM_W as usize / 10;
 const BUFF_LENGTH: usize = CAM_W as usize / 4;
 
@@ -852,10 +851,11 @@ impl Game for Runner {
                 */
                 /* End Camera Section */
 
+                /* ~~~~~~ Draw All Elements ~~~~~~ */
                 core.wincan.set_draw_color(Color::RGBA(0, 0, 0, 255));
                 core.wincan.fill_rect(rect!(0, 470, CAM_W, CAM_H))?;
 
-                // Draw background
+                // Background
                 core.wincan
                     .copy(&tex_bg, None, rect!(bg_buff, -150, CAM_W, CAM_H))?;
                 core.wincan.copy(
@@ -864,7 +864,7 @@ impl Game for Runner {
                     rect!(bg_buff + (CAM_W as i32), -150, CAM_W, CAM_H),
                 )?;
 
-                //Draw sky in background
+                // Sky
                 core.wincan
                     .copy(&tex_sky, None, rect!(bg_buff, 0, CAM_W, CAM_H / 3))?;
                 core.wincan.copy(
@@ -873,8 +873,9 @@ impl Game for Runner {
                     rect!(CAM_W as i32 + bg_buff, 0, CAM_W, CAM_H / 3),
                 )?;
 
+                // Background sine waves
                 for i in 0..background_curves[IND_BACKGROUND_MID].len() - 1 {
-                    // Furthest back mountains
+                    // Furthest back sine waves
                     core.wincan.set_draw_color(Color::RGBA(128, 51, 6, 255));
                     core.wincan.fill_rect(rect!(
                         i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
@@ -883,7 +884,7 @@ impl Game for Runner {
                         CAM_H as i16
                     ))?;
 
-                    // Closest mountains
+                    // Midground sine waves
                     core.wincan.set_draw_color(Color::RGBA(96, 161, 152, 255));
                     core.wincan.fill_rect(rect!(
                         i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
@@ -904,7 +905,7 @@ impl Game for Runner {
                     */
                 }
 
-                //Power asset drawing
+                // Power assets
                 if power_tick > 0 {
                     match power {
                         Some(proceduralgen::PowerUps::SpeedBoost) => {
@@ -965,23 +966,17 @@ impl Game for Runner {
                     bg_buff = 0;
                 }
 
-                // Draw player
-                // Ideally draw offset could be part of position calculations, and that var
-                // could be removed from the second rect
+                // Set player texture
+                let mut tex_player = player.texture();  // Default
                 if shielded {
-                    core.wincan.copy_ex(
-                        &shielded_player,
-                        rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
-                        rect!(player.x(), player.y(), TILE_SIZE, TILE_SIZE),
-                        player.theta() * 180.0 / std::f64::consts::PI,
-                        None,
-                        false,
-                        false,
-                    )?;
-                }
+                    tex_player = &shielded_player,
+                } /* else if ... {
+                    Other player textures
+                } */
 
+                // Player
                 core.wincan.copy_ex(
-                    player.texture(),
+                    tex_player,
                     rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
                     rect!(player.x(), player.y(), TILE_SIZE, TILE_SIZE),
                     player.theta() * 180.0 / std::f64::consts::PI,
@@ -991,61 +986,66 @@ impl Game for Runner {
                 )?;
                 core.wincan.set_draw_color(Color::BLACK);
 
-                // Draw player's hitbox
+                // Player's hitbox
                 for h in player.hitbox().iter() {
                     core.wincan.draw_rect(*h)?;
                 }
 
-                // Draw obstacles
-                for o in obstacles.iter() {
-                    if (o.x() > 50 && o.y() > 20) {
+                // Obstacles
+                for obs in obstacles.iter() {
+                    // What is the purpose of this conditional?
+                    // All obstacles should be drawn no matter their position onscreen
+                    if (obs.x() > 50 && obs.y() > 20) {
                         //hacky - will not work if more than one obstacle spawned
                         //println!("XXXXX ypos{} vyo{} ayo{}  ", o.pos.1, o.velocity.1, o.accel.1
                         // );
-                        match o.o_type {
+                        match obs.o_type {
                             ObstacleType::Statue => {
                                 core.wincan.copy_ex(
-                                    o.texture(),
+                                    obs.texture(),
                                     None,
                                     rect!(o.pos.0, o.pos.1, TILE_SIZE, TILE_SIZE),
-                                    o.theta(),
+                                    obs.theta(),
                                     None,
                                     false,
                                     false,
                                 )?;
                                 core.wincan.set_draw_color(Color::RED);
-                                core.wincan.draw_rect(o.hitbox())?;
+                                core.wincan.draw_rect(obs.hitbox())?;
                                 break;
                             }
                             ObstacleType::Spring => {
                                 core.wincan.copy_ex(
-                                    o.texture(),
+                                    obs.texture(),
                                     None,
                                     rect!(o.pos.0, o.pos.1, TILE_SIZE, TILE_SIZE / 4),
-                                    o.theta(),
+                                    obs.theta(),
                                     None,
                                     false,
                                     false,
                                 )?;
                                 core.wincan.set_draw_color(Color::BLUE);
-                                core.wincan.draw_rect(o.hitbox())?;
+                                core.wincan.draw_rect(obs.hitbox())?;
                             }
                             _ => {}
                         }
                     }
                     /*else{
-                        drop(o);
+                        drop(obs);
                         object_count-= 1;
                     }*/
                 }
 
-                // Draw coins
+                // Coins
                 for c in coins.iter() {
-                    //need a method to delete it from vector, possibly somwthing like this
+                    //need a method to delete it from vector, possibly something like this
+                    // Should be handled after hitbox updates but before draw section
                     /*if c.collected(){
                         coins.retain(|x| x != c.collected);
                     }*/
 
+                    // What is the purpose of this conditional?
+                    // All coins should be drawn no matter their position onscreen
                     if !c.collected() && c.x() > 50 {
                         //hacky - will not work if more than one coin spawned
                         core.wincan.copy_ex(
@@ -1062,15 +1062,18 @@ impl Game for Runner {
                     }
                 }
 
-                // Draw power
+                // Powers
                 for p in powers.iter() {
                     //need a method to delete it from vector, possibly somwthing like this
+                    // Should be handled after hitbox updates but before draw section
                     /*if p.collected(){
                         powers.retain(|x| x != p.collected);
                     }*/
 
+                    // What is the purpose of this conditional?
+                    // All powers should be drawn no matter their position onscreen
                     if !p.collected() && p.x() > 50 {
-                        //hacky - will not work if more than one coin spawned
+                        //hacky - will not work if more than one power spawned
                         core.wincan.copy_ex(
                             p.texture(),
                             rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
@@ -1085,17 +1088,16 @@ impl Game for Runner {
                     }
                 }
 
+                // Description
                 let surface = font
                     .render(&format!("{:08}", score))
                     .blended(Color::RGBA(255, 0, 0, 100))
                     .map_err(|e| e.to_string())?;
+
+                // Display score
                 let score_texture = texture_creator
                     .create_texture_from_surface(&surface)
                     .map_err(|e| e.to_string())?;
-
-                if !game_over {
-                    score += tick_score;
-                }
                 core.wincan
                     .copy(&score_texture, None, Some(rect!(10, 10, 100, 50)))?;
 
@@ -1118,6 +1120,12 @@ impl Game for Runner {
                 }
 
                 core.wincan.present();
+
+                // Increment survival score
+                // This should be placed after hitbox updates but before drawing
+                if !game_over {
+                    score += tick_score;
+                }
 
                 /*let other_surface = font
                     .render(&format!("{:03}", coin_count))

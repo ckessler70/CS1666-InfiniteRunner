@@ -79,7 +79,7 @@ impl TerrainSegment {
     }
 
     // Mutators
-    // Adjusts terrain postion in runner.rs based on camera_adj_x & camera_adj_y in
+    // Adjusts terrain postion in runner.rs based on camera_adj_x & camera_adj_y
     pub fn camera_adj(&mut self, x_adj: i32, y_adj: i32) {
         self.pos.set_x(self.pos.x() + x_adj);
         self.pos.set_y(self.pos.y() + y_adj);
