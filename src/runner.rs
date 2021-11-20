@@ -186,7 +186,7 @@ impl Game for Runner {
         let mut object_spawn: usize = 0;
         let mut object_count: i32 = 0;
 
-        let mut spawning_timer = 500;
+        let mut spawning_timer = 100;
 
         let mut object = None;
 
@@ -693,8 +693,9 @@ impl Game for Runner {
                                 SIZE as i32,
                                 (SIZE * 3) as i32,
                             );
-                            object = breakdown.0;
-                            object_spawn = breakdown.1;
+                            object = choose_static_object;
+
+                            object_count += 1;
                         } else {
                             object = None;
                         }
@@ -725,7 +726,7 @@ impl Game for Runner {
                         match object {
                             Some(StaticObject::Statue) => {
                                 let obstacle = Obstacle::new(
-                                    rect!(object_spawn, 0, 0, 0),
+                                    rect!(CAM_W, 0, 0, 0),
                                     50.0,
                                     texture_creator.load_texture("assets/statue.png")?,
                                     ObstacleType::Statue,
@@ -736,7 +737,7 @@ impl Game for Runner {
                             }
                             Some(StaticObject::Coin) => {
                                 let coin = Coin::new(
-                                    rect!(object_spawn, 0, 0, 0),
+                                    rect!(CAM_W, 0, 0, 0),
                                     texture_creator.load_texture("assets/coin.png")?,
                                     1000,
                                 );
@@ -746,7 +747,7 @@ impl Game for Runner {
                             }
                             Some(StaticObject::Spring) => {
                                 let obstacle = Obstacle::new(
-                                    rect!(object_spawn, 0, 0, 0),
+                                    rect!(CAM_W, 0, 0, 0),
                                     1.0,
                                     texture_creator.load_texture("assets/temp_spring.jpg")?,
                                     ObstacleType::Spring,
@@ -758,7 +759,7 @@ impl Game for Runner {
                             Some(StaticObject::Power) => {
                                 next_power = Some(proceduralgen::choose_power_up());
                                 let pow = Power::new(
-                                    rect!(object_spawn, 0, 0, 0),
+                                    rect!(CAM_W, 0, 0, 0),
                                     texture_creator.load_texture("assets/powerup.png")?,
                                 );
                                 powers.push(pow);
@@ -965,19 +966,23 @@ impl Game for Runner {
                 }
 
                 spawning_timer = if score > 10000 && score < 20000 {
-                    450
+                    90
                 } else if score > 20000 && score < 30000 {
-                    400
+                    80
                 } else if score > 30000 && score < 40000 {
-                    350
+                    70
                 } else if score > 40000 && score < 50000 {
-                    300
+                    60
                 } else if score > 50000 && score < 60000 {
-                    250
+                    50
                 } else if score > 60000 && score < 70000 {
-                    200 // Cap?
+                    40
+                } else if score > 70000 && score < 80000 {
+                    30
+                } else if score > 80000 && score < 90000 {
+                    20 // Cap?
                 } else {
-                    500 // Default
+                    100 // Default
                 };
 
                 /* End Camera Section */
