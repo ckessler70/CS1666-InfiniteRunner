@@ -157,12 +157,12 @@ impl Game for Runner {
 
         let mut score: i32 = 0;
         let mut tick_score: i32 = 0;
-        let mut coin_count: i32 = 0;
+        let mut coin_count: i32 = 0; // How is this being used?
 
         let mut game_paused: bool = false;
         let mut initial_pause: bool = false;
         let mut game_over: bool = false;
-        let mut power_override: bool = false;
+        let mut power_override: bool = false; // Probably deprecated
         let mut shielded = false;
 
         // number of frames to delay the end of the game by for demonstrating player
@@ -246,7 +246,7 @@ impl Game for Runner {
         //     false,
         // );
 
-        // Generate perlin curves for background hills
+        // Pre-Generate perlin curves for background hills
         while ct < SIZE as usize {
             background_curves[IND_BACKGROUND_MID][ct] =
                 proceduralgen::gen_perlin_hill_point((ct + buff_1), freq, amp_1, 0.5, 600.0);
