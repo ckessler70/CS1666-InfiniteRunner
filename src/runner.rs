@@ -186,6 +186,8 @@ impl Game for Runner {
         let mut object_spawn: usize = 0;
         let mut object_count: i32 = 0;
 
+        let mut spawning_timer = 500;
+
         let mut object = None;
 
         let mut power: Option<proceduralgen::PowerUps> = None;
@@ -195,7 +197,7 @@ impl Game for Runner {
         let mut player_jump_change: f64 = 0.0;
         let mut player_speed_adjust: f64 = 0.0;
 
-        // Sine waves the player can't interact with
+        // Perlin noise curves the player can't interact with
         // For visual purposes only
         // background_curves[IND_BACKGROUND_MID] = Front hills
         // background_curves[IND_BACKGROUND_BACK] = Back hills
@@ -401,6 +403,9 @@ impl Game for Runner {
                 }
                 */
 
+                let mut to_remove: i32 = -1;
+                let mut counter = 0;
+
                 // Description
                 //in the future when obstacles & coins are proc genned we will probs wanna
                 //only check for obstacles/coins based on their location relative to players x
@@ -409,20 +414,8 @@ impl Game for Runner {
                 for obs in obstacles.iter_mut() {
                     //.filter(|near by obstacles|).collect()
                     if let Some(collision_boxes) = player.check_collision(obs) {
-                        //Bad way to ignore collision with a shield
-                        /*if power_override {
-                            // if !player.collide(o, collision_boxes) {
-                            //     Apply some simulation/annimation on the obstacle knocking it over
-                            // }
-                            continue;
-                        }*/
-                        //Temp option: can add these 2 lines to end game upon obstacle collsions
-                        //INVICIBILTY: chane true to power_override (when you dont wanna be
-                        // invincible)
-                        /*shielded = false;
-                        if let Some(proceduralgen::PowerUps::Shield) = power {
-                            shielded = true;
-                        }*/
+                        to_remove = counter;
+
                         if !player.collide(obs, collision_boxes, shielded) {
                             game_over = true;
                             initial_pause = true;
@@ -437,13 +430,23 @@ impl Game for Runner {
                         // Physics::apply_gravity(obs, 0.0, 0.3); //maybe...
                         continue;
                     };
+                    counter += 1;
                 }
+
+                if to_remove != -1 {
+                    obstacles.remove(to_remove as usize);
+                }
+
+                let mut to_remove: i32 = -1;
+                let mut counter = 0;
 
                 // Description
                 for c in coins.iter_mut() {
                     //check collection
                     if Physics::check_collection(&mut player, c) {
                         if !c.collected() {
+                            to_remove = counter;
+
                             //so you only collect each coin once
                             c.collect(); //deletes the coin once collected (but takes too long)
                             coin_count += 1;
@@ -454,13 +457,23 @@ impl Game for Runner {
                         }
                         continue;
                     }
+                    counter += 1;
                 }
+
+                if to_remove != -1 {
+                    coins.remove(to_remove as usize);
+                }
+
+                let mut to_remove: i32 = -1;
+                let mut counter = 0;
 
                 // Roughly the code needed for collecting power objects as it should follow the
                 // coin idea closely.
                 for p in powers.iter_mut() {
                     if Physics::check_power(&mut player, p) {
                         if !p.collected() {
+                            to_remove = counter;
+
                             match next_power {
                                 Some(proceduralgen::PowerUps::SpeedBoost) => {
                                     power = Some(proceduralgen::PowerUps::SpeedBoost);
@@ -492,6 +505,11 @@ impl Game for Runner {
                         }
                         continue;
                     }
+                    counter += 1;
+                }
+
+                if to_remove != -1 {
+                    powers.remove(to_remove as usize);
                 }
 
                 // Power handling
@@ -665,7 +683,24 @@ impl Game for Runner {
                         background_curves[IND_BACKGROUND_BACK][(SIZE - 1) as usize] = chunk_2;
                     }
 
-                    if object_spawn == 0 {
+                    if tick % spawning_timer == 0 {
+                        let num_active = obstacles.len() + coins.len() + powers.len();
+                        let spawn_check = rng.gen_range(0..=10);
+
+                        if spawn_check > num_active {
+                            let breakdown = proceduralgen::ProceduralGen::spawn_object(
+                                &random,
+                                SIZE as i32,
+                                (SIZE * 2) as i32,
+                            );
+                            object = breakdown.0;
+                            object_spawn = breakdown.1;
+                        } else {
+                            object = None;
+                        }
+                    }
+
+                    /*if object_spawn == 0 {
                         let breakdown = proceduralgen::ProceduralGen::spawn_object(
                             &random,
                             SIZE as i32,
@@ -677,7 +712,7 @@ impl Game for Runner {
                         object_count += 1; //for now...
                     } else {
                         object_spawn -= 1;
-                    }
+                    }*/
 
                     if tick % 10 == 0 {
                         bg_buff -= 1;
@@ -690,128 +725,120 @@ impl Game for Runner {
                         match object {
                             Some(StaticObject::Statue) => {
                                 let obstacle = Obstacle::new(
-                                    rect!(0, 0, 0, 0),
+                                    rect!(object_spawn, 0, 0, 0),
                                     50.0,
                                     texture_creator.load_texture("assets/statue.png")?,
                                     ObstacleType::Statue,
                                 );
                                 obstacles.push(obstacle);
                                 object_count -= 1;
+                                object = None;
                             }
                             Some(StaticObject::Coin) => {
                                 let coin = Coin::new(
-                                    rect!(0, 0, 0, 0),
+                                    rect!(object_spawn, 0, 0, 0),
                                     texture_creator.load_texture("assets/coin.png")?,
                                     1000,
                                 );
                                 coins.push(coin);
                                 object_count -= 1;
+                                object = None;
                             }
                             Some(StaticObject::Spring) => {
                                 let obstacle = Obstacle::new(
-                                    rect!(0, 0, 0, 0),
+                                    rect!(object_spawn, 0, 0, 0),
                                     1.0,
                                     texture_creator.load_texture("assets/temp_spring.jpg")?,
                                     ObstacleType::Spring,
                                 );
                                 obstacles.push(obstacle);
                                 object_count -= 1;
+                                object = None;
                             }
                             Some(StaticObject::Power) => {
                                 next_power = Some(proceduralgen::choose_power_up());
                                 let pow = Power::new(
-                                    rect!(0, 0, 0, 0),
+                                    rect!(object_spawn, 0, 0, 0),
                                     texture_creator.load_texture("assets/powerup.png")?,
                                 );
                                 powers.push(pow);
                                 object_count -= 1;
+                                object = None;
                             }
                             _ => {}
                         }
                     }
 
                     // Object spawning
-                    if object_spawn > 0 && object_spawn < SIZE {
-                        /* println!(
-                            "{:?} | {:?}",
-                            object_spawn * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
-                            CAM_H as i16 - background_curves[GROUND_INDEX][object_spawn]
-                        );*/
-
-                        match object {
-                            Some(proceduralgen::StaticObject::Statue) => {
-                                //update physics obstacle position
-                                for s in obstacles.iter_mut() {
-                                    //this is hacky & dumb (will only work if one obstacle spawned
-                                    // at a time)
-                                    if !s.collided() && s.mass > 1.0 {
-                                        //once it collides we can't draw it like this
-                                        s.hitbox = rect!(
-                                            object_spawn * CAM_W as usize / SIZE
-                                                + CAM_W as usize / SIZE / 2,
-                                            CAM_H as i16
-                                                // - y pos at terrain segment under player
-                                                - TILE_SIZE as i16,
-                                            TILE_SIZE,
-                                            TILE_SIZE
-                                        );
-                                        s.pos = (s.hitbox.x() as f64, s.hitbox.y() as f64);
-                                    }
-                                }
-                            }
-                            Some(proceduralgen::StaticObject::Coin) => {
-                                //update physics coins position
-                                for s in coins.iter_mut() {
-                                    //hacky "soln" part 2
-                                    s.hitbox = rect!(
-                                        object_spawn * CAM_W as usize / SIZE
-                                            + CAM_W as usize / SIZE / 2,
+                    match object {
+                        Some(proceduralgen::StaticObject::Statue) => {
+                            //update physics obstacle position
+                            for o in obstacles.iter_mut() {
+                                //this is hacky & dumb (will only work if one obstacle spawned
+                                // at a time)
+                                if !o.collided() && o.mass > 1.0 {
+                                    //once it collides we can't draw it like this
+                                    o.hitbox = rect!(
+                                        o.x(),
                                         CAM_H as i16
                                             // - y pos at terrain segment under player
                                             - TILE_SIZE as i16,
                                         TILE_SIZE,
                                         TILE_SIZE
+                                    );
+                                    o.pos = (o.hitbox.x() as f64, o.hitbox.y() as f64);
+                                }
+                            }
+                        }
+                        Some(proceduralgen::StaticObject::Coin) => {
+                            //update physics coins position
+                            for c in coins.iter_mut() {
+                                //hacky "soln" part 2
+                                c.hitbox = rect!(
+                                    c.x(),
+                                    CAM_H as i16
+                                        // - y pos at terrain segment under player
+                                        - TILE_SIZE as i16,
+                                    TILE_SIZE,
+                                    TILE_SIZE
+                                );
+                                c.pos = (c.hitbox.x() as f64, c.hitbox.y() as f64);
+                            }
+                        }
+                        Some(proceduralgen::StaticObject::Spring) => {
+                            //update physics obstacle position
+                            for s in obstacles.iter_mut() {
+                                //this is hacky & dumb (will only work if one obstacle spawned
+                                // at a time)
+                                if !s.collided() && s.mass < 2.0 {
+                                    //gaurantees spring for now
+                                    //once it collides we can't draw it like this
+                                    s.hitbox = rect!(
+                                        s.x(),
+                                        (CAM_H as i16
+                                            // - y pos at terrain segment under player
+                                            - (TILE_SIZE / 4) as i16),
+                                        TILE_SIZE,
+                                        TILE_SIZE / 4
                                     );
                                     s.pos = (s.hitbox.x() as f64, s.hitbox.y() as f64);
                                 }
                             }
-                            Some(proceduralgen::StaticObject::Spring) => {
-                                //update physics obstacle position
-                                for s in obstacles.iter_mut() {
-                                    //this is hacky & dumb (will only work if one obstacle spawned
-                                    // at a time)
-                                    if !s.collided() && s.mass < 2.0 {
-                                        //gaurantees spring for now
-                                        //once it collides we can't draw it like this
-                                        s.hitbox = rect!(
-                                            object_spawn * CAM_W as usize / SIZE
-                                                + CAM_W as usize / SIZE / 2,
-                                            (CAM_H as i16
-                                                // - y pos at terrain segment under player
-                                                - (TILE_SIZE / 4) as i16),
-                                            TILE_SIZE,
-                                            TILE_SIZE / 4
-                                        );
-                                        s.pos = (s.hitbox.x() as f64, s.hitbox.y() as f64);
-                                    }
-                                }
-                            }
-                            Some(proceduralgen::StaticObject::Power) => {
-                                //update physics power position
-                                for p in powers.iter_mut() {
-                                    p.pos = rect!(
-                                        object_spawn * CAM_W as usize / SIZE
-                                            + CAM_W as usize / SIZE / 2,
-                                        CAM_H as i16
-                                            // - y pos at terrain segment under player
-                                            - TILE_SIZE as i16,
-                                        TILE_SIZE,
-                                        TILE_SIZE
-                                    );
-                                }
-                            }
-                            _ => {}
                         }
+                        Some(proceduralgen::StaticObject::Power) => {
+                            //update physics power position
+                            for p in powers.iter_mut() {
+                                p.pos = rect!(
+                                    p.x(),
+                                    CAM_H as i16
+                                        // - y pos at terrain segment under player
+                                        - TILE_SIZE as i16,
+                                    TILE_SIZE,
+                                    TILE_SIZE
+                                );
+                            }
+                        }
+                        _ => {}
                     }
                 }
 
@@ -858,6 +885,85 @@ impl Game for Runner {
                     crv.camera_adj(camera_adj_x, camera_adj_y);
                 }
                 */
+
+                // Shifting all StaticObjects and removing ones as needed
+                //Obstacles
+                let mut to_remove: Vec<_> = Vec::new();
+                let mut counter = 0;
+
+                for o in obstacles.iter_mut() {
+                    o.pos = ((o.x() - camera_adj_x) as f64, o.y() as f64);
+                    if o.x() <= 0 {
+                        to_remove.push(counter);
+                    }
+                    counter += 1;
+                }
+
+                for r in to_remove.iter_mut() {
+                    obstacles.remove(*r);
+                }
+
+                //Coins
+                let mut to_remove: Vec<_> = Vec::new();
+                let mut counter = 0;
+
+                for c in coins.iter_mut() {
+                    c.pos = ((c.x() - camera_adj_x) as f64, c.y() as f64);
+                    if c.x() <= 0 {
+                        to_remove.push(counter);
+                    }
+                    counter += 1;
+                }
+
+                for r in to_remove.iter_mut() {
+                    coins.remove(*r);
+                }
+
+                //PowerUps
+                let mut to_remove: Vec<_> = Vec::new();
+                let mut counter = 0;
+
+                for p in powers.iter_mut() {
+                    p.pos = rect!(
+                        (p.x() - camera_adj_x) as f64,
+                        p.y() as f64,
+                        TILE_SIZE,
+                        TILE_SIZE,
+                    ); // Don't know why this one needs a full rect declearation to update pos
+                    if p.x() <= 0 {
+                        to_remove.push(counter);
+                    }
+                    counter += 1;
+                }
+
+                for r in to_remove.iter_mut() {
+                    powers.remove(*r);
+                }
+
+                tick += 1;
+
+                if tick % 2 == 0 {
+                    player_anim += 1;
+                    player_anim %= 4;
+                }
+
+                coin_anim += 1;
+                coin_anim %= 60;
+
+                if tick % 3 == 0 && tick % 5 == 0 {
+                    tick = 0;
+                }
+
+                if -bg_buff == CAM_W as i32 {
+                    bg_buff = 0;
+                }
+
+                // Increment survival score
+                // This should be placed after hitbox updates but before drawing
+                if !game_over {
+                    score += tick_score;
+                }
+
                 /* End Camera Section */
 
                 /* ~~~~~~ Draw All Elements ~~~~~~ */
@@ -882,9 +988,9 @@ impl Game for Runner {
                     rect!(CAM_W as i32 + bg_buff, 0, CAM_W, CAM_H / 3),
                 )?;
 
-                // Background sine waves
+                // Background perlin noise curves
                 for i in 0..background_curves[IND_BACKGROUND_MID].len() - 1 {
-                    // Furthest back sine waves
+                    // Furthest back perlin noise curves
                     core.wincan.set_draw_color(Color::RGBA(128, 51, 6, 255));
                     core.wincan.fill_rect(rect!(
                         i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
@@ -893,7 +999,7 @@ impl Game for Runner {
                         CAM_H as i16
                     ))?;
 
-                    // Midground sine waves
+                    // Midground perlin noise curves
                     core.wincan.set_draw_color(Color::RGBA(96, 161, 152, 255));
                     core.wincan.fill_rect(rect!(
                         i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
@@ -963,24 +1069,6 @@ impl Game for Runner {
 
                     core.wincan.set_draw_color(Color::RGB(r as u8, g as u8, 0));
                     core.wincan.fill_rect(rect!(10, 210, w as u8, 10))?;
-                }
-
-                tick += 1;
-
-                if tick % 2 == 0 {
-                    player_anim += 1;
-                    player_anim %= 4;
-                }
-
-                coin_anim += 1;
-                coin_anim %= 60;
-
-                if tick % 3 == 0 && tick % 5 == 0 {
-                    tick = 0;
-                }
-
-                if -bg_buff == CAM_W as i32 {
-                    bg_buff = 0;
                 }
 
                 // Set player texture
@@ -1137,12 +1225,6 @@ impl Game for Runner {
                 }
 
                 core.wincan.present();
-
-                // Increment survival score
-                // This should be placed after hitbox updates but before drawing
-                if !game_over {
-                    score += tick_score;
-                }
 
                 /*let other_surface = font
                     .render(&format!("{:03}", coin_count))
