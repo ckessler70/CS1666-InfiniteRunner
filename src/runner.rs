@@ -83,7 +83,7 @@ impl Game for Runner {
         let tex_sky = texture_creator.load_texture("assets/sky.png")?;
         let tex_grad = texture_creator.load_texture("assets/sunset_gradient.png")?;
         let tex_statue = texture_creator.load_texture("assets/statue.png")?;
-        let tex_coin = texture_creator.load_texture("assets/coin.gif")?;
+        let tex_coin = texture_creator.load_texture("assets/coin.png")?;
 
         let tex_speed = texture_creator.load_texture("assets/speed.png")?;
         let tex_multiplier = texture_creator.load_texture("assets/multiplier.png")?;
@@ -153,7 +153,8 @@ impl Game for Runner {
         let mut powers: Vec<_> = Vec::new();
 
         // Used to keep track of animation status
-        let src_x: i32 = 0;
+        let mut player_anim: i32 = 0; // 4 frames of animation
+        let mut coin_anim: i32 = 0; // 60 frames of animation
 
         let mut score: i32 = 0;
         let mut tick_score: i32 = 0;
@@ -700,7 +701,7 @@ impl Game for Runner {
                             Some(StaticObject::Coin) => {
                                 let coin = Coin::new(
                                     rect!(0, 0, 0, 0),
-                                    texture_creator.load_texture("assets/coin.gif")?,
+                                    texture_creator.load_texture("assets/coin.png")?,
                                     1000,
                                 );
                                 coins.push(coin);
@@ -966,6 +967,14 @@ impl Game for Runner {
 
                 tick += 1;
 
+                if tick % 2 == 0 {
+                    player_anim += 1;
+                    player_anim %= 4;
+                }
+
+                coin_anim += 1;
+                coin_anim %= 60;
+
                 if tick % 3 == 0 && tick % 5 == 0 {
                     tick = 0;
                 }
@@ -985,7 +994,7 @@ impl Game for Runner {
                 // Player
                 core.wincan.copy_ex(
                     tex_player,
-                    rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
+                    rect!(player_anim * TILE_SIZE as i32, 0, TILE_SIZE, TILE_SIZE),
                     rect!(player.x(), player.y(), TILE_SIZE, TILE_SIZE),
                     player.theta() * 180.0 / std::f64::consts::PI,
                     None,
@@ -1058,7 +1067,7 @@ impl Game for Runner {
                         //hacky - will not work if more than one coin spawned
                         core.wincan.copy_ex(
                             c.texture(),
-                            rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
+                            rect!(coin_anim * TILE_SIZE as i32, 0, TILE_SIZE, TILE_SIZE),
                             rect!(c.x(), c.y(), TILE_SIZE, TILE_SIZE),
                             0.0,
                             None,
@@ -1084,7 +1093,7 @@ impl Game for Runner {
                         //hacky - will not work if more than one power spawned
                         core.wincan.copy_ex(
                             p.texture(),
-                            rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
+                            rect!(0, 0, TILE_SIZE, TILE_SIZE),
                             rect!(p.x(), p.y(), TILE_SIZE, TILE_SIZE),
                             0.0,
                             None,
