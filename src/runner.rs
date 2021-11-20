@@ -894,6 +894,7 @@ impl Game for Runner {
 
                 for o in obstacles.iter_mut() {
                     o.pos = ((o.x() - camera_adj_x) as f64, o.y() as f64);
+                    o.align_hitbox_to_pos();
                     if o.x() <= 0 {
                         to_remove.push(counter);
                     }
@@ -910,6 +911,7 @@ impl Game for Runner {
 
                 for c in coins.iter_mut() {
                     c.pos = ((c.x() - camera_adj_x) as f64, c.y() as f64);
+                    c.align_hitbox_to_pos();
                     if c.x() <= 0 {
                         to_remove.push(counter);
                     }
