@@ -685,11 +685,6 @@ impl Game for Runner {
                         let spawn_check = rng.gen_range(0..=10);
 
                         if spawn_check > num_active {
-                            let breakdown = proceduralgen::ProceduralGen::spawn_object(
-                                &random,
-                                SIZE as i32,
-                                (SIZE * 3) as i32,
-                            );
                             object = Some(proceduralgen::choose_static_object());
 
                             object_count += 1;
@@ -697,20 +692,6 @@ impl Game for Runner {
                             object = None;
                         }
                     }
-
-                    /*if object_spawn == 0 {
-                        let breakdown = proceduralgen::ProceduralGen::spawn_object(
-                            &random,
-                            SIZE as i32,
-                            (SIZE * 2) as i32,
-                        );
-                        object = breakdown.0;
-                        object_spawn = breakdown.1;
-
-                        object_count += 1; //for now...
-                    } else {
-                        object_spawn -= 1;
-                    }*/
 
                     if tick % 10 == 0 {
                         bg_buff -= 1;

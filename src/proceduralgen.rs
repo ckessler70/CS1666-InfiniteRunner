@@ -506,47 +506,6 @@ impl ProceduralGen {
 
         return (curve);
     }
-
-    /*  Handles the object spawning for the game.
-     *  Includes determining object type and how long until it comes up
-     *
-     *  - Takes in `random` which is the array of random tuples of (i32, i32)
-     *    Needs to be the same values on each run for porper noise output
-     *    Represents the gradient value for points. Passed into gen_point_mod
-     *  - Takes in `min_length` and `max_length` which control min/max distance
-     *    to this obstacle arriving
-     *
-     *  - Returns the random StaticObject type and length to that object
-     */
-    pub fn spawn_object(
-        random: &[[(i32, i32); 256]; 256],
-        min_length: i32,
-        max_length: i32,
-    ) -> (Option<StaticObject>, usize) {
-        let mut rng = rand::thread_rng();
-
-        let freq = rng.gen::<f64>() * 256.0 + 32.0;
-        let amp = rng.gen::<f64>();
-
-        let map_size = 128;
-        let point_mod: f64 = gen_point_mod(
-            &random,
-            (
-                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
-                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
-            ),
-            freq,
-            amp,
-        );
-
-        let object = choose_static_object();
-
-        let length = (point_mod * max_length as f64 + min_length as f64)
-            .clamp(min_length as f64, max_length as f64)
-            .floor() as usize;
-
-        (Some(object), length)
-    }
 }
 
 /*  Function for extending a cubic bezier curve while keeping the chained
@@ -1004,7 +963,7 @@ fn choose_terrain_type(upper: i32) -> TerrainType {
  *
  *  - Returns a random StaticObject
  */
-fn choose_static_object() -> StaticObject {
+pub fn choose_static_object() -> StaticObject {
     let mut rng = rand::thread_rng();
     match rng.gen_range(0..=3) {
         0 => StaticObject::Coin,
