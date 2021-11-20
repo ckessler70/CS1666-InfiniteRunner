@@ -691,7 +691,7 @@ impl Game for Runner {
                             let breakdown = proceduralgen::ProceduralGen::spawn_object(
                                 &random,
                                 SIZE as i32,
-                                (SIZE * 2) as i32,
+                                (SIZE * 3) as i32,
                             );
                             object = breakdown.0;
                             object_spawn = breakdown.1;
@@ -963,6 +963,22 @@ impl Game for Runner {
                 if !game_over {
                     score += tick_score;
                 }
+
+                spawning_timer = if score > 10000 && score < 20000 {
+                    450
+                } else if score > 20000 && score < 30000 {
+                    400
+                } else if score > 30000 && score < 40000 {
+                    350
+                } else if score > 40000 && score < 50000 {
+                    300
+                } else if score > 50000 && score < 60000 {
+                    250
+                } else if score > 60000 && score < 70000 {
+                    200 // Cap?
+                } else {
+                    500 // Default
+                };
 
                 /* End Camera Section */
 
