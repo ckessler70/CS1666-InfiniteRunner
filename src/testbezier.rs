@@ -49,7 +49,7 @@ const BUFF_LENGTH: usize = CAM_W as usize / 4;
 
 const TITLE: &str = "Testing Bezier";
 
-const TIMEOUT: u64 = 50000;
+const TIMEOUT: u64 = 5000;
 
 pub struct TestBezier;
 
