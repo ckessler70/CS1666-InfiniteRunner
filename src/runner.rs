@@ -186,7 +186,7 @@ impl Game for Runner {
         let mut object_spawn: usize = 0;
         let mut object_count: i32 = 0;
 
-        let mut spawning_timer = 100;
+        let mut spawning_timer = 500;
 
         let mut object = None;
 
@@ -338,13 +338,13 @@ impl Game for Runner {
                 }
                 */
 
-                /*  An equivalant of this will be implemented in proceduralgen,
-                    and sent here within a struct for each piece of terrain.
+                //An equivalant of this will be implemented in proceduralgen,
+                //and sent here within a struct for each piece of terrain.
                 // Left ground position
                 let current_ground = Point::new(
                     player.x(),
                     CAM_H as i32
-                        - background_curves[2]
+                        - background_curves[0]
                             [(player.x() as usize) / (CAM_W / SIZE as u32) as usize]
                             as i32,
                 );
@@ -352,16 +352,15 @@ impl Game for Runner {
                 let next_ground = Point::new(
                     player.x() + TILE_SIZE as i32,
                     CAM_H as i32
-                        - background_curves[2][(((player.x() + TILE_SIZE as i32) as usize)
+                        - background_curves[0][(((player.x() + TILE_SIZE as i32) as usize)
                             / (CAM_W / SIZE as u32) as usize)] as i32,
                 );
                 // Angle between
                 let angle = ((next_ground.y() as f64 - current_ground.y() as f64)
                     / (TILE_SIZE as f64))
                     .atan();
-                */
 
-                /* Your time has come (refractor)
+                //Your time has come (refractor)
                 // This conditional statement is here so that the game will go on for a few more
                 // frames without player input once the player has died. The reason for this is
                 // to demonstrate collisions even though the camera does not follow the player.
@@ -401,7 +400,6 @@ impl Game for Runner {
 
                     tick_score = 1;
                 }
-                */
 
                 let mut to_remove: i32 = -1;
                 let mut counter = 0;
@@ -569,7 +567,7 @@ impl Game for Runner {
                     power = None;
                 }
 
-                /* Removing player temporarily for refractor
+                //Removing player temporarily for refractor
                 //applies gravity, normal & friction now
                 //friciton is currently way OP (stronger than grav) bc cast to i32 in
                 // apply_force so to ever have an effect, it needs to be set > 1
@@ -602,7 +600,6 @@ impl Game for Runner {
                     initial_pause = true;
                     continue;
                 }
-                */
 
                 core.wincan.set_draw_color(Color::RGBA(3, 120, 206, 255));
                 core.wincan.clear();
@@ -650,7 +647,7 @@ impl Game for Runner {
                     */
 
                     // Every 3 ticks, build a new front mountain segment
-                    if tick % 3 == 0 {
+                    if tick % 1 == 0 {
                         for i in 0..(SIZE as usize - 1) {
                             background_curves[IND_BACKGROUND_MID][i] =
                                 background_curves[IND_BACKGROUND_MID][i + 1];
@@ -693,7 +690,7 @@ impl Game for Runner {
                                 SIZE as i32,
                                 (SIZE * 3) as i32,
                             );
-                            object = choose_static_object;
+                            object = Some(proceduralgen::choose_static_object());
 
                             object_count += 1;
                         } else {
@@ -893,11 +890,13 @@ impl Game for Runner {
                 let mut counter = 0;
 
                 for o in obstacles.iter_mut() {
-                    o.pos = ((o.x() - camera_adj_x) as f64, o.y() as f64);
+                    o.pos = ((o.x() - camera_adj_x.abs()) as f64, o.y() as f64);
                     o.align_hitbox_to_pos();
                     if o.x() <= 0 {
                         to_remove.push(counter);
                     }
+
+                    // println!("obstacles {:?}", o.hitbox());
                     counter += 1;
                 }
 
@@ -910,11 +909,12 @@ impl Game for Runner {
                 let mut counter = 0;
 
                 for c in coins.iter_mut() {
-                    c.pos = ((c.x() - camera_adj_x) as f64, c.y() as f64);
+                    c.pos = ((c.x() - camera_adj_x.abs()) as f64, c.y() as f64);
                     c.align_hitbox_to_pos();
                     if c.x() <= 0 {
                         to_remove.push(counter);
                     }
+                    // println!("coins {:?}", c.hitbox());
                     counter += 1;
                 }
 
@@ -928,11 +928,12 @@ impl Game for Runner {
 
                 for p in powers.iter_mut() {
                     p.pos = rect!(
-                        (p.x() - camera_adj_x) as f64,
+                        (p.x() - camera_adj_x.abs()) as f64,
                         p.y() as f64,
                         TILE_SIZE,
-                        TILE_SIZE,
+                        TILE_SIZE
                     ); // Don't know why this one needs a full rect declearation to update pos
+                       // println!("powers {:?}", p.hitbox());
                     if p.x() <= 0 {
                         to_remove.push(counter);
                     }
@@ -953,7 +954,7 @@ impl Game for Runner {
                 coin_anim += 1;
                 coin_anim %= 60;
 
-                if tick % 3 == 0 && tick % 5 == 0 {
+                if tick % 3 == 0 && tick % 5 == 0 && tick % spawning_timer == 0 {
                     tick = 0;
                 }
 
