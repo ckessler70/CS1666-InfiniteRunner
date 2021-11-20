@@ -79,6 +79,8 @@ impl Game for Runner {
         font.set_style(sdl2::ttf::FontStyle::BOLD);
 
         let texture_creator = core.wincan.texture_creator();
+
+        // Load in all textures
         let tex_bg = texture_creator.load_texture("assets/bg.png")?;
         let tex_sky = texture_creator.load_texture("assets/sky.png")?;
         let tex_grad = texture_creator.load_texture("assets/sunset_gradient.png")?;
@@ -90,14 +92,50 @@ impl Game for Runner {
         let tex_bouncy = texture_creator.load_texture("assets/bouncy.png")?;
         let tex_floaty = texture_creator.load_texture("assets/floaty.png")?;
         let tex_shield = texture_creator.load_texture("assets/shield.png")?;
-        let mut shielded = false;
-        let shielded_player = texture_creator.load_texture("assets/shielded_player.png")?;
+
+        let tex_shielded = texture_creator.load_texture("assets/shielded_player.png")?;
+
+        let tex_resume = texture_creator
+            .create_texture_from_surface(
+                &font
+                    .render("Escape/Space - Resume Play")
+                    .blended(Color::RGBA(119, 3, 252, 255))
+                    .map_err(|e| e.to_string())?,
+            )
+            .map_err(|e| e.to_string())?;
+
+        let tex_restart = texture_creator
+            .create_texture_from_surface(
+                &font
+                    .render("R - Restart game")
+                    .blended(Color::RGBA(119, 3, 252, 255))
+                    .map_err(|e| e.to_string())?,
+            )
+            .map_err(|e| e.to_string())?;
+
+        let tex_main = texture_creator
+            .create_texture_from_surface(
+                &font
+                    .render("M - Main menu")
+                    .blended(Color::RGBA(119, 3, 252, 255))
+                    .map_err(|e| e.to_string())?,
+            )
+            .map_err(|e| e.to_string())?;
+
+        let tex_quit = texture_creator
+            .create_texture_from_surface(
+                &font
+                    .render("Q - Quit game")
+                    .blended(Color::RGBA(119, 3, 252, 255))
+                    .map_err(|e| e.to_string())?,
+            )
+            .map_err(|e| e.to_string())?;
 
         let mut bg_buff = 0;
 
         // Create terrain vector with starting segment
         let mut all_terrain: Vec<TerrainSegment> = Vec::new();
-        all_terrain.push(proceduralgen::init_terrain())
+        all_terrain.push(proceduralgen::init_terrain());
 
         // Create player at default position
         let mut player = Player::new(
@@ -127,6 +165,7 @@ impl Game for Runner {
         let mut initial_pause: bool = false;
         let mut game_over: bool = false;
         let mut power_override: bool = false;
+        let mut shielded = false;
 
         // number of frames to delay the end of the game by for demonstrating player
         // collision this should be removed once the camera tracks the player
@@ -163,20 +202,19 @@ impl Game for Runner {
         // background_curves[IND_BACKGROUND_BACK] = Back hills
         let mut background_curves: [[i16; SIZE]; 2] = [[0; SIZE]; 2]; // renamed from bg
 
-        // Description
+        // Probably deprecated due to refractor
         let mut ground_buffer: [(f64, f64); BUFF_LENGTH + 1] = [(0.0, 0.0); BUFF_LENGTH + 1];
         let mut buff_idx = 0;
 
-        // Description
+        // rand thread to be utilized within runner
         let mut rng = rand::thread_rng();
 
-        // Description
+        // Frequency control modifier for background curves
         let freq: f32 = rng.gen::<f32>() * 1000.0 + 100.0;
 
-        // Description
+        // Amplitude control modifiers for background curves
         let amp_1: f32 = rng.gen::<f32>() * 4.0 + 1.0;
         let amp_2: f32 = rng.gen::<f32>() * 2.0 + amp_1;
-        let amp_3: f32 = rng.gen::<f32>() * 2.0 + 1.0;
 
         // Perlin Noise init
         let mut random: [[(i32, i32); 256]; 256] = [[(0, 0); 256]; 256];
@@ -187,6 +225,8 @@ impl Game for Runner {
         }
 
         ct = 0;
+
+        // Probably deprecated due to refractor
         let p0 = (0.0, (CAM_H / 3) as f64);
         ground_buffer = proceduralgen::ProceduralGen::gen_bezier_land(
             &random,
@@ -198,14 +238,12 @@ impl Game for Runner {
             false,
         );
 
-        // Generate sine waves (I think?)
+        // Generate perlin curves for background hills
         while ct < SIZE as usize {
             background_curves[IND_BACKGROUND_MID][ct] =
                 proceduralgen::gen_perlin_hill_point((ct + buff_1), freq, amp_1, 0.5, 600.0);
             background_curves[IND_BACKGROUND_BACK][ct] =
                 proceduralgen::gen_perlin_hill_point((ct + buff_2), freq, amp_2, 1.0, 820.0);
-
-            // background_curves[GROUND_INDEX][ct] = ground_buffer[buff_idx].1 as i16;
 
             ct += 1;
             buff_idx += 1;
@@ -247,59 +285,21 @@ impl Game for Runner {
                     }
                 } // End Loop
 
-                // Is this section for initalizing pause screen stuff upon the first pause?
-                // If so, can it be moved outside the game loop?
-                // Draw it (what is "it"?) to screen once and then wait due to BlendMode
+                // Draw pause screen once due to BlendMode setting
                 if initial_pause {
-                    let resume_texture = texture_creator
-                        .create_texture_from_surface(
-                            &font
-                                .render("Escape/Space - Resume Play")
-                                .blended(Color::RGBA(119, 3, 252, 255))
-                                .map_err(|e| e.to_string())?,
-                        )
-                        .map_err(|e| e.to_string())?;
-
-                    let restart_texture = texture_creator
-                        .create_texture_from_surface(
-                            &font
-                                .render("R - Restart game")
-                                .blended(Color::RGBA(119, 3, 252, 255))
-                                .map_err(|e| e.to_string())?,
-                        )
-                        .map_err(|e| e.to_string())?;
-
-                    let main_texture = texture_creator
-                        .create_texture_from_surface(
-                            &font
-                                .render("M - Main menu")
-                                .blended(Color::RGBA(119, 3, 252, 255))
-                                .map_err(|e| e.to_string())?,
-                        )
-                        .map_err(|e| e.to_string())?;
-
-                    let quit_texture = texture_creator
-                        .create_texture_from_surface(
-                            &font
-                                .render("Q - Quit game")
-                                .blended(Color::RGBA(119, 3, 252, 255))
-                                .map_err(|e| e.to_string())?,
-                        )
-                        .map_err(|e| e.to_string())?;
-
                     // Pause screen background, semitransparent grey
                     core.wincan.set_draw_color(Color::RGBA(0, 0, 0, 128));
                     core.wincan.fill_rect(rect!(0, 0, CAM_W, CAM_H))?;
 
                     // Draw pause screen text
                     core.wincan
-                        .copy(&resume_texture, None, Some(rect!(100, 100, 1000, 125)))?;
+                        .copy(&tex_resume, None, Some(rect!(100, 100, 1000, 125)))?;
                     core.wincan
-                        .copy(&restart_texture, None, Some(rect!(100, 250, 700, 125)))?;
+                        .copy(&tex_restart, None, Some(rect!(100, 250, 700, 125)))?;
                     core.wincan
-                        .copy(&main_texture, None, Some(rect!(100, 400, 600, 125)))?;
+                        .copy(&tex_main, None, Some(rect!(100, 400, 600, 125)))?;
                     core.wincan
-                        .copy(&quit_texture, None, Some(rect!(100, 550, 600, 125)))?;
+                        .copy(&tex_quit, None, Some(rect!(100, 550, 600, 125)))?;
 
                     core.wincan.present();
                     initial_pause = false;
@@ -397,9 +397,9 @@ impl Game for Runner {
                 //only check for obstacles/coins based on their location relative to players x
                 // cord
                 //(also: idt this can be a for loop bc it moves the obstacles values?)
-                for o in obstacles.iter_mut() {
+                for obs in obstacles.iter_mut() {
                     //.filter(|near by obstacles|).collect()
-                    if let Some(collision_boxes) = player.check_collision(o) {
+                    if let Some(collision_boxes) = player.check_collision(obs) {
                         //Bad way to ignore collision with a shield
                         /*if power_override {
                             // if !player.collide(o, collision_boxes) {
@@ -414,18 +414,18 @@ impl Game for Runner {
                         if let Some(proceduralgen::PowerUps::Shield) = power {
                             shielded = true;
                         }*/
-                        if !player.collide(o, collision_boxes, shielded) {
+                        if !player.collide(obs, collision_boxes, shielded) {
                             game_over = true;
                             initial_pause = true;
                             continue 'gameloop;
                         }
-                        //println!("ypos{} vyo{} ayo{}  ", o.pos.1, o.velocity.1, o.accel.1 );
-                        // o.update_vel(0.0,0.0);   //these args do nothing
-                        // o.update_pos(Point::new(0,0), 3.0);  //the 3 makes the obstacle spin
-                        // println!("ypos{} vyo{} ayo{}  ", o.pos.1, o.velocity.1, o.accel.1 );
+                        //println!("ypos{} vyo{} ayo{}  ", obs.pos.1, obs.velocity.1, obs.accel.1 );
+                        // obs.update_vel(0.0,0.0);   //these args do nothing
+                        // obs.update_pos(Point::new(0,0), 3.0);  //the 3 makes the obstacle spin
+                        // println!("ypos{} vyo{} ayo{}  ", obs.pos.1, obs.velocity.1, obs.accel.1 );
                         //Real Solution: need to actually resolve the collision, should go
-                        // something like this player.collide(o);
-                        // Physics::apply_gravity(o, 0.0, 0.3); //maybe...
+                        // something like this player.collide(obs);
+                        // Physics::apply_gravity(obs, 0.0, 0.3); //maybe...
                         continue;
                     };
                 }
@@ -511,7 +511,7 @@ impl Game for Runner {
                             player_jump_change = 0.2;
                         }
                         Some(proceduralgen::PowerUps::Shield) => {
-                            // Player override will say to ignore obstacle collisions
+                            // Shielded will say to ignore obstacle collisions
                             shielded = true;
                         }
                         _ => {}
@@ -967,12 +967,12 @@ impl Game for Runner {
                 }
 
                 // Set player texture
-                let mut tex_player = player.texture();  // Default
+                let mut tex_player = player.texture(); // Default
                 if shielded {
-                    tex_player = &shielded_player,
+                    tex_player = &tex_shielded;
                 } /* else if ... {
-                    Other player textures
-                } */
+                      Other player textures
+                  } */
 
                 // Player
                 core.wincan.copy_ex(
@@ -1088,15 +1088,15 @@ impl Game for Runner {
                     }
                 }
 
-                // Description
-                let surface = font
+                // Setup for the text of the score to be displayed
+                let tex_score = font
                     .render(&format!("{:08}", score))
                     .blended(Color::RGBA(255, 0, 0, 100))
                     .map_err(|e| e.to_string())?;
 
                 // Display score
                 let score_texture = texture_creator
-                    .create_texture_from_surface(&surface)
+                    .create_texture_from_surface(&tex_score)
                     .map_err(|e| e.to_string())?;
                 core.wincan
                     .copy(&score_texture, None, Some(rect!(10, 10, 100, 50)))?;
