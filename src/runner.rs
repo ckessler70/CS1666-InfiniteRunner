@@ -12,10 +12,8 @@ use crate::physics::Player;
 use crate::physics::Power;
 
 use crate::proceduralgen;
+use crate::proceduralgen::ProceduralGen;
 use crate::proceduralgen::TerrainSegment;
-// use crate::proceduralgen::ProceduralGen;
-
-use crate::powers;
 
 use crate::rect;
 
@@ -135,7 +133,7 @@ impl Game for Runner {
 
         // Create terrain vector with starting segment
         let mut all_terrain: Vec<TerrainSegment> = Vec::new();
-        all_terrain.push(proceduralgen::init_terrain());
+        //First push moved to later
 
         // Create player at default position
         let mut player = Player::new(
@@ -228,7 +226,8 @@ impl Game for Runner {
 
         // Probably deprecated due to refractor
         let p0 = (0.0, (CAM_H / 3) as f64);
-        ground_buffer = proceduralgen::ProceduralGen::gen_bezier_land(
+
+        all_terrain.push(ProceduralGen::gen_terrain(
             &random,
             p0,
             CAM_W as i32,
@@ -236,7 +235,16 @@ impl Game for Runner {
             false,
             false,
             false,
-        );
+        ));
+        // ground_buffer = proceduralgen::ProceduralGen::gen_bezier_land(
+        //     &random,
+        //     p0,
+        //     CAM_W as i32,
+        //     CAM_H as i32,
+        //     false,
+        //     false,
+        //     false,
+        // );
 
         // Generate perlin curves for background hills
         while ct < SIZE as usize {
@@ -741,7 +749,7 @@ impl Game for Runner {
                                             object_spawn * CAM_W as usize / SIZE
                                                 + CAM_W as usize / SIZE / 2,
                                             CAM_H as i16
-                                                - background_curves[GROUND_INDEX][object_spawn]
+                                                // - y pos at terrain segment under player
                                                 - TILE_SIZE as i16,
                                             TILE_SIZE,
                                             TILE_SIZE
@@ -758,7 +766,7 @@ impl Game for Runner {
                                         object_spawn * CAM_W as usize / SIZE
                                             + CAM_W as usize / SIZE / 2,
                                         CAM_H as i16
-                                            - background_curves[GROUND_INDEX][object_spawn]
+                                            // - y pos at terrain segment under player
                                             - TILE_SIZE as i16,
                                         TILE_SIZE,
                                         TILE_SIZE
@@ -778,7 +786,7 @@ impl Game for Runner {
                                             object_spawn * CAM_W as usize / SIZE
                                                 + CAM_W as usize / SIZE / 2,
                                             (CAM_H as i16
-                                                - background_curves[GROUND_INDEX][object_spawn]
+                                                // - y pos at terrain segment under player
                                                 - (TILE_SIZE / 4) as i16),
                                             TILE_SIZE,
                                             TILE_SIZE / 4
@@ -794,7 +802,7 @@ impl Game for Runner {
                                         object_spawn * CAM_W as usize / SIZE
                                             + CAM_W as usize / SIZE / 2,
                                         CAM_H as i16
-                                            - background_curves[GROUND_INDEX][object_spawn]
+                                            // - y pos at terrain segment under player
                                             - TILE_SIZE as i16,
                                         TILE_SIZE,
                                         TILE_SIZE
@@ -1004,7 +1012,7 @@ impl Game for Runner {
                                 core.wincan.copy_ex(
                                     obs.texture(),
                                     None,
-                                    rect!(o.pos.0, o.pos.1, TILE_SIZE, TILE_SIZE),
+                                    rect!(obs.pos.0, obs.pos.1, TILE_SIZE, TILE_SIZE),
                                     obs.theta(),
                                     None,
                                     false,
@@ -1018,7 +1026,7 @@ impl Game for Runner {
                                 core.wincan.copy_ex(
                                     obs.texture(),
                                     None,
-                                    rect!(o.pos.0, o.pos.1, TILE_SIZE, TILE_SIZE / 4),
+                                    rect!(obs.pos.0, obs.pos.1, TILE_SIZE, TILE_SIZE / 4),
                                     obs.theta(),
                                     None,
                                     false,

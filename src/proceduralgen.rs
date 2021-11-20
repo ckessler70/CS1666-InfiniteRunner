@@ -1,5 +1,4 @@
 use crate::physics::Power;
-use crate::powers;
 use crate::rect;
 
 use rand::distributions::Distribution;
@@ -71,7 +70,7 @@ impl TerrainSegment {
     ) -> TerrainSegment {
         // Set defaults, should probably be different than this
         TerrainSegment {
-            pos: rect,
+            pos: pos,
             curve: curve,
             angle_from_last: angle_from_last,
             terrain_type: terrain_type,
