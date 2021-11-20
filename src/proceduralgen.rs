@@ -11,6 +11,7 @@ use sdl2::rect::Rect;
 use sdl2::render::Texture;
 
 const CAM_W: u32 = 1280;
+
 // SIZE relates to the length of the background hills array.
 // Used to convert width of drawn rectangles to fill up the screen.
 // Reason for it being 1/10th width is that it was the highest resolution we could
@@ -26,10 +27,10 @@ pub struct ProceduralGen;
 
 // Representation of a single bezier curve
 pub struct TerrainSegment {
-    pos: Rect,                 // Bounding box
-    curve: [(i32, i32); SIZE], // Array of points defining the bezier curve
-    angle_from_last: f64,      /* Angle between previous segment and this segment, should trend
-                                * downward on average */
+    pos: Rect,                            // Bounding box
+    curve: [(i32, i32); BUFF_LENGTH + 1], // Array of points defining the bezier curve
+    angle_from_last: f64, /* Angle between previous segment and this segment, should trend
+                           * downward on average */
     terrain_type: TerrainType,
     color: Color,
 }
@@ -63,18 +64,18 @@ pub enum PowerUps {
 impl TerrainSegment {
     pub fn new(
         pos: Rect,
-        curve: [(i32, i32); SIZE],
+        curve: [(i32, i32); BUFF_LENGTH + 1],
         angle_from_last: f64,
         terrain_type: TerrainType,
         color: Color,
     ) -> TerrainSegment {
         // Set defaults, should probably be different than this
         TerrainSegment {
-            pos: rect!(0, 0, 10, 10),
-            curve: [(0, 0); SIZE],
-            angle_from_last: 0.0,
-            terrain_type: TerrainType::Grass,
-            color: Color::GREEN,
+            pos: rect,
+            curve: curve,
+            angle_from_last: angle_from_last,
+            terrain_type: terrain_type,
+            color: color,
         }
     }
 
@@ -144,6 +145,145 @@ impl ProceduralGen {
     {
         // TerrainSegment::new(rect!(0, cam_h * 2 / 3, cam_w, cam_h / 3),
         // &texture)
+    }
+
+    /*  Initilization of terrain segments
+     *
+     *  - Takes in `random` which is the array of random tuples of (i32, i32)
+     *    Needs to be the same values on each run for porper noise output
+     *    Represents the gradient value for points. Passed into gen_point_mod
+     *  - Takes in `prev_point` which is the x (assumes 0) and y of the last part
+     *    of generated terrain
+     *  - Takes in `cam_w` which is the width of the camera (1280)
+     *  - Takes in `cam_h` which is the height of the camera (720)
+     *  - Takes in `_is_pit` boolean which will generate a pit within this land
+     *    segment *NOT IMPLEMENTED YET*
+     *  - Takes in `_is_flat` boolean which will make the generated control point
+     *    modifiers around the same y and thus, curves should be relatively flat
+     *    for the next land segment
+     *  - Takes in `_is_cliff` boolean which will make a cliff within the next
+     *    land segment *NOT IMPLEMENTED YET*
+     *
+     *  - Returns array of tuples associated with the output curve.
+     */
+    pub fn gen_terrain(
+        random: &[[(i32, i32); 256]; 256],
+        mut prev_point: (f64, f64),
+        cam_w: i32,
+        cam_h: i32,
+        _is_pit: bool,
+        _is_flat: bool,
+        _is_cliff: bool,
+    ) -> TerrainSegment {
+        let mut rng = rand::thread_rng();
+
+        let flat_mod: f64 = 0.25;
+        let cliff_min_mod: f64 = 2.0;
+        let cliff_max_mod: f64 = 5.0;
+
+        let freq = rng.gen_range(32.0..256.0);
+        let amp: f64 = if _is_flat {
+            rng.gen::<f64>() * flat_mod
+        } else if _is_cliff {
+            rng.gen::<f64>() * cliff_max_mod.clamp(cliff_min_mod, cliff_max_mod)
+        } else {
+            rng.gen::<f64>()
+        };
+
+        // Generates perlin noise for random point instead of whole map
+        let map_size = 128;
+        let point_mod_1a: f64 = gen_point_mod(
+            &random,
+            (
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+            ),
+            freq,
+            amp,
+        );
+        let point_mod_1b: f64 = gen_point_mod(
+            &random,
+            (
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+            ),
+            freq,
+            amp,
+        );
+        let point_mod_2a: f64 = gen_point_mod(
+            &random,
+            (
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+            ),
+            freq,
+            amp,
+        );
+        let point_mod_2b: f64 = gen_point_mod(
+            &random,
+            (
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+            ),
+            freq,
+            amp,
+        );
+        let point_mod_3a: f64 = gen_point_mod(
+            &random,
+            (
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+            ),
+            freq,
+            amp,
+        );
+        let point_mod_3b: f64 = gen_point_mod(
+            &random,
+            (
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+            ),
+            freq,
+            amp,
+        );
+
+        prev_point = if _is_pit || _is_cliff {
+            (prev_point.0, prev_point.1 + 100.0)
+        } else {
+            prev_point
+        };
+
+        // Extract x and y point from last terrain segment
+        let mut curve = gen_bezier_curve(
+            prev_point,
+            cam_w,
+            cam_h,
+            (point_mod_1a, point_mod_1b),
+            (point_mod_2a, point_mod_2b),
+            (point_mod_3a, point_mod_3b),
+            100,
+        );
+
+        // Bouncy or not bouncy
+        // May be obsolete with TerrainType
+        match rng.gen_range(0..=1) {
+            1 => curve[curve.len() - 1] = (1.0, 1.0),
+            _ => curve[curve.len() - 1] = (0.0, 0.0),
+        }
+
+        let rect = rect!(0, 0, 10, 10); // ?
+        let angle_from_last = 0.0; // ?
+        let terrain_type = choose_terrain_type(10);
+        let color = match (terrain_type) {
+            TerrainType::Asphalt => Color::RGB(19, 10, 6),
+            TerrainType::Sand => Color::RGB(194, 178, 128),
+            TerrainType::Water => Color::RGB(212, 241, 249),
+            TerrainType::Grass => Color::RGB(86, 125, 70),
+        };
+
+        let terrain = TerrainSegment::new(rect, curve, angle_from_last, terrain_type, color);
+
+        return terrain;
     }
 
     /*  Currently Deprecated
