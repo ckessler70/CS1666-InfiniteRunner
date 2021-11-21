@@ -13,13 +13,15 @@ const CAM_W: u32 = 1280;
 
 // SIZE relates to the length of the background hills array.
 // Used to convert width of drawn rectangles to fill up the screen.
-// Reason for it being 1/10th width is that it was the highest resolution we could
-// get with previous iterations of that array and still have good performance
+// Reason for it being 1/10th width is that it was the highest resolution we
+// could get with previous iterations of that array and still have good
+// performance
 const SIZE: usize = CAM_W as usize / 10; // Size of what? Why 1/10 of screen width specifically?
 
 // Similar to SIZE, the length of the ground_buffer array.
-// Reason for it being 1/4th width is arbitrary. As long as it is consistent, can be any length
-// const CAM_W: usize = CAM_W as usize / 4; // Why 1/4 of screen width specifically?
+// Reason for it being 1/4th width is arbitrary. As long as it is consistent,
+// can be any length const CAM_W: usize = CAM_W as usize / 4; // Why 1/4 of
+// screen width specifically?
 
 // Where all the math is done?
 pub struct ProceduralGen;
@@ -28,8 +30,9 @@ pub struct ProceduralGen;
 pub struct TerrainSegment {
     pos: Rect,                               // Bounding box
     curve: [(i32, i32); CAM_W as usize + 1], // Array of points defining the bezier curve
-    angle_from_last: f64, /* Angle between previous segment and this segment, should trend
-                           * downward on average */
+    angle_from_last: f64,                    /* Angle between previous segment and this segment,
+                                              * should trend
+                                              * downward on average */
     terrain_type: TerrainType,
     color: Color,
 }
@@ -52,7 +55,7 @@ pub enum StaticObject {
 }
 
 // Contains all types of power ups
-pub enum PowerUps {
+pub enum Powers {
     SpeedBoost,
     ScoreMultiplier,
     BouncyShoes,
@@ -98,28 +101,30 @@ impl TerrainSegment {
         }
     }
 
-    pub fn get_view(&self) -> Vec<(i32, i32)> {
-        let mut view: Vec<(i32, i32)> = Vec::new();
+    /*
+        pub fn get_view(&self) -> Vec<(i32, i32)> {
+            let mut view: Vec<(i32, i32)> = Vec::new();
 
-        // println!("{:?}", self.pos.x());
-        if self.pos.x() > self.curve.len() as i32 {
+            // println!("{:?}", self.pos.x());
+            if self.pos.x() > self.curve.len() as i32 {
+                return view;
+            }
+
+            for i in self.pos.x()..self.pos.x() + SIZE as i32 {
+                if i < 0 {
+                    continue;
+                }
+
+                if i < self.curve.len() as i32 - 1 && i >= 0 {
+                    view.push(self.curve[i as usize])
+                } else {
+                    break;
+                }
+            }
+
             return view;
         }
-
-        for i in self.pos.x()..self.pos.x() + SIZE as i32 {
-            if i < 0 {
-                continue;
-            }
-
-            if i < self.curve.len() as i32 - 1 && i >= 0 {
-                view.push(self.curve[i as usize])
-            } else {
-                break;
-            }
-        }
-
-        return view;
-    }
+    */
 
     // Accessors
     pub fn x(&self) -> i32 {
@@ -136,6 +141,10 @@ impl TerrainSegment {
 
     pub fn h(&self) -> i32 {
         self.pos.height() as i32
+    }
+
+    pub fn pos(&self) -> Rect {
+        self.pos
     }
 
     pub fn angle_from_last(&self) -> f64 {
@@ -563,40 +572,18 @@ pub fn extend_cubic_bezier_curve(
     return points;
 }
 
-/* ~~~~~~      Terrain segment primary functions      ~~~~~~ */
-// Creates the first segment
-/*pub fn init_terrain() {
-    pos =;
-    curve =;
-    angle_from_last =;
-    terrain_type =;
-    color =;
-    TerrainSegment{pos, curve, angle_from_last, terrain_type, color};
-}
-
-// Creates a new segment with bezier curve and everything else
-pub fn new_terrain(prev: TerrainSegment) {
-    pos =;
-    curve =;
-    angle_from_last =;
-    terrain_type =;
-    color =;
-    TerrainSegment{pos, curve, angle_from_last, terrain_type, color};
-}*/
-
-/* ~~~~~~      Terrain segment helper functions      ~~~~~~ */
-
 /* ~~~~~~     Bezier primary functions      ~~~~~~ */
 
 /*  Handler for getting either quadratic or cubic bezier curve representation
  *
- *  - Takes in `p0` which is the last place the previously generated land ended
+ *  - Takes in `p0` which is the last place the previously generated land
+ *    ended
  *  - Takes in `length` which is a control parameter
  *  - Takes in `height` which is a control parameter
- *  - Takes in `point_mod_x` which are the Perlin Noise Modifiers to help generate
- *    control points
- *  - Takes in `buffer` which is a control parameter saying how close control points
- *    can be in the x direction
+ *  - Takes in `point_mod_x` which are the Perlin Noise Modifiers to help
+ *    generate control points
+ *  - Takes in `buffer` which is a control parameter saying how close control
+ *    points can be in the x direction
  *
  *  - Returns Bezier Curve representation
  */
@@ -1006,14 +993,14 @@ pub fn choose_static_object() -> StaticObject {
  *  - Returns a random PowerUp
  */
 // Probably shouldn't be pub when call is moved to procgen.rs
-pub fn choose_power_up() -> PowerUps {
+pub fn choose_power_up() -> Powers {
     let mut rng = rand::thread_rng();
     match rng.gen_range(0..=4) {
         // rand 0.8
-        0 => PowerUps::SpeedBoost,
-        1 => PowerUps::ScoreMultiplier,
-        2 => PowerUps::BouncyShoes,
-        3 => PowerUps::LowerGravity,
-        _ => PowerUps::Shield,
+        0 => Powers::SpeedBoost,
+        1 => Powers::ScoreMultiplier,
+        2 => Powers::BouncyShoes,
+        3 => Powers::LowerGravity,
+        _ => Powers::Shield,
     }
 }

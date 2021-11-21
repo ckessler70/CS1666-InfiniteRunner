@@ -46,12 +46,11 @@ const CAM_H: u32 = 720;
 const CAM_W: u32 = 1280;
 pub const TILE_SIZE: u32 = 100;
 
-const SIZE: usize = CAM_W as usize / 10;
-const BUFF_LENGTH: usize = CAM_W as usize / 4;
-
+// Background sine wave stuff
 const IND_BACKGROUND_MID: usize = 0;
 const IND_BACKGROUND_BACK: usize = 1;
-// const GROUND_INDEX: usize = 2;
+const BG_CURVES_SIZE: usize = CAM_W as usize / 10;
+// const BUFF_LENGTH: usize = CAM_W as usize / 4;
 
 // Bounds to keep the player within
 // Used for camera postioning
@@ -60,6 +59,13 @@ const PLAYER_LOWER_BOUND: i32 = CAM_H as i32 - PLAYER_UPPER_BOUND;
 const PLAYER_LEFT_BOUND: i32 = TILE_SIZE as i32;
 const PLAYER_RIGHT_BOUND: i32 = (CAM_W / 2) as i32 - (TILE_SIZE / 2) as i32; // More restrictve:
                                                                              // player needs space to react
+
+/* Minimum speed player can move.
+ * In actuality, the minimum distance everything moves left relative to the
+ * player per iteration of the game loop. Physics Team, please change or
+ * remove this as needed. 1 is just an arbitrary small number.
+ */
+const MIN_SPEED: i32 = 1;
 
 pub struct Runner;
 
@@ -70,27 +76,24 @@ impl Game for Runner {
 
     fn run(&mut self, core: &mut SDLCore) -> Result<GameState, String> {
         core.wincan.set_blend_mode(sdl2::render::BlendMode::Blend);
-
         let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
 
+        // Font
         let mut font = ttf_context.load_font("./assets/DroidSansMono.ttf", 128)?;
         font.set_style(sdl2::ttf::FontStyle::BOLD);
 
-        let texture_creator = core.wincan.texture_creator();
-
         // Load in all textures
+        let texture_creator = core.wincan.texture_creator();
         let tex_bg = texture_creator.load_texture("assets/bg.png")?;
         let tex_sky = texture_creator.load_texture("assets/sky.png")?;
         let tex_grad = texture_creator.load_texture("assets/sunset_gradient.png")?;
         let tex_statue = texture_creator.load_texture("assets/statue.png")?;
         let tex_coin = texture_creator.load_texture("assets/coin.png")?;
-
         let tex_speed = texture_creator.load_texture("assets/speed.png")?;
         let tex_multiplier = texture_creator.load_texture("assets/multiplier.png")?;
         let tex_bouncy = texture_creator.load_texture("assets/bouncy.png")?;
         let tex_floaty = texture_creator.load_texture("assets/floaty.png")?;
         let tex_shield = texture_creator.load_texture("assets/shield.png")?;
-
         let tex_shielded = texture_creator.load_texture("assets/shielded_player.png")?;
 
         let tex_resume = texture_creator
@@ -129,13 +132,6 @@ impl Game for Runner {
             )
             .map_err(|e| e.to_string())?;
 
-        let mut bg_buff = 0;
-
-        // Create terrain vector with starting segment
-        let mut all_terrain: Vec<TerrainSegment> = Vec::new();
-        let mut ground_buffer: Vec<(i32, i32)> = Vec::new();
-        //First push moved to later
-
         // Create player at default position
         let mut player = Player::new(
             rect!(
@@ -148,18 +144,19 @@ impl Game for Runner {
             texture_creator.load_texture("assets/player.png")?,
         );
 
-        //empty obstacle & coin vectors
-        let mut obstacles: Vec<_> = Vec::new();
-        let mut coins: Vec<_> = Vec::new();
-        let mut powers: Vec<_> = Vec::new();
+        // Initialize ground / object vectors
+        let mut all_terrain: Vec<TerrainSegment> = Vec::new();
+        let mut all_obstacles: Vec<Obstacle> = Vec::new(); // renamed from obstacles
+        let mut all_coins: Vec<Coin> = Vec::new(); // renamed from coins
+        let mut all_powers: Vec<Power> = Vec::new(); // renamed from powers
 
         // Used to keep track of animation status
         let mut player_anim: i32 = 0; // 4 frames of animation
         let mut coin_anim: i32 = 0; // 60 frames of animation
 
         let mut score: i32 = 0;
-        let mut tick_score: i32 = 0;
-        let mut coin_count: i32 = 0; // How is this being used?
+        // let mut tick_score: i32 = 0;
+        // let mut coin_count: i32 = 0; // How is this being used?
 
         let mut game_paused: bool = false;
         let mut initial_pause: bool = false;
@@ -167,7 +164,7 @@ impl Game for Runner {
         let mut power_override: bool = false; // Probably deprecated
         let mut shielded = false;
 
-        // number of frames to delay the end of the game by for demonstrating player
+        // Number of frames to delay the end of the game by for demonstrating player
         // collision this should be removed once the camera tracks the player
         // properly
         let mut game_over_timer = 120;
@@ -177,44 +174,40 @@ impl Game for Runner {
         let mut last_raw_time;
         let mut last_measurement_time = Instant::now();
 
+        // ???
         let mut next_status = GameStatus::Main;
 
-        let mut ct: usize;
-        let mut tick = 0;
-        let mut power_tick: i32 = 0;
-        let mut buff_1: usize = 0;
-        let mut buff_2: usize = 0;
-        let mut object_spawn: usize = 0;
-        let mut object_count: i32 = 0;
+        // Object spawning vars
+        // let mut object_spawn: usize = 0;
+        // let mut object_count: i32 = 0;
+        let mut spawn_timer = 500;
+        // let mut object = None;
 
-        let mut spawning_timer = 500;
+        // let mut curr_power: Option<proceduralgen::Powers> = None;
+        // let mut next_power: Option<proceduralgen::Powers> = None;
 
-        let mut object = None;
-
-        let mut power: Option<proceduralgen::PowerUps> = None;
-        let mut next_power: Option<proceduralgen::PowerUps> = None;
-
+        // Physics vars
         let mut player_accel_rate: f64 = -10.0;
         let mut player_jump_change: f64 = 0.0;
         let mut player_speed_adjust: f64 = 0.0;
 
-        // Perlin noise curves the player can't interact with
-        // For visual purposes only
-        // background_curves[IND_BACKGROUND_MID] = Front hills
-        // background_curves[IND_BACKGROUND_BACK] = Back hills
-        let mut background_curves: [[i16; SIZE]; 2] = [[0; SIZE]; 2]; // renamed from bg
+        // Background sine wave vars
+        let mut bg_buff = 0;
+        // let mut tick = 0;
+        // let mut power_tick: i32 = 0;
+        let mut buff_1: usize = 0;
+        let mut buff_2: usize = 0;
+        // Perlin noise curves the player can't interact with, for visuals only
+        // Use IND_BACKGROUND_BACK and IND_BACKGROUND_MID
+        let mut background_curves: [[i16; BG_CURVES_SIZE]; 2] = [[0; BG_CURVES_SIZE]; 2];
 
-        // Probably deprecated due to refractor
-        // let mut ground_buffer: [(f64, f64); BUFF_LENGTH + 1] = [(0.0, 0.0); BUFF_LENGTH + 1];
-        // let mut buff_idx = 0;
-
-        // rand thread to be utilized within runner
+        // Rand thread to be utilized within runner
         let mut rng = rand::thread_rng();
 
-        // Frequency control modifier for background curves
+        // Frequency control modifier for background sine waves
         let freq: f32 = rng.gen::<f32>() * 1000.0 + 100.0;
 
-        // Amplitude control modifiers for background curves
+        // Amplitude control modifiers for background sine waves
         let amp_1: f32 = rng.gen::<f32>() * 4.0 + 1.0;
         let amp_2: f32 = rng.gen::<f32>() * 2.0 + amp_1;
 
@@ -226,11 +219,8 @@ impl Game for Runner {
             }
         }
 
-        ct = 0;
-
-        // Probably deprecated due to refractor
+        // Initialize the starting terrain segments
         let p0 = (0.0, (CAM_H / 3) as f64);
-
         all_terrain.push(ProceduralGen::gen_terrain(
             &random,
             p0,
@@ -240,7 +230,6 @@ impl Game for Runner {
             false,
             false,
         ));
-
         all_terrain.push(ProceduralGen::gen_terrain(
             &random,
             (
@@ -265,21 +254,18 @@ impl Game for Runner {
         // );
 
         // Pre-Generate perlin curves for background hills
-        while ct < SIZE as usize {
-            background_curves[IND_BACKGROUND_MID][ct] =
-                proceduralgen::gen_perlin_hill_point((ct + buff_1), freq, amp_1, 0.5, 600.0);
-            background_curves[IND_BACKGROUND_BACK][ct] =
-                proceduralgen::gen_perlin_hill_point((ct + buff_2), freq, amp_2, 1.0, 820.0);
-
-            ct += 1;
-            // buff_idx += 1;
+        for i in 0..BG_CURVES_SIZE {
+            background_curves[IND_BACKGROUND_MID][i] =
+                proceduralgen::gen_perlin_hill_point((i + buff_1), freq, amp_1, 0.5, 600.0);
+            background_curves[IND_BACKGROUND_BACK][i] =
+                proceduralgen::gen_perlin_hill_point((i + buff_2), freq, amp_2, 1.0, 820.0);
         }
 
         /* ~~~~~~ Main Game Loop ~~~~~~ */
         'gameloop: loop {
             last_raw_time = Instant::now(); // FPS tracking
 
-            // Pausing handler
+            /* ~~~~~~ Pausing Handler ~~~~~~ */
             if game_paused {
                 for event in core.event_pump.poll_iter() {
                     match event {
@@ -330,12 +316,12 @@ impl Game for Runner {
                     core.wincan.present();
                     initial_pause = false;
                 }
-                // Remove "&& game_over_timer <= 0" once the camera properly
-                // tracks the player. For now, it is only here
-                // to delay the game end and demonstrate collision.
             }
             // Normal unpaused game state
             else {
+                /* ~~~~~~ Calculations Section ~~~~~~ */
+                // Almost all math goes here
+
                 // End game loop, 'player has lost' state
                 if game_over {
                     game_over_timer -= 1; // Animation buffer?
@@ -344,15 +330,8 @@ impl Game for Runner {
                     }
                 }
 
-                /*  What the fuck
-                    Statements will always be false with an implemented camera
-                if player.x() < PLAYER_LEFT_BOUND {
-                    continue 'gameloop;
-                } else if player.x() > PLAYER_RIGHT_BOUND {
-                    continue 'gameloop;
-                }
-                */
-
+                /*
+                If only there was some way for us to communicate the purpose of a section of code.
                 if all_terrain[0].x() > all_terrain[0].curve().len() as i32 - 1 {
                     all_terrain.remove(0);
                     all_terrain.push(ProceduralGen::gen_terrain(
@@ -373,28 +352,28 @@ impl Game for Runner {
 
                 ground_buffer = all_terrain[0].get_view();
 
-                if ground_buffer.len() < SIZE {
+                if ground_buffer.len() < BG_CURVES_SIZE {
                     let mut ap_buff: Vec<(i32, i32)> = Vec::new();
 
                     ap_buff = all_terrain[1].get_view();
 
                     for i in ap_buff.iter_mut() {
-                        if ground_buffer.len() < SIZE {
+                        if ground_buffer.len() < BG_CURVES_SIZE {
                             ground_buffer.push(*i);
                         } else {
                             break;
                         }
                     }
                 }
+                */
 
-                //An equivalant of this will be implemented in proceduralgen,
-                //and sent here within a struct for each piece of terrain.
-                // Left ground position
+                /* Deprecated
                 let current_ground = Point::new(
                     player.x(),
                     CAM_H as i32
-                        - ground_buffer
-                            [((player.x() as usize) / (CAM_W / SIZE as u32) as usize) % 128]
+                        - ground_buffer[((player.x() as usize)
+                            / (CAM_W / BG_CURVES_SIZE as u32) as usize)
+                            % 128]
                             .1,
                 );
                 // Right ground position
@@ -402,7 +381,7 @@ impl Game for Runner {
                     player.x() + TILE_SIZE as i32,
                     CAM_H as i32
                         - ground_buffer[(((player.x() + TILE_SIZE as i32) as usize)
-                            / (CAM_W / SIZE as u32) as usize)
+                            / (CAM_W / BG_CURVES_SIZE as u32) as usize)
                             % 128]
                             .1,
                 );
@@ -410,6 +389,10 @@ impl Game for Runner {
                 let angle = ((next_ground.y() as f64 - current_ground.y() as f64)
                     / (TILE_SIZE as f64))
                     .atan();
+                */
+
+                let current_ground: TerrainSegment = get_current_ground(all_terrain, player.x());
+                let angle = current_ground.angle_from_last();
 
                 //Your time has come (refractor)
                 // This conditional statement is here so that the game will go on for a few more
@@ -417,41 +400,43 @@ impl Game for Runner {
                 // to demonstrate collisions even though the camera does not follow the player.
                 // NOTE: Once the camera properly follows the player, this conditional should be
                 // removed.
-                if !game_over {
-                    for event in core.event_pump.poll_iter() {
-                        match event {
-                            Event::Quit { .. } => break 'gameloop,
-                            Event::KeyDown {
-                                keycode: Some(k), ..
-                            } => match k {
-                                Keycode::W | Keycode::Up | Keycode::Space => {
-                                    if player.is_jumping() {
-                                        player.resume_flipping();
-                                    } else {
-                                        player.jump(current_ground, true, player_jump_change);
-                                    }
+                //if !game_over {
+                for event in core.event_pump.poll_iter() {
+                    match event {
+                        Event::Quit { .. } => break 'gameloop,
+                        Event::KeyDown {
+                            keycode: Some(k), ..
+                        } => match k {
+                            Keycode::W | Keycode::Up | Keycode::Space => {
+                                if player.is_jumping() {
+                                    player.resume_flipping();
+                                } else {
+                                    player.jump(current_ground, true, player_jump_change);
                                 }
-                                Keycode::Escape => {
-                                    game_paused = true;
-                                    initial_pause = true;
-                                }
-                                _ => {}
-                            },
-                            Event::KeyUp {
-                                keycode: Some(k), ..
-                            } => match k {
-                                Keycode::W | Keycode::Up | Keycode::Space => {
-                                    player.stop_flipping();
-                                }
-                                _ => {}
-                            },
+                            }
+                            Keycode::Escape => {
+                                game_paused = true;
+                                initial_pause = true;
+                            }
                             _ => {}
-                        }
+                        },
+                        Event::KeyUp {
+                            keycode: Some(k), ..
+                        } => match k {
+                            Keycode::W | Keycode::Up | Keycode::Space => {
+                                player.stop_flipping();
+                            }
+                            _ => {}
+                        },
+                        _ => {}
                     }
-
-                    tick_score = 1;
                 }
 
+                tick_score = 1;
+                //}
+
+                /* ~~~~~~ Player Collecting an Object Section ~~~~~~ */
+                /* Unnesseccary as player doesn't collect obstacles
                 let mut to_remove: i32 = -1;
                 let mut counter = 0;
 
@@ -460,7 +445,7 @@ impl Game for Runner {
                 //only check for obstacles/coins based on their location relative to players x
                 // cord
                 //(also: idt this can be a for loop bc it moves the obstacles values?)
-                for obs in obstacles.iter_mut() {
+                for obs in all_obstacles.iter_mut() {
                     //.filter(|near by obstacles|).collect()
                     if let Some(collision_boxes) = player.check_collision(obs) {
                         to_remove = counter;
@@ -470,74 +455,72 @@ impl Game for Runner {
                             initial_pause = true;
                             continue 'gameloop;
                         }
-                        //println!("ypos{} vyo{} ayo{}  ", obs.pos.1, obs.velocity.1, obs.accel.1 );
-                        // obs.update_vel(0.0,0.0);   //these args do nothing
-                        // obs.update_pos(Point::new(0,0), 3.0);  //the 3 makes the obstacle spin
-                        // println!("ypos{} vyo{} ayo{}  ", obs.pos.1, obs.velocity.1, obs.accel.1 );
-                        //Real Solution: need to actually resolve the collision, should go
+                        //println!("ypos{} vyo{} ayo{}  ", obs.pos.1, obs.velocity.1, obs.accel.1
+                        // ); obs.update_vel(0.0,0.0);   //these args do
+                        // nothing obs.update_pos(Point::new(0,0), 3.0);
+                        // //the 3 makes the obstacle spin println!("ypos{}
+                        // vyo{} ayo{}  ", obs.pos.1, obs.velocity.1, obs.accel.1 );
+                        // Real Solution: need to actually resolve the collision, should go
                         // something like this player.collide(obs);
                         // Physics::apply_gravity(obs, 0.0, 0.3); //maybe...
                         continue;
                     };
                     counter += 1;
                 }
-
                 if to_remove != -1 {
                     obstacles.remove(to_remove as usize);
                 }
+                */
 
-                let mut to_remove: i32 = -1;
+                // Remove coins if player collects them
+                let mut to_remove_ind: i32 = -1;
                 let mut counter = 0;
-
-                // Description
-                for c in coins.iter_mut() {
-                    //check collection
-                    if Physics::check_collection(&mut player, c) {
-                        if !c.collected() {
-                            to_remove = counter;
+                for coin in all_coins.iter_mut() {
+                    if Physics::check_collection(&mut player, coin) {
+                        if !coin.collected() {
+                            to_remove_ind = counter;
 
                             //so you only collect each coin once
-                            c.collect(); //deletes the coin once collected (but takes too long)
+                            coin.collect(); //deletes the coin once collected (but takes too long)
                             coin_count += 1;
-                            tick_score += c.value(); //increments the score
-                                                     // based on the coins value
-                                                     // maybe print next to
-                                                     // score: "+ c.value()""
+                            tick_score += coin.value(); //increments the score
+                                                        // based on the coins
+                                                        // value
+                                                        // maybe print next to
+                                                        // score: "+ c.value()""
                         }
                         continue;
                     }
                     counter += 1;
                 }
-
-                if to_remove != -1 {
-                    coins.remove(to_remove as usize);
+                if to_remove_ind != -1 {
+                    all_coins.remove(to_remove_ind as usize);
                 }
 
-                let mut to_remove: i32 = -1;
+                // Remove power ups if player collects them
+                // Rough, but should follow the coin idea closely.
+                let mut to_remove_ind: i32 = -1;
                 let mut counter = 0;
-
-                // Roughly the code needed for collecting power objects as it should follow the
-                // coin idea closely.
-                for p in powers.iter_mut() {
-                    if Physics::check_power(&mut player, p) {
-                        if !p.collected() {
-                            to_remove = counter;
+                for power in all_powers.iter_mut() {
+                    if Physics::check_power(&mut player, power) {
+                        if !power.collected() {
+                            to_remove_ind = counter;
 
                             match next_power {
-                                Some(proceduralgen::PowerUps::SpeedBoost) => {
-                                    power = Some(proceduralgen::PowerUps::SpeedBoost);
+                                Some(proceduralgen::Powers::SpeedBoost) => {
+                                    curr_power = Some(proceduralgen::Powers::SpeedBoost);
                                 }
-                                Some(proceduralgen::PowerUps::ScoreMultiplier) => {
-                                    power = Some(proceduralgen::PowerUps::ScoreMultiplier);
+                                Some(proceduralgen::Powers::ScoreMultiplier) => {
+                                    curr_power = Some(proceduralgen::Powers::ScoreMultiplier);
                                 }
-                                Some(proceduralgen::PowerUps::BouncyShoes) => {
-                                    power = Some(proceduralgen::PowerUps::BouncyShoes);
+                                Some(proceduralgen::Powers::BouncyShoes) => {
+                                    curr_power = Some(proceduralgen::Powers::BouncyShoes);
                                 }
-                                Some(proceduralgen::PowerUps::LowerGravity) => {
-                                    power = Some(proceduralgen::PowerUps::LowerGravity);
+                                Some(proceduralgen::Powers::LowerGravity) => {
+                                    curr_power = Some(proceduralgen::Powers::LowerGravity);
                                 }
-                                Some(proceduralgen::PowerUps::Shield) => {
-                                    power = Some(proceduralgen::PowerUps::Shield);
+                                Some(proceduralgen::Powers::Shield) => {
+                                    curr_power = Some(proceduralgen::Powers::Shield);
                                 }
                                 _ => {}
                             }
@@ -549,44 +532,43 @@ impl Game for Runner {
                             player_speed_adjust = 0.0;
                             shielded = false;
 
-                            p.collect();
+                            power.collect();
                             power_tick = 360;
                         }
                         continue;
                     }
                     counter += 1;
                 }
-
-                if to_remove != -1 {
-                    powers.remove(to_remove as usize);
+                if to_remove_ind != -1 {
+                    all_powers.remove(to_remove_ind as usize);
                 }
 
-                // Power handling
+                /* ~~~~~~ Power Handling Section ~~~~~~ */
                 if power_tick > 0 {
                     power_tick -= 1;
-                    match power {
-                        Some(proceduralgen::PowerUps::SpeedBoost) => {
+                    match curr_power {
+                        Some(proceduralgen::Powers::SpeedBoost) => {
                             // May not be the proper way to handle this.
                             // Adds player speed adjust to player's velocity
                             player_speed_adjust = 5.0;
                         }
-                        Some(proceduralgen::PowerUps::ScoreMultiplier) => {
+                        Some(proceduralgen::Powers::ScoreMultiplier) => {
                             // Doubles tick score while active
                             tick_score *= 2;
                         }
-                        Some(proceduralgen::PowerUps::BouncyShoes) => {
+                        Some(proceduralgen::Powers::BouncyShoes) => {
                             // Forces jumping while active and jumps 0.3 velocity units higher
                             player_jump_change = 0.3;
                             // This will need changed for refractor
                             player.jump(current_ground, true, player_jump_change);
                         }
-                        Some(proceduralgen::PowerUps::LowerGravity) => {
+                        Some(proceduralgen::Powers::LowerGravity) => {
                             // Accel rate is how the y velocity is clamped
                             // Has player jump 0.2 velocity units higher.
                             player_accel_rate = -5.0;
                             player_jump_change = 0.2;
                         }
-                        Some(proceduralgen::PowerUps::Shield) => {
+                        Some(proceduralgen::Powers::Shield) => {
                             // Shielded will say to ignore obstacle collisions
                             shielded = true;
                         }
@@ -596,31 +578,29 @@ impl Game for Runner {
                     power_tick -= 1;
 
                     // Reset values to default if power times out
-                    match power {
+                    match curr_power {
                         // Stop any power from going
-                        Some(proceduralgen::PowerUps::SpeedBoost) => {
+                        Some(proceduralgen::Powers::SpeedBoost) => {
                             player_speed_adjust = 0.0;
                         }
-                        Some(proceduralgen::PowerUps::ScoreMultiplier) => {}
-                        Some(proceduralgen::PowerUps::BouncyShoes) => {
+                        Some(proceduralgen::Powers::ScoreMultiplier) => {}
+                        Some(proceduralgen::Powers::BouncyShoes) => {
                             player_jump_change = 0.0;
                         }
-                        Some(proceduralgen::PowerUps::LowerGravity) => {
+                        Some(proceduralgen::Powers::LowerGravity) => {
                             player_accel_rate = -10.0;
                             player_jump_change = 0.0;
                         }
-                        Some(proceduralgen::PowerUps::Shield) => {
+                        Some(proceduralgen::Powers::Shield) => {
                             shielded = false;
                         }
                         _ => {}
                     }
-
-                    power = None;
+                    curr_power = None;
                 }
 
-                //Removing player temporarily for refractor
-                //applies gravity, normal & friction now
-                //friciton is currently way OP (stronger than grav) bc cast to i32 in
+                // Applies gravity, normal & friction now
+                // Friciton is currently way OP (stronger than grav) bc cast to i32 in
                 // apply_force so to ever have an effect, it needs to be set > 1
                 // for now...
                 Physics::apply_gravity(&mut player, angle, 0.3);
@@ -628,9 +608,9 @@ impl Game for Runner {
                 //apply friction
                 //Physics::apply_friction(&mut player, 1.0);
 
-                for o in obstacles.iter_mut() {
-                    o.update_vel(0.0, 0.0); // These args do nothing
-                    o.update_pos(Point::new(0, 0), 15.0, false);
+                for obs in all_obstacles.iter_mut() {
+                    obs.update_vel(0.0, 0.0); // These args do nothing
+                    obs.update_pos(Point::new(0, 0), 15.0, false);
                 }
                 player.update_pos(current_ground, angle, game_over);
                 player.update_vel(player_accel_rate, player_speed_adjust);
@@ -658,81 +638,46 @@ impl Game for Runner {
                 core.wincan
                     .copy(&tex_grad, None, rect!(0, -128, CAM_W, CAM_H))?;
 
-                // Generate more terrain if player hasn't died
+                // Generate new terrain / objects if player hasn't died
                 if !game_over {
-                    /* Will be entirely overhauled for procgen refractor
-                    // Every tick, build a new ground segment
-                    if tick % 1 == 0 {
-                        if buff_idx == BUFF_LENGTH {
-                            ground_buffer = proceduralgen::ProceduralGen::gen_bezier_land(
-                                &random,
-                                (
-                                    0.0,
-                                    background_curves[GROUND_INDEX][(SIZE - 1) as usize] as f64,
-                                ),
-                                CAM_W as i32,
-                                CAM_H as i32,
-                                false,
-                                false,
-                                false,
-                            );
-                            buff_idx = 0;
-                        }
-
-                        for i in 0..(SIZE as usize - 1) {
-                            background_curves[GROUND_INDEX][i] =
-                                background_curves[GROUND_INDEX][i + 1];
-                        }
-
-                        background_curves[GROUND_INDEX][(SIZE - 1) as usize] =
-                            ground_buffer[buff_idx].1 as i16;
-
-                        buff_idx += 1;
-
-                        if (ground_buffer[ground_buffer.len() - 1] == (1.0, 1.0)) {
-                            println!("Bouncy!");
-                        } else {
-                            println!("Not Bouncy!");
-                        }
-                    }
-                    */
-
                     // Every 3 ticks, build a new front mountain segment
                     if tick % 3 == 0 {
-                        for i in 0..(SIZE as usize - 1) {
+                        for i in 0..(BG_CURVES_SIZE as usize - 1) {
                             background_curves[IND_BACKGROUND_MID][i] =
                                 background_curves[IND_BACKGROUND_MID][i + 1];
                         }
                         buff_1 += 1;
                         let chunk_1 = proceduralgen::gen_perlin_hill_point(
-                            ((SIZE - 1) as usize + buff_1),
+                            ((BG_CURVES_SIZE - 1) as usize + buff_1),
                             freq,
                             amp_1,
                             0.5,
                             600.0,
                         );
-                        background_curves[IND_BACKGROUND_MID][(SIZE - 1) as usize] = chunk_1;
+                        background_curves[IND_BACKGROUND_MID][(BG_CURVES_SIZE - 1) as usize] =
+                            chunk_1;
                     }
 
                     // Every 5 ticks, build a new back mountain segment
                     if tick % 5 == 0 {
-                        for i in 0..(SIZE as usize - 1) {
+                        for i in 0..(BG_CURVES_SIZE as usize - 1) {
                             background_curves[IND_BACKGROUND_BACK][i] =
                                 background_curves[IND_BACKGROUND_BACK][i + 1];
                         }
                         buff_2 += 1;
                         let chunk_2 = proceduralgen::gen_perlin_hill_point(
-                            ((SIZE - 1) as usize + buff_2),
+                            ((BG_CURVES_SIZE - 1) as usize + buff_2),
                             freq,
                             amp_2,
                             1.0,
                             820.0,
                         );
-                        background_curves[IND_BACKGROUND_BACK][(SIZE - 1) as usize] = chunk_2;
+                        background_curves[IND_BACKGROUND_BACK][(BG_CURVES_SIZE - 1) as usize] =
+                            chunk_2;
                     }
 
-                    if tick % spawning_timer == 0 {
-                        let num_active = obstacles.len() + coins.len() + powers.len();
+                    if tick % spawn_timer == 0 {
+                        let num_active = all_obstacles.len() + all_coins.len() + all_powers.len();
                         let spawn_check = rng.gen_range(0..=10);
 
                         if spawn_check > num_active {
@@ -760,7 +705,7 @@ impl Game for Runner {
                                     texture_creator.load_texture("assets/statue.png")?,
                                     ObstacleType::Statue,
                                 );
-                                obstacles.push(obstacle);
+                                all_obstacles.push(obstacle);
                                 object_count -= 1;
                                 // object = None;
                             }
@@ -770,7 +715,7 @@ impl Game for Runner {
                                     texture_creator.load_texture("assets/coin.png")?,
                                     1000,
                                 );
-                                coins.push(coin);
+                                all_coins.push(coin);
                                 object_count -= 1;
                                 // object = None;
                             }
@@ -781,7 +726,7 @@ impl Game for Runner {
                                     texture_creator.load_texture("assets/temp_spring.jpg")?,
                                     ObstacleType::Spring,
                                 );
-                                obstacles.push(obstacle);
+                                all_obstacles.push(obstacle);
                                 object_count -= 1;
                                 // object = None;
                             }
@@ -791,7 +736,7 @@ impl Game for Runner {
                                     rect!(CAM_W, 0, 0, 0),
                                     texture_creator.load_texture("assets/powerup.png")?,
                                 );
-                                powers.push(pow);
+                                all_powers.push(pow);
                                 object_count -= 1;
                                 // object = None;
                             }
@@ -803,14 +748,15 @@ impl Game for Runner {
                     match object {
                         Some(proceduralgen::StaticObject::Statue) => {
                             //update physics obstacle position
-                            for o in obstacles.iter_mut() {
+                            for obs in all_obstacles.iter_mut() {
                                 //this is hacky & dumb (will only work if one obstacle spawned
                                 // at a time)
-                                if !o.collided() && o.mass > 1.0 {
+                                if !obs.collided() && obs.mass > 1.0 {
                                     let mut y_offset = all_terrain[0].x()
-                                        + ((player.x() as usize) / (CAM_W / SIZE as u32) as usize)
+                                        + ((player.x() as usize)
+                                            / (CAM_W / BG_CURVES_SIZE as u32) as usize)
                                             as i32
-                                        + o.x();
+                                        + obs.x();
                                     y_offset = if y_offset > 1280 {
                                         all_terrain[1].curve()[(y_offset % 1280) as usize].1
                                     } else {
@@ -818,27 +764,28 @@ impl Game for Runner {
                                     };
 
                                     //once it collides we can't draw it like this
-                                    o.hitbox = rect!(
-                                        o.x(),
+                                    obs.hitbox = rect!(
+                                        obs.x(),
                                         CAM_H as i32
-                                    - y_offset
-                                            // - y pos at terrain segment under player
-                                            - TILE_SIZE as i32,
+                                        - y_offset
+                                        // - y pos at terrain segment under player
+                                        - TILE_SIZE as i32,
                                         TILE_SIZE,
                                         TILE_SIZE
                                     );
-                                    o.pos = (o.hitbox.x() as f64, o.hitbox.y() as f64);
-                                    println!("obstacles {:?}", o.pos);
+                                    obs.pos = (obs.hitbox.x() as f64, obs.hitbox.y() as f64);
+                                    println!("obstacles {:?}", obs.pos);
                                 }
                             }
                         }
                         Some(proceduralgen::StaticObject::Coin) => {
                             //update physics coins position
-                            for c in coins.iter_mut() {
+                            for coin in all_coins.iter_mut() {
                                 let mut y_offset = all_terrain[0].x()
-                                    + ((player.x() as usize) / (CAM_W / SIZE as u32) as usize)
+                                    + ((player.x() as usize)
+                                        / (CAM_W / BG_CURVES_SIZE as u32) as usize)
                                         as i32
-                                    + c.x();
+                                    + coin.x();
                                 y_offset = if y_offset > 1280 {
                                     all_terrain[1].curve()[(y_offset % 1280) as usize].1
                                 } else {
@@ -846,26 +793,27 @@ impl Game for Runner {
                                 };
 
                                 //hacky "soln" part 2
-                                c.hitbox = rect!(
-                                    c.x(),
+                                coin.hitbox = rect!(
+                                    coin.x(),
                                     CAM_H as i32 - y_offset - TILE_SIZE as i32,
                                     TILE_SIZE,
                                     TILE_SIZE
                                 );
-                                c.pos = (c.hitbox.x() as f64, c.hitbox.y() as f64);
-                                println!("coins {:?}", c.pos);
+                                coin.pos = (coin.hitbox.x() as f64, coin.hitbox.y() as f64);
+                                println!("coins {:?}", coin.pos);
                             }
                         }
                         Some(proceduralgen::StaticObject::Spring) => {
                             //update physics obstacle position
-                            for s in obstacles.iter_mut() {
+                            for obs in all_obstacles.iter_mut() {
                                 //this is hacky & dumb (will only work if one obstacle spawned
                                 // at a time)
-                                if !s.collided() && s.mass < 2.0 {
+                                if !obs.collided() && obs.mass < 2.0 {
                                     let mut y_offset = all_terrain[0].x()
-                                        + ((player.x() as usize) / (CAM_W / SIZE as u32) as usize)
+                                        + ((player.x() as usize)
+                                            / (CAM_W / BG_CURVES_SIZE as u32) as usize)
                                             as i32
-                                        + s.x();
+                                        + obs.x();
                                     y_offset = if y_offset > 1280 {
                                         all_terrain[1].curve()[(y_offset % 1280) as usize].1
                                     } else {
@@ -874,98 +822,158 @@ impl Game for Runner {
 
                                     //gaurantees spring for now
                                     //once it collides we can't draw it like this
-                                    s.hitbox = rect!(
-                                        s.x(),
+                                    obs.hitbox = rect!(
+                                        obs.x(),
                                         (CAM_H as i32 - y_offset - (TILE_SIZE / 4) as i32),
                                         TILE_SIZE,
                                         TILE_SIZE / 4
                                     );
-                                    s.pos = (s.hitbox.x() as f64, s.hitbox.y() as f64);
-                                    println!("springs {:?}", s.pos);
+                                    obs.pos = (obs.hitbox.x() as f64, obs.hitbox.y() as f64);
+                                    println!("springs {:?}", obs.pos);
                                 }
                             }
                         }
                         Some(proceduralgen::StaticObject::Power) => {
                             //update physics power position
-                            for p in powers.iter_mut() {
+                            for power in all_powers.iter_mut() {
                                 let mut y_offset = all_terrain[0].x()
-                                    + ((player.x() as usize) / (CAM_W / SIZE as u32) as usize)
+                                    + ((player.x() as usize)
+                                        / (CAM_W / BG_CURVES_SIZE as u32) as usize)
                                         as i32
-                                    + p.x();
+                                    + power.x();
                                 y_offset = if y_offset > 1280 {
                                     all_terrain[1].curve()[(y_offset % 1280) as usize].1
                                 } else {
                                     all_terrain[0].curve()[y_offset as usize].1
                                 };
 
-                                p.pos = rect!(
-                                    p.x(),
+                                power.pos = rect!(
+                                    power.x(),
                                     CAM_H as i32 - y_offset - TILE_SIZE as i32,
                                     TILE_SIZE,
                                     TILE_SIZE
                                 );
 
-                                println!("powers {:?}", p.pos);
+                                println!("powers {:?}", power.pos);
                             }
                         }
                         _ => {}
                     }
                 }
 
-                /* Begin Camera Section */
-                /*  Camera adjustments to keep player in PLAYER_x_BOUND,
-                    and everything else placed properly relative to that.
-                    Should be calculated after physics postion updates,
-                    then added to all object's x & y
+                /* Update ground / object positions to move player forward
+                 * by the distance they should move this single iteration of the game loop
+                 */
+                let iteration_distance: i32 = MIN_SPEED + player.vel_x() as i32;
+                for ground in all_terrain.iter() {
+                    ground.travel_update(iteration_distance);
+                }
+                /*  travel_update needs to be implemented in physics.rs
+                    for obstacles, coins and power ups.
+                    See terrain segment implementation in proceduralgen.rs,
+                    it should be almost exactly the same
 
-                    Currently does nothing, but this code should be most of what we need.
+                for obs in all_obstacles.iter() {
+                    obs.travel_update(iteration_distance);
+                }
+                for coin in all_coins.iter() {
+                    coin.travel_update(iteration_distance);
+                }
+                for powerUp in all_powers.iter() {
+                    powerUp.travel_update(iteration_distance);
+                }
                 */
+
+                /* ~~~~~~ Begin Camera Section ~~~~~~ */
+                /* This should be the very last section of calcultions,
+                 * as the camera position relies upon updated math for
+                 * EVERYTHING ELSE. Below the camera section we have
+                 * removal of offscreen objects from their vectors,
+                 * animation updates, the drawing section, and FPS calculation only.
+                 */
                 let mut camera_adj_x: i32 = 0;
                 let mut camera_adj_y: i32 = 0;
 
-                // Adjust camera horizontally based if player is out of bounds
+                // Adjust camera horizontally if updated player x pos is out of bounds
                 if player.x() < PLAYER_LEFT_BOUND {
-                    camera_adj_x = PLAYER_LEFT_BOUND - player.x();
+                    let camera_adj_x = PLAYER_LEFT_BOUND - player.x();
+                } else if (current_ground.x() + TILE_SIZE as i32) > PLAYER_RIGHT_BOUND {
+                    let camera_adj_x = PLAYER_RIGHT_BOUND - player.x();
                 }
-                if (current_ground.x() + TILE_SIZE as i32) > PLAYER_RIGHT_BOUND {
-                    camera_adj_x = PLAYER_RIGHT_BOUND - player.x();
-                }
-
-                // Match horizonatal camera speed to player speed
-                camera_adj_x += (player.vel_x() as i32).abs();
 
                 // Adjust camera vertically based on y/height of the ground
                 if current_ground.y() < PLAYER_UPPER_BOUND {
-                    camera_adj_y = PLAYER_UPPER_BOUND - current_ground.y();
+                    let camera_adj_y = PLAYER_UPPER_BOUND - current_ground.y();
+                } else if (current_ground.y() + TILE_SIZE as i32) > PLAYER_LOWER_BOUND {
+                    let camera_adj_y = PLAYER_LOWER_BOUND - current_ground.y();
                 }
-                if (current_ground.y() + TILE_SIZE as i32) > PLAYER_LOWER_BOUND {
-                    camera_adj_y = PLAYER_LOWER_BOUND - current_ground.y();
+
+                // Add adjustment to terrain
+                for ground in all_terrain.iter() {
+                    ground.camera_adj(camera_adj_x, camera_adj_y);
                 }
 
-                /*for seg in all_terrain.iter_mut() {
-                    // seg.camera_adj(camera_adj_x, camera_adj_y);
+                /*  camera_adj needs to be implemented in physics.rs
+                    for obstacles, coins and power ups, and the player.
+                    See terrain segment implementation in proceduralgen.rs,
+                    it should be almost exactly the same.
 
-                }*/
+                // Add adjustment to obstacles
+                for obs in all_obstacles.iter() {
+                    obs.travel_update(iteration_distance);
+                }
 
-                all_terrain[0].travel_update(camera_adj_x);
+                // Add adjustment to coins
+                for coin in all_coins.iter() {
+                    coin.travel_update(iteration_distance);
+                }
+                // Add adjustment to power ups
+                for powerUp in all_powers.iter() {
+                    powerUp.travel_update(iteration_distance);
+                }
 
-                /*
-                // Adjust player for camera
+                // Add adjustment to player
                 player.camera_adj(camera_adj_x, camera_adj_y);
-
-                // Adjust obstables for camera
-                for obs in obstacles.iter() {
-                    obs.camera_adj(camera_adj_x, camera_adj_y);
-                }
-
-                // Adjust terrain for camera
-                for crv in curves.iter() {
-                    crv.camera_adj(camera_adj_x, camera_adj_y);
-                }
                 */
+                /* ~~~~~~ End Camera Section ~~~~~~ */
 
-                // Shifting all StaticObjects and removing ones as needed
-                //Obstacles
+                /* ~~~~~~ Remove stuff which is now offscreen ~~~~~~ */
+                // Terrain
+                let mut ind = 0;
+                for ground in all_terrain.iter() {
+                    if ground.x() + ground.w() <= 0 {
+                        all_terrain.remove(ind);
+                    }
+                    ind += 1;
+                }
+
+                //  Obstacles
+                ind = 0;
+                for obs in all_obstacles.iter() {
+                    if obs.x() + TILE_SIZE as i32 <= 0 {
+                        all_obstacles.remove(ind);
+                    }
+                    ind += 1;
+                }
+
+                // Coins
+                ind = 0;
+                for coin in all_coins.iter() {
+                    if coin.x() + TILE_SIZE as i32 <= 0 {
+                        all_coins.remove(ind);
+                    }
+                    ind += 1;
+                }
+
+                // Power ups
+                ind = 0;
+                for power in all_powers.iter() {
+                    if power.x() + TILE_SIZE as i32 <= 0 {
+                        all_powers.remove(ind);
+                    }
+                    ind += 1;
+                }
+                /*
                 let mut to_remove: Vec<_> = Vec::new();
                 let mut counter = 0;
 
@@ -974,7 +982,7 @@ impl Game for Runner {
                         CAM_H as i32
                             - ground_buffer[((((o.x() - camera_adj_x.abs()) + TILE_SIZE as i32)
                                 as usize)
-                                / (CAM_W / SIZE as u32) as usize)
+                                / (CAM_W / BG_CURVES_SIZE as u32) as usize)
                                 % 128]
                                 .1
                             - TILE_SIZE as i32
@@ -1005,7 +1013,7 @@ impl Game for Runner {
                         CAM_H as i32
                             - ground_buffer[((((c.x() - camera_adj_x.abs()) + TILE_SIZE as i32)
                                 as usize)
-                                / (CAM_W / SIZE as u32) as usize)
+                                / (CAM_W / BG_CURVES_SIZE as u32) as usize)
                                 % 128]
                                 .1
                             - TILE_SIZE as i32
@@ -1035,7 +1043,7 @@ impl Game for Runner {
                         CAM_H as i32
                             - ground_buffer[((((p.x() - camera_adj_x.abs()) + TILE_SIZE as i32)
                                 as usize)
-                                / (CAM_W / SIZE as u32) as usize)
+                                / (CAM_W / BG_CURVES_SIZE as u32) as usize)
                                 % 128]
                                 .1
                             - TILE_SIZE as i32
@@ -1059,6 +1067,7 @@ impl Game for Runner {
                 for r in to_remove.iter_mut() {
                     powers.remove(*r);
                 }
+                */
 
                 tick += 1;
 
@@ -1070,7 +1079,7 @@ impl Game for Runner {
                 coin_anim += 1;
                 coin_anim %= 60;
 
-                if tick % 3 == 0 && tick % 5 == 0 && tick % spawning_timer == 0 {
+                if tick % 3 == 0 && tick % 5 == 0 && tick % spawn_timer == 0 {
                     tick = 0;
                 }
 
@@ -1078,13 +1087,9 @@ impl Game for Runner {
                     bg_buff = 0;
                 }
 
-                // Increment survival score
-                // This should be placed after hitbox updates but before drawing
-                if !game_over {
-                    score += tick_score;
-                }
-
-                spawning_timer = if score > 10000 && score < 20000 {
+                // Wouldn't it be nice if there was some way to communicate the purpose
+                // of a code block?
+                spawn_timer = if score > 10000 && score < 20000 {
                     390
                 } else if score > 20000 && score < 30000 {
                     380
@@ -1106,7 +1111,11 @@ impl Game for Runner {
                     400 // Default
                 };
 
-                /* End Camera Section */
+                // Increment survival score
+                // This should be placed after hitbox updates but before drawing
+                if !game_over {
+                    score += tick_score;
+                }
 
                 /* ~~~~~~ Draw All Elements ~~~~~~ */
                 core.wincan.set_draw_color(Color::RGBA(0, 0, 0, 255));
@@ -1135,78 +1144,75 @@ impl Game for Runner {
                     // Furthest back perlin noise curves
                     core.wincan.set_draw_color(Color::RGBA(128, 51, 6, 255));
                     core.wincan.fill_rect(rect!(
-                        i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
+                        i * CAM_W as usize / BG_CURVES_SIZE + CAM_W as usize / BG_CURVES_SIZE / 2,
                         CAM_H as i16 - background_curves[IND_BACKGROUND_BACK][i],
-                        CAM_W as usize / SIZE,
+                        CAM_W as usize / BG_CURVES_SIZE,
                         CAM_H as i16
                     ))?;
 
                     // Midground perlin noise curves
                     core.wincan.set_draw_color(Color::RGBA(96, 161, 152, 255));
                     core.wincan.fill_rect(rect!(
-                        i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
+                        i * CAM_W as usize / BG_CURVES_SIZE + CAM_W as usize / BG_CURVES_SIZE / 2,
                         CAM_H as i16 - background_curves[IND_BACKGROUND_MID][i],
-                        CAM_W as usize / SIZE,
+                        CAM_W as usize / BG_CURVES_SIZE,
                         CAM_H as i16
                     ))?;
-
-                    /*
-                    // Ground
-                    core.wincan.set_draw_color(Color::RGBA(13, 66, 31, 255));
-                    core.wincan.fill_rect(rect!(
-                        i * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
-                        CAM_H as i16 - background_curves[GROUND_INDEX][i],
-                        CAM_W as usize / SIZE,
-                        CAM_H as i16
-                    ))?;
-                    */
                 }
 
+                // Terrain
+                for ground in all_terrain.iter() {
+                    core.wincan.set_draw_color(ground.color());
+                    core.wincan.fill_rect(ground.pos())?;
+                }
+                /*
                 let mut ground_ct = 0;
                 for i in ground_buffer.iter_mut() {
                     core.wincan.set_draw_color(all_terrain[0].color());
                     core.wincan.fill_rect(rect! {
-                        ground_ct * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
+                        ground_ct * CAM_W as usize / BG_CURVES_SIZE + CAM_W as usize / BG_CURVES_SIZE / 2,
                         CAM_H as i32 - i.1,
-                        CAM_W as usize / SIZE,
+                        CAM_W as usize / BG_CURVES_SIZE,
                         CAM_H as i32
                     })?;
 
                     ground_ct += 1;
                 }
+                */
 
+                /*
                 // Power assets
                 if power_tick > 0 {
-                    match power {
-                        Some(proceduralgen::PowerUps::SpeedBoost) => {
+                    match curr_power {
+                        Some(proceduralgen::Powers::SpeedBoost) => {
                             core.wincan.copy(
                                 &tex_speed,
                                 None,
                                 rect!(10, 100, TILE_SIZE, TILE_SIZE),
                             )?;
                         }
-                        Some(proceduralgen::PowerUps::ScoreMultiplier) => {
+                        Some(proceduralgen::Powers::ScoreMultiplier) => {
                             core.wincan.copy(
                                 &tex_multiplier,
                                 None,
                                 rect!(10, 100, TILE_SIZE, TILE_SIZE),
                             )?;
                         }
-                        Some(proceduralgen::PowerUps::BouncyShoes) => {
+                        Some(proceduralgen::Powers::BouncyShoes) => {
                             core.wincan.copy(
                                 &tex_bouncy,
                                 None,
                                 rect!(10, 100, TILE_SIZE, TILE_SIZE),
                             )?;
                         }
-                        Some(proceduralgen::PowerUps::LowerGravity) => {
+                        Some(proceduralgen::Powers::LowerGravity) => {
                             core.wincan.copy(
                                 &tex_floaty,
                                 None,
                                 rect!(10, 100, TILE_SIZE, TILE_SIZE),
                             )?;
                         }
-                        Some(proceduralgen::PowerUps::Shield) => {
+                        Some(proceduralgen::Powers::Shield) => {
                             core.wincan.copy(
                                 &tex_shield,
                                 None,
@@ -1225,6 +1231,7 @@ impl Game for Runner {
                     core.wincan.set_draw_color(Color::RGB(r as u8, g as u8, 0));
                     core.wincan.fill_rect(rect!(10, 210, w as u8, 10))?;
                 }
+                */
 
                 // Set player texture
                 let mut tex_player = player.texture(); // Default
@@ -1297,7 +1304,7 @@ impl Game for Runner {
                 }
 
                 // Coins
-                for c in coins.iter() {
+                for c in all_coins.iter() {
                     //need a method to delete it from vector, possibly something like this
                     // Should be handled after hitbox updates but before draw section
                     /*if c.collected(){
@@ -1417,6 +1424,17 @@ impl Game for Runner {
             // The very last thing in the game loop
             // Is this some kind of physics thing that I'm too proceduralgen to understand?
             player.reset_accel();
+        }
+
+        /* ~~~~~~ Helper Functions ~~~~~ */
+        fn get_current_ground(all_terrain: Vec<TerrainSegment>, player_x: i32) -> TerrainSegment {
+            for ground in all_terrain.iter() {
+                if (ground.x() <= player_x) & (ground.x() + ground.w() >= player_x) {
+                    return *ground;
+                }
+            }
+            return *all_terrain.get(0).unwrap(); // Probably a bad idea... but
+                                                 // idk what else to use do
         }
 
         Ok(GameState {
