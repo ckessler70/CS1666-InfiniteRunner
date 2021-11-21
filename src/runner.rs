@@ -241,6 +241,19 @@ impl Game for Runner {
             false,
         ));
 
+        all_terrain.push(ProceduralGen::gen_terrain(
+            &random,
+            (
+                0.0,
+                all_terrain[0].curve()[all_terrain[0].curve().len() - 2].1 as f64,
+            ),
+            CAM_W as i32,
+            CAM_H as i32,
+            false,
+            false,
+            false,
+        ));
+
         // ground_buffer = proceduralgen::ProceduralGen::gen_bezier_land(
         //     &random,
         //     p0,
@@ -342,13 +355,6 @@ impl Game for Runner {
 
                 if all_terrain[0].x() > all_terrain[0].curve().len() as i32 - 1 {
                     all_terrain.remove(0);
-                }
-
-                ground_buffer = Vec::new(); // Reinit it
-
-                ground_buffer = all_terrain[0].get_view();
-
-                if ground_buffer.len() < SIZE && all_terrain.len() == 1 {
                     all_terrain.push(ProceduralGen::gen_terrain(
                         &random,
                         (
@@ -362,6 +368,10 @@ impl Game for Runner {
                         false,
                     ));
                 }
+
+                ground_buffer = Vec::new(); // Reinit it
+
+                ground_buffer = all_terrain[0].get_view();
 
                 if ground_buffer.len() < SIZE {
                     let mut ap_buff: Vec<(i32, i32)> = Vec::new();
@@ -383,14 +393,17 @@ impl Game for Runner {
                 let current_ground = Point::new(
                     player.x(),
                     CAM_H as i32
-                        - ground_buffer[(player.x() as usize) / (CAM_W / SIZE as u32) as usize].1,
+                        - ground_buffer
+                            [((player.x() as usize) / (CAM_W / SIZE as u32) as usize) % 128]
+                            .1,
                 );
                 // Right ground position
                 let next_ground = Point::new(
                     player.x() + TILE_SIZE as i32,
                     CAM_H as i32
                         - ground_buffer[(((player.x() + TILE_SIZE as i32) as usize)
-                            / (CAM_W / SIZE as u32) as usize)]
+                            / (CAM_W / SIZE as u32) as usize)
+                            % 128]
                             .1,
                 );
                 // Angle between
@@ -685,7 +698,7 @@ impl Game for Runner {
                     */
 
                     // Every 3 ticks, build a new front mountain segment
-                    if tick % 1 == 0 {
+                    if tick % 3 == 0 {
                         for i in 0..(SIZE as usize - 1) {
                             background_curves[IND_BACKGROUND_MID][i] =
                                 background_curves[IND_BACKGROUND_MID][i + 1];
@@ -749,7 +762,7 @@ impl Game for Runner {
                                 );
                                 obstacles.push(obstacle);
                                 object_count -= 1;
-                                object = None;
+                                // object = None;
                             }
                             Some(StaticObject::Coin) => {
                                 let coin = Coin::new(
@@ -759,7 +772,7 @@ impl Game for Runner {
                                 );
                                 coins.push(coin);
                                 object_count -= 1;
-                                object = None;
+                                // object = None;
                             }
                             Some(StaticObject::Spring) => {
                                 let obstacle = Obstacle::new(
@@ -770,7 +783,7 @@ impl Game for Runner {
                                 );
                                 obstacles.push(obstacle);
                                 object_count -= 1;
-                                object = None;
+                                // object = None;
                             }
                             Some(StaticObject::Power) => {
                                 next_power = Some(proceduralgen::choose_power_up());
@@ -780,7 +793,7 @@ impl Game for Runner {
                                 );
                                 powers.push(pow);
                                 object_count -= 1;
-                                object = None;
+                                // object = None;
                             }
                             _ => {}
                         }
@@ -794,32 +807,53 @@ impl Game for Runner {
                                 //this is hacky & dumb (will only work if one obstacle spawned
                                 // at a time)
                                 if !o.collided() && o.mass > 1.0 {
+                                    let mut y_offset = all_terrain[0].x()
+                                        + ((player.x() as usize) / (CAM_W / SIZE as u32) as usize)
+                                            as i32
+                                        + o.x();
+                                    y_offset = if y_offset > 1280 {
+                                        all_terrain[1].curve()[(y_offset % 1280) as usize].1
+                                    } else {
+                                        all_terrain[0].curve()[y_offset as usize].1
+                                    };
+
                                     //once it collides we can't draw it like this
                                     o.hitbox = rect!(
                                         o.x(),
-                                        CAM_H as i16
+                                        CAM_H as i32
+                                    - y_offset
                                             // - y pos at terrain segment under player
-                                            - TILE_SIZE as i16,
+                                            - TILE_SIZE as i32,
                                         TILE_SIZE,
                                         TILE_SIZE
                                     );
                                     o.pos = (o.hitbox.x() as f64, o.hitbox.y() as f64);
+                                    println!("obstacles {:?}", o.pos);
                                 }
                             }
                         }
                         Some(proceduralgen::StaticObject::Coin) => {
                             //update physics coins position
                             for c in coins.iter_mut() {
+                                let mut y_offset = all_terrain[0].x()
+                                    + ((player.x() as usize) / (CAM_W / SIZE as u32) as usize)
+                                        as i32
+                                    + c.x();
+                                y_offset = if y_offset > 1280 {
+                                    all_terrain[1].curve()[(y_offset % 1280) as usize].1
+                                } else {
+                                    all_terrain[0].curve()[y_offset as usize].1
+                                };
+
                                 //hacky "soln" part 2
                                 c.hitbox = rect!(
                                     c.x(),
-                                    CAM_H as i16
-                                        // - y pos at terrain segment under player
-                                        - TILE_SIZE as i16,
+                                    CAM_H as i32 - y_offset - TILE_SIZE as i32,
                                     TILE_SIZE,
                                     TILE_SIZE
                                 );
                                 c.pos = (c.hitbox.x() as f64, c.hitbox.y() as f64);
+                                println!("coins {:?}", c.pos);
                             }
                         }
                         Some(proceduralgen::StaticObject::Spring) => {
@@ -828,31 +862,50 @@ impl Game for Runner {
                                 //this is hacky & dumb (will only work if one obstacle spawned
                                 // at a time)
                                 if !s.collided() && s.mass < 2.0 {
+                                    let mut y_offset = all_terrain[0].x()
+                                        + ((player.x() as usize) / (CAM_W / SIZE as u32) as usize)
+                                            as i32
+                                        + s.x();
+                                    y_offset = if y_offset > 1280 {
+                                        all_terrain[1].curve()[(y_offset % 1280) as usize].1
+                                    } else {
+                                        all_terrain[0].curve()[y_offset as usize].1
+                                    };
+
                                     //gaurantees spring for now
                                     //once it collides we can't draw it like this
                                     s.hitbox = rect!(
                                         s.x(),
-                                        (CAM_H as i16
-                                            // - y pos at terrain segment under player
-                                            - (TILE_SIZE / 4) as i16),
+                                        (CAM_H as i32 - y_offset - (TILE_SIZE / 4) as i32),
                                         TILE_SIZE,
                                         TILE_SIZE / 4
                                     );
                                     s.pos = (s.hitbox.x() as f64, s.hitbox.y() as f64);
+                                    println!("springs {:?}", s.pos);
                                 }
                             }
                         }
                         Some(proceduralgen::StaticObject::Power) => {
                             //update physics power position
                             for p in powers.iter_mut() {
+                                let mut y_offset = all_terrain[0].x()
+                                    + ((player.x() as usize) / (CAM_W / SIZE as u32) as usize)
+                                        as i32
+                                    + p.x();
+                                y_offset = if y_offset > 1280 {
+                                    all_terrain[1].curve()[(y_offset % 1280) as usize].1
+                                } else {
+                                    all_terrain[0].curve()[y_offset as usize].1
+                                };
+
                                 p.pos = rect!(
                                     p.x(),
-                                    CAM_H as i16
-                                        // - y pos at terrain segment under player
-                                        - TILE_SIZE as i16,
+                                    CAM_H as i32 - y_offset - TILE_SIZE as i32,
                                     TILE_SIZE,
                                     TILE_SIZE
                                 );
+
+                                println!("powers {:?}", p.pos);
                             }
                         }
                         _ => {}
@@ -880,8 +933,6 @@ impl Game for Runner {
 
                 // Match horizonatal camera speed to player speed
                 camera_adj_x += (player.vel_x() as i32).abs();
-
-                println!("{:?}", camera_adj_x);
 
                 // Adjust camera vertically based on y/height of the ground
                 if current_ground.y() < PLAYER_UPPER_BOUND {
@@ -919,13 +970,7 @@ impl Game for Runner {
                 let mut counter = 0;
 
                 for o in obstacles.iter_mut() {
-                    o.pos = (
-                        (o.x()
-                            - camera_adj_x.abs()
-                                * (CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2) as i32)
-                            as f64,
-                        o.y() as f64,
-                    );
+                    o.pos = ((o.x() - camera_adj_x.abs()) as f64, o.y() as f64);
                     o.align_hitbox_to_pos();
                     if o.x() <= 0 {
                         to_remove.push(counter);
@@ -944,13 +989,7 @@ impl Game for Runner {
                 let mut counter = 0;
 
                 for c in coins.iter_mut() {
-                    c.pos = (
-                        (c.x()
-                            - camera_adj_x.abs()
-                                * (CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2) as i32)
-                            as f64,
-                        c.y() as f64,
-                    );
+                    c.pos = ((c.x() - camera_adj_x.abs()) as f64, c.y() as f64);
                     c.align_hitbox_to_pos();
                     if c.x() <= 0 {
                         to_remove.push(counter);
@@ -969,10 +1008,7 @@ impl Game for Runner {
 
                 for p in powers.iter_mut() {
                     p.pos = rect!(
-                        (p.x()
-                            - camera_adj_x.abs()
-                                * (CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2) as i32)
-                            as f64,
+                        (p.x() - camera_adj_x.abs()) as f64,
                         p.y() as f64,
                         TILE_SIZE,
                         TILE_SIZE

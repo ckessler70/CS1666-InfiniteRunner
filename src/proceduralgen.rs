@@ -43,6 +43,7 @@ pub enum TerrainType {
 }
 
 // Contains all types of objects generated on terrain
+#[derive(Debug)]
 pub enum StaticObject {
     Coin,
     Statue,
