@@ -970,7 +970,19 @@ impl Game for Runner {
                 let mut counter = 0;
 
                 for o in obstacles.iter_mut() {
-                    o.pos = ((o.x() - camera_adj_x.abs()) as f64, o.y() as f64);
+                    let y_pos = if (o.x() - camera_adj_x.abs()) < CAM_W as i32 {
+                        CAM_H as i32
+                            - ground_buffer[((((o.x() - camera_adj_x.abs()) + TILE_SIZE as i32)
+                                as usize)
+                                / (CAM_W / SIZE as u32) as usize)
+                                % 128]
+                                .1
+                            - TILE_SIZE as i32
+                    } else {
+                        0
+                    };
+
+                    o.pos = ((o.x() - camera_adj_x.abs()) as f64, y_pos as f64);
                     o.align_hitbox_to_pos();
                     if o.x() <= 0 {
                         to_remove.push(counter);
@@ -989,7 +1001,19 @@ impl Game for Runner {
                 let mut counter = 0;
 
                 for c in coins.iter_mut() {
-                    c.pos = ((c.x() - camera_adj_x.abs()) as f64, c.y() as f64);
+                    let y_pos = if (c.x() - camera_adj_x.abs()) < CAM_W as i32 {
+                        CAM_H as i32
+                            - ground_buffer[((((c.x() - camera_adj_x.abs()) + TILE_SIZE as i32)
+                                as usize)
+                                / (CAM_W / SIZE as u32) as usize)
+                                % 128]
+                                .1
+                            - TILE_SIZE as i32
+                    } else {
+                        0
+                    };
+
+                    c.pos = ((c.x() - camera_adj_x.abs()) as f64, y_pos as f64);
                     c.align_hitbox_to_pos();
                     if c.x() <= 0 {
                         to_remove.push(counter);
@@ -1007,9 +1031,21 @@ impl Game for Runner {
                 let mut counter = 0;
 
                 for p in powers.iter_mut() {
+                    let y_pos = if (p.x() - camera_adj_x.abs()) < CAM_W as i32 {
+                        CAM_H as i32
+                            - ground_buffer[((((p.x() - camera_adj_x.abs()) + TILE_SIZE as i32)
+                                as usize)
+                                / (CAM_W / SIZE as u32) as usize)
+                                % 128]
+                                .1
+                            - TILE_SIZE as i32
+                    } else {
+                        0
+                    };
+
                     p.pos = rect!(
                         (p.x() - camera_adj_x.abs()) as f64,
-                        p.y() as f64,
+                        y_pos as f64,
                         TILE_SIZE,
                         TILE_SIZE
                     ); // Don't know why this one needs a full rect declearation to update pos
