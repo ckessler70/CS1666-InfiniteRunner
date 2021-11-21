@@ -19,15 +19,15 @@ const SIZE: usize = CAM_W as usize / 10; // Size of what? Why 1/10 of screen wid
 
 // Similar to SIZE, the length of the ground_buffer array.
 // Reason for it being 1/4th width is arbitrary. As long as it is consistent, can be any length
-const BUFF_LENGTH: usize = CAM_W as usize / 4; // Why 1/4 of screen width specifically?
+// const CAM_W: usize = CAM_W as usize / 4; // Why 1/4 of screen width specifically?
 
 // Where all the math is done?
 pub struct ProceduralGen;
 
 // Representation of a single bezier curve
 pub struct TerrainSegment {
-    pos: Rect,                            // Bounding box
-    curve: [(i32, i32); BUFF_LENGTH + 1], // Array of points defining the bezier curve
+    pos: Rect,                               // Bounding box
+    curve: [(i32, i32); CAM_W as usize + 1], // Array of points defining the bezier curve
     angle_from_last: f64, /* Angle between previous segment and this segment, should trend
                            * downward on average */
     terrain_type: TerrainType,
@@ -63,7 +63,7 @@ pub enum PowerUps {
 impl TerrainSegment {
     pub fn new(
         pos: Rect,
-        curve: [(i32, i32); BUFF_LENGTH + 1],
+        curve: [(i32, i32); CAM_W as usize + 1],
         angle_from_last: f64,
         terrain_type: TerrainType,
         color: Color,
@@ -97,6 +97,29 @@ impl TerrainSegment {
         }
     }
 
+    pub fn get_view(&self) -> Vec<(i32, i32)> {
+        let mut view: Vec<(i32, i32)> = Vec::new();
+
+        // println!("{:?}", self.pos.x());
+        if self.pos.x() > self.curve.len() as i32 {
+            return view;
+        }
+
+        for i in self.pos.x()..self.pos.x() + SIZE as i32 {
+            if i < 0 {
+                continue;
+            }
+
+            if i < self.curve.len() as i32 - 1 && i >= 0 {
+                view.push(self.curve[i as usize])
+            } else {
+                break;
+            }
+        }
+
+        return view;
+    }
+
     // Accessors
     pub fn x(&self) -> i32 {
         self.pos.x()
@@ -118,12 +141,16 @@ impl TerrainSegment {
         self.angle_from_last
     }
 
-    pub fn get_type(&self) -> TerrainType {
-        self.terrain_type
+    pub fn get_type(&self) -> &TerrainType {
+        &self.terrain_type
     }
 
     pub fn color(&self) -> Color {
         self.color
+    }
+
+    pub fn curve(&self) -> [(i32, i32); CAM_W as usize + 1] {
+        self.curve
     }
 }
 
@@ -266,8 +293,8 @@ impl ProceduralGen {
         // Bouncy or not bouncy
         // May be obsolete with TerrainType
         match rng.gen_range(0..=1) {
-            1 => curve[curve.len() - 1] = (1.0, 1.0),
-            _ => curve[curve.len() - 1] = (0.0, 0.0),
+            1 => curve[curve.len() - 1] = (1, 1),
+            _ => curve[curve.len() - 1] = (0, 0),
         }
 
         let rect = rect!(0, 0, 10, 10); // ?
@@ -405,7 +432,7 @@ impl ProceduralGen {
         _is_pit: bool,
         _is_flat: bool,
         _is_cliff: bool,
-    ) -> [(f64, f64); BUFF_LENGTH + 1] {
+    ) -> [(i32, i32); CAM_W as usize + 1] {
         //last point will act as bouncy flag.
         let mut rng = rand::thread_rng();
 
@@ -499,9 +526,9 @@ impl ProceduralGen {
         let is_bouncy = rng.gen_range(0.0..1.0);
 
         if (is_bouncy < 0.5) {
-            curve[curve.len() - 1] = (1.0, 1.0); //True value
+            curve[curve.len() - 1] = (1, 1); //True value
         } else {
-            curve[curve.len() - 1] = (0.0, 0.0); //False value
+            curve[curve.len() - 1] = (0, 0); //False value
         }
 
         return (curve);
@@ -518,8 +545,8 @@ pub fn extend_cubic_bezier_curve(
     //no p0 or p1, above data structures work instead
     p2: (f64, f64),
     p3: (f64, f64),
-) -> [(f64, f64); BUFF_LENGTH + 1] {
-    let mut points: [(f64, f64); BUFF_LENGTH + 1] = [(-1.0, -1.0); BUFF_LENGTH + 1];
+) -> [(i32, i32); CAM_W as usize + 1] {
+    let mut points: [(i32, i32); CAM_W as usize + 1] = [(-1, -1); CAM_W as usize + 1];
 
     //Calculate p1
     let mut p1: (f64, f64) = (0.0, 0.0);
@@ -527,10 +554,10 @@ pub fn extend_cubic_bezier_curve(
     p1.0 = prev_pn.0 + (prev_pn.0 - prev_pn_minus_1.0);
     p1.1 = prev_pn.1 + (prev_pn.1 - prev_pn_minus_1.1);
 
-    for t in 0..BUFF_LENGTH {
+    for t in 0..CAM_W as usize {
         let point = t as f64;
         //points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / 32.0);
-        points[t] = cubic_bezier_curve_point(prev_pn, p1, p2, p3, point / BUFF_LENGTH as f64);
+        points[t] = cubic_bezier_curve_point(prev_pn, p1, p2, p3, point / CAM_W as f64);
     }
     return points;
 }
@@ -580,7 +607,7 @@ fn gen_bezier_curve(
     point_mod_2: (f64, f64),
     point_mod_3: (f64, f64),
     buffer: i32,
-) -> [(f64, f64); BUFF_LENGTH + 1] {
+) -> [(i32, i32); CAM_W as usize + 1] {
     //TODO - CONTROL POINT LOGIC NEEDS TO BE REFINED
     //Bezier curve
 
@@ -596,7 +623,7 @@ fn gen_bezier_curve(
 
         let p2: (f64, f64) = (length as f64 + p0.0, point_mod_2.1 * (height / 3) as f64);
 
-        let group_of_points: [(f64, f64); BUFF_LENGTH + 1] =
+        let group_of_points: [(i32, i32); CAM_W as usize + 1] =
             gen_quadratic_bezier_curve_points(p0, p1, p2);
 
         return group_of_points;
@@ -622,7 +649,7 @@ fn gen_bezier_curve(
 
         let p3: (f64, f64) = (length as f64 + p0.0, point_mod_3.1 * (height / 3) as f64);
 
-        let group_of_points: [(f64, f64); BUFF_LENGTH + 1] =
+        let group_of_points: [(i32, i32); CAM_W as usize + 1] =
             gen_cubic_bezier_curve_points(p0, p1, p2, p3);
 
         return group_of_points;
@@ -641,13 +668,13 @@ pub fn gen_cubic_bezier_curve_points(
     p1: (f64, f64),
     p2: (f64, f64),
     p3: (f64, f64),
-) -> [(f64, f64); BUFF_LENGTH + 1] {
-    let mut points: [(f64, f64); BUFF_LENGTH + 1] = [(-1.0, -1.0); BUFF_LENGTH + 1];
+) -> [(i32, i32); CAM_W as usize + 1] {
+    let mut points: [(i32, i32); CAM_W as usize + 1] = [(-1, -1); CAM_W as usize + 1];
 
-    for t in 0..BUFF_LENGTH {
+    for t in 0..CAM_W as usize {
         let point = t as f64;
         //points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / 32.0);
-        points[t] = cubic_bezier_curve_point(p0, p1, p2, p3, point / BUFF_LENGTH as f64);
+        points[t] = cubic_bezier_curve_point(p0, p1, p2, p3, point / CAM_W as f64);
     }
     return points;
 }
@@ -663,12 +690,12 @@ pub fn gen_quadratic_bezier_curve_points(
     p0: (f64, f64), // Start point
     p1: (f64, f64), // Mid point
     p2: (f64, f64), // End point
-) -> [(f64, f64); BUFF_LENGTH + 1] {
-    let mut points: [(f64, f64); BUFF_LENGTH + 1] = [(-1.0, -1.0); BUFF_LENGTH + 1];
-    for t in 0..BUFF_LENGTH {
+) -> [(i32, i32); CAM_W as usize + 1] {
+    let mut points: [(i32, i32); CAM_W as usize + 1] = [(-1, -1); CAM_W as usize + 1];
+    for t in 0..CAM_W as usize {
         let point = t as f64;
         //points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / 32.0);
-        points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / BUFF_LENGTH as f64);
+        points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / CAM_W as f64);
     }
     return points;
 }
@@ -687,7 +714,7 @@ fn cubic_bezier_curve_point(
     p2: (f64, f64), // Mid_1 point
     p3: (f64, f64), // End point
     t: f64,
-) -> (f64, f64) {
+) -> (i32, i32) {
     let x_value = (1.0 - t) * (1.0 - t) * (1.0 - t) * p0.0
         + 3.0 * (1.0 - t) * (1.0 - t) * t * p1.0
         + 3.0 * (1.0 - t) * t * t * p2.0
@@ -697,7 +724,7 @@ fn cubic_bezier_curve_point(
         + 3.0 * (1.0 - t) * t * t * p2.1
         + t * t * t * p3.1;
 
-    return (x_value, y_value);
+    return (x_value as i32, y_value as i32);
 }
 
 /*
@@ -712,10 +739,10 @@ fn quadratic_bezier_curve_point(
     p1: (f64, f64), // Mid point
     p2: (f64, f64), // End point
     t: f64,         // t = Point range 0-1 of the curve
-) -> (f64, f64) {
+) -> (i32, i32) {
     let x_value = (1.0 - t) * ((1.0 - t) * p0.0 + t * p1.0) + t * ((1.0 - t) * p1.0 + t * p2.0);
     let y_value = (1.0 - t) * ((1.0 - t) * p0.1 + t * p1.1) + t * ((1.0 - t) * p1.1 + t * p2.1);
-    return (x_value, y_value);
+    return (x_value as i32, y_value as i32);
 }
 
 /******      Perlin primary functions      ***** */

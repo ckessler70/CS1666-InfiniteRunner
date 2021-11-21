@@ -133,6 +133,7 @@ impl Game for Runner {
 
         // Create terrain vector with starting segment
         let mut all_terrain: Vec<TerrainSegment> = Vec::new();
+        let mut ground_buffer: Vec<(i32, i32)> = Vec::new();
         //First push moved to later
 
         // Create player at default position
@@ -204,8 +205,8 @@ impl Game for Runner {
         let mut background_curves: [[i16; SIZE]; 2] = [[0; SIZE]; 2]; // renamed from bg
 
         // Probably deprecated due to refractor
-        let mut ground_buffer: [(f64, f64); BUFF_LENGTH + 1] = [(0.0, 0.0); BUFF_LENGTH + 1];
-        let mut buff_idx = 0;
+        // let mut ground_buffer: [(f64, f64); BUFF_LENGTH + 1] = [(0.0, 0.0); BUFF_LENGTH + 1];
+        // let mut buff_idx = 0;
 
         // rand thread to be utilized within runner
         let mut rng = rand::thread_rng();
@@ -239,6 +240,7 @@ impl Game for Runner {
             false,
             false,
         ));
+
         // ground_buffer = proceduralgen::ProceduralGen::gen_bezier_land(
         //     &random,
         //     p0,
@@ -257,7 +259,7 @@ impl Game for Runner {
                 proceduralgen::gen_perlin_hill_point((ct + buff_2), freq, amp_2, 1.0, 820.0);
 
             ct += 1;
-            buff_idx += 1;
+            // buff_idx += 1;
         }
 
         /* ~~~~~~ Main Game Loop ~~~~~~ */
@@ -338,22 +340,58 @@ impl Game for Runner {
                 }
                 */
 
+                if all_terrain[0].x() > all_terrain[0].curve().len() as i32 - 1 {
+                    all_terrain.remove(0);
+                }
+
+                ground_buffer = Vec::new(); // Reinit it
+
+                ground_buffer = all_terrain[0].get_view();
+
+                if ground_buffer.len() < SIZE && all_terrain.len() == 1 {
+                    all_terrain.push(ProceduralGen::gen_terrain(
+                        &random,
+                        (
+                            0.0,
+                            all_terrain[0].curve()[all_terrain[0].curve().len() - 2].1 as f64,
+                        ),
+                        CAM_W as i32,
+                        CAM_H as i32,
+                        false,
+                        false,
+                        false,
+                    ));
+                }
+
+                if ground_buffer.len() < SIZE {
+                    let mut ap_buff: Vec<(i32, i32)> = Vec::new();
+
+                    ap_buff = all_terrain[1].get_view();
+
+                    for i in ap_buff.iter_mut() {
+                        if ground_buffer.len() < SIZE {
+                            ground_buffer.push(*i);
+                        } else {
+                            break;
+                        }
+                    }
+                }
+
                 //An equivalant of this will be implemented in proceduralgen,
                 //and sent here within a struct for each piece of terrain.
                 // Left ground position
                 let current_ground = Point::new(
                     player.x(),
                     CAM_H as i32
-                        - background_curves[0]
-                            [(player.x() as usize) / (CAM_W / SIZE as u32) as usize]
-                            as i32,
+                        - ground_buffer[(player.x() as usize) / (CAM_W / SIZE as u32) as usize].1,
                 );
                 // Right ground position
                 let next_ground = Point::new(
                     player.x() + TILE_SIZE as i32,
                     CAM_H as i32
-                        - background_curves[0][(((player.x() + TILE_SIZE as i32) as usize)
-                            / (CAM_W / SIZE as u32) as usize)] as i32,
+                        - ground_buffer[(((player.x() + TILE_SIZE as i32) as usize)
+                            / (CAM_W / SIZE as u32) as usize)]
+                            .1,
                 );
                 // Angle between
                 let angle = ((next_ground.y() as f64 - current_ground.y() as f64)
@@ -841,7 +879,9 @@ impl Game for Runner {
                 }
 
                 // Match horizonatal camera speed to player speed
-                camera_adj_x += player.vel_x() as i32;
+                camera_adj_x += (player.vel_x() as i32).abs();
+
+                println!("{:?}", camera_adj_x);
 
                 // Adjust camera vertically based on y/height of the ground
                 if current_ground.y() < PLAYER_UPPER_BOUND {
@@ -850,6 +890,14 @@ impl Game for Runner {
                 if (current_ground.y() + TILE_SIZE as i32) > PLAYER_LOWER_BOUND {
                     camera_adj_y = PLAYER_LOWER_BOUND - current_ground.y();
                 }
+
+                /*for seg in all_terrain.iter_mut() {
+                    // seg.camera_adj(camera_adj_x, camera_adj_y);
+
+                }*/
+
+                all_terrain[0].travel_update(camera_adj_x);
+
                 /*
                 // Adjust player for camera
                 player.camera_adj(camera_adj_x, camera_adj_y);
@@ -871,7 +919,13 @@ impl Game for Runner {
                 let mut counter = 0;
 
                 for o in obstacles.iter_mut() {
-                    o.pos = ((o.x() - camera_adj_x.abs()) as f64, o.y() as f64);
+                    o.pos = (
+                        (o.x()
+                            - camera_adj_x.abs()
+                                * (CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2) as i32)
+                            as f64,
+                        o.y() as f64,
+                    );
                     o.align_hitbox_to_pos();
                     if o.x() <= 0 {
                         to_remove.push(counter);
@@ -890,7 +944,13 @@ impl Game for Runner {
                 let mut counter = 0;
 
                 for c in coins.iter_mut() {
-                    c.pos = ((c.x() - camera_adj_x.abs()) as f64, c.y() as f64);
+                    c.pos = (
+                        (c.x()
+                            - camera_adj_x.abs()
+                                * (CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2) as i32)
+                            as f64,
+                        c.y() as f64,
+                    );
                     c.align_hitbox_to_pos();
                     if c.x() <= 0 {
                         to_remove.push(counter);
@@ -909,7 +969,10 @@ impl Game for Runner {
 
                 for p in powers.iter_mut() {
                     p.pos = rect!(
-                        (p.x() - camera_adj_x.abs()) as f64,
+                        (p.x()
+                            - camera_adj_x.abs()
+                                * (CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2) as i32)
+                            as f64,
                         p.y() as f64,
                         TILE_SIZE,
                         TILE_SIZE
@@ -1023,6 +1086,19 @@ impl Game for Runner {
                         CAM_H as i16
                     ))?;
                     */
+                }
+
+                let mut ground_ct = 0;
+                for i in ground_buffer.iter_mut() {
+                    core.wincan.set_draw_color(all_terrain[0].color());
+                    core.wincan.fill_rect(rect! {
+                        ground_ct * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
+                        CAM_H as i32 - i.1,
+                        CAM_W as usize / SIZE,
+                        CAM_H as i32
+                    })?;
+
+                    ground_ct += 1;
                 }
 
                 // Power assets
