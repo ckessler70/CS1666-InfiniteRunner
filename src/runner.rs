@@ -1049,23 +1049,25 @@ impl Game for Runner {
                 }
 
                 spawning_timer = if score > 10000 && score < 20000 {
-                    90
+                    390
                 } else if score > 20000 && score < 30000 {
-                    80
+                    380
                 } else if score > 30000 && score < 40000 {
-                    70
+                    370
                 } else if score > 40000 && score < 50000 {
-                    60
+                    360
                 } else if score > 50000 && score < 60000 {
-                    50
+                    350
                 } else if score > 60000 && score < 70000 {
-                    40
+                    340
                 } else if score > 70000 && score < 80000 {
-                    30
+                    330
                 } else if score > 80000 && score < 90000 {
-                    20 // Cap?
+                    320
+                } else if score > 90000 && score < 100000 {
+                    300 // Cap?
                 } else {
-                    100 // Default
+                    400 // Default
                 };
 
                 /* End Camera Section */
