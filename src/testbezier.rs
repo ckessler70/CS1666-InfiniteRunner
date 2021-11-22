@@ -1,7 +1,5 @@
 // use crate::physics::Physics;
 // use crate::physics::Body;
-// use crate::physics::Collider;
-use crate::physics::Dynamic;
 use crate::physics::Entity;
 use crate::physics::Player as PhysPlayer;
 

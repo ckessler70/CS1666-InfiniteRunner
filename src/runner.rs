@@ -3,19 +3,16 @@ use crate::physics::Physics;
 // use crate::physics::Collider;
 use crate::physics::Coin;
 use crate::physics::Collectible;
-use crate::physics::Collider;
-use crate::physics::Dynamic;
 use crate::physics::Entity;
 use crate::physics::Obstacle;
 use crate::physics::ObstacleType;
 use crate::physics::Player;
 use crate::physics::Power;
+use crate::physics::PowerType;
 
 use crate::proceduralgen;
 // use crate::proceduralgen::ProceduralGen;
 // use crate::proceduralgen::TerrainSegment;
-
-use crate::powers;
 
 use crate::rect;
 
@@ -114,9 +111,9 @@ impl Game for Runner {
         );
 
         //empty obstacle & coin vectors
-        let mut obstacles: Vec<_> = Vec::new();
-        let mut coins: Vec<_> = Vec::new();
-        let mut powers: Vec<_> = Vec::new();
+        let mut obstacles: Vec<Obstacle> = Vec::new();
+        let mut coins: Vec<Coin> = Vec::new();
+        let mut powers: Vec<Power> = Vec::new();
 
         // Used to keep track of animation status
         let src_x: i32 = 0;
@@ -131,7 +128,7 @@ impl Game for Runner {
 
         // number of frames to delay the end of the game by for demonstrating player collision
         // this should be removed once the camera tracks the player properly
-        let mut game_over_timer = 120;
+        let mut game_over_timer = 600;
 
         // FPS tracking
         let mut all_frames: i32 = 0;
@@ -150,8 +147,8 @@ impl Game for Runner {
 
         let mut object = None;
 
-        let mut power: Option<powers::PowerUps> = None;
-        let mut next_power: Option<powers::PowerUps> = None;
+        let mut power: Option<PowerType> = None;
+        let mut next_power: Option<PowerType> = None;
 
         let mut player_accel_rate: f64 = -10.0;
         let mut player_jump_change: f64 = 0.0;
@@ -340,7 +337,6 @@ impl Game for Runner {
                                 Keycode::W | Keycode::Up | Keycode::Space => {
                                     if player.is_jumping() {
                                         player.resume_flipping();
-                                        //player.jump(current_ground, true, false);
                                     } else {
                                         player.jump(current_ground, true, false);
                                     }
@@ -356,7 +352,6 @@ impl Game for Runner {
                             } => match k {
                                 Keycode::W | Keycode::Up | Keycode::Space => {
                                     player.stop_flipping();
-                                    //player.jump(current_ground, true, true);
                                 }
                                 _ => {}
                             },
@@ -369,26 +364,28 @@ impl Game for Runner {
 
                 //in the future (maybee:
                 //only check for obstacles/coins based on their location relative to players x
-                for o in obstacles.iter_mut() { //.filter(|near by obstacles|).collect()
-                    if let Some(collision_boxes) = player.check_collision(o) {
-                        
-                        //shielded: when true player will not be affected by collision, only obstacle
-                        //collide() - returns true if game ending collision
-                        if !player.collide(o, collision_boxes, shielded) && tick % 20==0{
-                            game_over = true;
-                            initial_pause = true;
-                            continue 'gameloop;
-                        }
-                        //DEBUG:
-                        //println!("ypos{} vyo{} ayo{}  ", o.pos.1, o.velocity.1, o.accel.1 );
-    
-                        continue;
-                    };
+                for o in obstacles.iter_mut() {
+                    //.filter(|near by obstacles|).collect()
+                    // if let Some(collision_boxes) = player.check_collision(o) {
+                    //     //shielded: when true player will not be affected by collision, only obstacle
+                    //     //collide() - returns true if game ending collision
+                    //     if !player.collide(o, collision_boxes, shielded) && tick % 20 == 0 {
+                    //         game_over = true;
+                    //         initial_pause = true;
+                    //         continue 'gameloop;
+                    //     }
+                    //     //DEBUG:
+                    //     //println!("ypos{} vyo{} ayo{}  ", o.pos.1, o.velocity.1, o.accel.1 );
+
+                    //     continue;
+                    // };
+
+                    if Physics::check_collision(&mut player, o) {}
                 }
 
                 for c in coins.iter_mut() {
                     //check collection
-                    if Physics::check_collection(&mut player, c) {
+                    if Physics::check_collision(&mut player, c) {
                         if !c.collected() {
                             //so you only collect each coin once
                             c.collect(); //deletes the coin once collected (but takes too long)
@@ -403,26 +400,9 @@ impl Game for Runner {
 
                 // Roughly the code needed for collecting power objects as it should follow the coin idea closely.
                 for p in powers.iter_mut() {
-                    if Physics::check_power(&mut player, p) {
+                    if Physics::check_collision(&mut player, p) {
                         if !p.collected() {
-                            match next_power {
-                                Some(powers::PowerUps::SpeedBoost) => {
-                                    power = Some(powers::PowerUps::SpeedBoost);
-                                }
-                                Some(powers::PowerUps::ScoreMultiplier) => {
-                                    power = Some(powers::PowerUps::ScoreMultiplier);
-                                }
-                                Some(powers::PowerUps::BouncyShoes) => {
-                                    power = Some(powers::PowerUps::BouncyShoes);
-                                }
-                                Some(powers::PowerUps::LowerGravity) => {
-                                    power = Some(powers::PowerUps::LowerGravity);
-                                }
-                                Some(powers::PowerUps::Shield) => {
-                                    power = Some(powers::PowerUps::Shield);
-                                }
-                                _ => {}
-                            }
+                            player.set_power_up(Some(p.power_type()));
                             p.collect();
                             power_tick = 360;
                         }
@@ -434,115 +414,103 @@ impl Game for Runner {
                 if power_tick > 0 {
                     power_tick -= 1;
                     match power {
-                        Some(powers::PowerUps::SpeedBoost) => {
+                        Some(PowerType::SpeedBoost) => {
                             // May not be the proper way to handle this.
                             // Adds player speed adjust to player's velocity
                             //might work(won't know without cam)
-                            player.apply_force((5.0,0.0));
+                            // player.apply_force((5.0, 0.0));
                         }
-                        Some(powers::PowerUps::ScoreMultiplier) => {
+                        Some(PowerType::ScoreMultiplier) => {
                             // Doubles tick score while active
-                            tick_score *= 2;
+                            // tick_score *= 2;
                         }
-                        Some(powers::PowerUps::BouncyShoes) => {
+                        Some(PowerType::BouncyShoes) => {
                             // Forces jumping while active and jumps 0.3 velocity units higher
-                            player.jump(current_ground, true, false);
+                            // player.jump(current_ground, true, false);
                         }
-                        Some(powers::PowerUps::LowerGravity) => {
+                        Some(PowerType::LowerGravity) => {
                             // Accel rate is how the y velocity is clamped
                             // Has player jump 0.2 velocity units higher.
-                            low_grav = true;
+                            // low_grav = true;
                         }
-                        Some(powers::PowerUps::Shield) => {
+                        Some(PowerType::Shield) => {
                             // Player override will say to ignore obstacle collisions
-                            shielded = true;
+                            // shielded = true;
                         }
                         _ => {}
                     }
                 } else if power_tick == 0 {
                     power_tick -= 1;
-
-                    // Reset values to default if power times out
-                    match power {
-                        // Stop any power from going
-                        Some(powers::PowerUps::SpeedBoost) => {}
-                        Some(powers::PowerUps::ScoreMultiplier) => {}
-                        Some(powers::PowerUps::BouncyShoes) => {}
-                        Some(powers::PowerUps::LowerGravity) => {
-                            low_grav = false;
-                        }
-                        Some(powers::PowerUps::Shield) => {
-                            shielded = false;
-                        }
-                        _ => {}
-                    }
-
                     power = None;
+                    player.set_power_up(power);
                 }
 
                 //apply forces on player
-                Physics::apply_gravity(&mut player, angle, low_grav);
-                Physics::apply_friction(&mut player, angle, 0.2);
-        
+                Physics::apply_terrain_forces(&mut player, angle, current_ground, 0.2, power);
+                Physics::apply_skate_force(&mut player, angle, current_ground);
+
                 //update player attributes
                 player.update_pos(current_ground, angle, game_over);
                 player.update_vel();
                 player.flip();
-    
 
-                for o in obstacles.iter_mut() {
-                    //NEEDS TO BE GROUND UNDER PLAYERS X POSITION (this is currently wrong)
-                    let obstacle_ground = Point::new(
-                        o.x() + TILE_SIZE as i32,
-                        CAM_H as i32
-                            - bg[2][(o.x() as usize) / (CAM_W / SIZE as u32) as usize] as i32,
-                    );
-                    //works bc all static obstacles (unitl collision, so we dont need to apply forces)
-                    //will not work for dyanmic obstacles (need collide_terrain to work for dyamic obstacles to be possible)
-                    if(o.collided()){
-                        o.collide_terrain(obstacle_ground, angle);  //should keep obstacle from falling off map (if proper ground can be detected)
-                        Physics::apply_gravity(o, angle, false);
-                        //Physics::apply_friction(&mut o,angle, 1.0);
-                    }
-                    
-                    //update obstacle attributes
-                    o.update_vel();
-                    o.update_pos(Point::new(0, 0), 15.0, false); //these args do nothing
-                    
-                    //DEBUG OBSTACLE 
-                    /*
-                    println!(
-                        "Obstacle px:{} py:{}  vx:{} ax:{} ay:{} on ground? {} delete? {}",
-                        o.x(),
-                        o.y(),
-                        o.vel_x(),
-                        o.accel_x(),
-                        o.accel_y(),
-                        o.is_onground(),
-                        o.delete_me,
-                    );*/
-                }
-                
-
-                //DEBUG PLAYER
-                
-                println!(
-                    "angle: {} sin {} cos {} px:{}  vx:{} ax:{} ay:{} on ground? {}",
-                    angle,
-                    angle.sin(),
-                    angle.cos(),
-                    player.x(),
-                    player.vel_x(),
-                    player.accel_x(),
-                    player.accel_y(),
-                    player.is_onground(),
-                ); 
-
-                if !player.collide_terrain(current_ground, angle) {
+                if !Physics::check_player_upright(&player, angle, current_ground) {
                     game_over = true;
                     initial_pause = true;
-                    continue;
                 }
+
+                // for o in obstacles.iter_mut() {
+                //     //NEEDS TO BE GROUND UNDER PLAYERS X POSITION (this is currently wrong)
+                //     let obstacle_ground = Point::new(
+                //         o.x() + TILE_SIZE as i32,
+                //         CAM_H as i32
+                //             - bg[2][(o.x() as usize) / (CAM_W / SIZE as u32) as usize] as i32,
+                //     );
+                //     //works bc all static obstacles (unitl collision, so we dont need to apply forces)
+                //     //will not work for dyanmic obstacles (need collide_terrain to work for dyamic obstacles to be possible)
+                //     if (o.collided()) {
+                //         o.collide_terrain(obstacle_ground, angle); //should keep obstacle from falling off map (if proper ground can be detected)
+                //         Physics::apply_gravity(o, angle, false);
+                //         //Physics::apply_friction(&mut o,angle, 1.0);
+                //     }
+
+                //     //update obstacle attributes
+                //     o.update_vel();
+                //     o.update_pos(Point::new(0, 0), 15.0, false); //these args do nothing
+
+                //     //DEBUG OBSTACLE
+                //     /*
+                //     println!(
+                //         "Obstacle px:{} py:{}  vx:{} ax:{} ay:{} on ground? {} delete? {}",
+                //         o.x(),
+                //         o.y(),
+                //         o.vel_x(),
+                //         o.accel_x(),
+                //         o.accel_y(),
+                //         o.is_onground(),
+                //         o.delete_me,
+                //     );*/
+                // }
+
+                //DEBUG PLAYER
+
+                // println!(
+                //     "angle: {} sin {} cos {} px:{}  vx:{} ax:{} ay:{} on ground? {}",
+                //     angle,
+                //     angle.sin(),
+                //     angle.cos(),
+                //     player.x(),
+                //     player.vel_x(),
+                //     player.accel_x(),
+                //     player.accel_y(),
+                //     player.is_onground(),
+                // );
+
+                // if !player.collide_terrain(current_ground, angle) {
+                //     game_over = true;
+                //     initial_pause = true;
+                //     continue;
+                // }
 
                 core.wincan.set_draw_color(Color::RGBA(3, 120, 206, 255));
                 core.wincan.clear();
@@ -676,10 +644,28 @@ impl Game for Runner {
                                 object_count -= 1;
                             }
                             Some(StaticObject::Power) => {
-                                next_power = Some(rand::random());
+                                match Some(rand::random()) {
+                                    Some(PowerType::SpeedBoost) => {
+                                        power = Some(PowerType::SpeedBoost);
+                                    }
+                                    Some(PowerType::ScoreMultiplier) => {
+                                        power = Some(PowerType::ScoreMultiplier);
+                                    }
+                                    Some(PowerType::BouncyShoes) => {
+                                        power = Some(PowerType::BouncyShoes);
+                                    }
+                                    Some(PowerType::LowerGravity) => {
+                                        power = Some(PowerType::LowerGravity);
+                                    }
+                                    Some(PowerType::Shield) => {
+                                        power = Some(PowerType::Shield);
+                                    }
+                                    _ => {}
+                                }
                                 let pow = Power::new(
                                     rect!(0, 0, 0, 0),
                                     texture_creator.load_texture("assets/powerup.png")?,
+                                    power.unwrap(),
                                 );
                                 powers.push(pow);
                                 object_count -= 1;
@@ -701,7 +687,7 @@ impl Game for Runner {
                                 //update physics obstacle position
                                 for s in obstacles.iter_mut() {
                                     //this is hacky & dumb (will only work if one obstacle spawned at a time)
-                                    if !s.collided() && s.mass > 1.0 {
+                                    if !s.collided() && s.mass() > 1.0 {
                                         //once it collides we can't draw it like this
                                         s.spawned = true;
                                         s.hitbox = rect!(
@@ -730,7 +716,7 @@ impl Game for Runner {
                                         TILE_SIZE,
                                         TILE_SIZE
                                     );
-                                    s.pos = (s.hitbox.x() as f64, s.hitbox.y() as f64);
+                                    s.pos = (s.hitbox.x(), s.hitbox.y());
                                 }
                             }
                             Some(proceduralgen::StaticObject::Spring) => {
@@ -738,7 +724,7 @@ impl Game for Runner {
                                 for s in obstacles.iter_mut() {
                                     //this is hacky & dumb (will only work if one obstacle spawned at a time)
                                     s.spawned = true;
-                                    if !s.collided() && s.mass < 2.0 {
+                                    if !s.collided() && s.mass() < 2.0 {
                                         //gaurantees spring for now
                                         //once it collides we can't draw it like this
                                         s.hitbox = rect!(
@@ -759,7 +745,7 @@ impl Game for Runner {
                                 for s in obstacles.iter_mut() {
                                     s.spawned = true;
                                     //this is hacky & dumb (will only work if one obstacle spawned at a time)
-                                    if !s.collided() && s.mass < 6.0 && s.mass > 2.0 {
+                                    if !s.collided() && s.mass() < 6.0 && s.mass() > 2.0 {
                                         //gaurantees spring for now
                                         //once it collides we can't draw it like this
                                         s.hitbox = rect!(
@@ -771,7 +757,7 @@ impl Game for Runner {
                                             TILE_SIZE,
                                             TILE_SIZE
                                         );
-                                        s.pos = (s.hitbox.x() as f64, s.hitbox.y() as f64);
+                                        s.pos = (s.hitbox().x() as f64, s.hitbox().y() as f64);
                                     }
                                 }
                             }
@@ -783,17 +769,19 @@ impl Game for Runner {
                                 //rn less than top of screen, but should also cap @ max jump height t
                                 /*let max_height: i16 = CAM_H as i16 - bg[GROUND_INDEX][object_spawn] - TILE_SIZE as i16;
                                 let height: i16 = rng.gen_range(0..=max_height);  */
-     
+
                                 for p in powers.iter_mut() {
-                                    p.pos = rect!(
+                                    p.hitbox = rect!(
                                         object_spawn * CAM_W as usize / SIZE
                                             + CAM_W as usize / SIZE / 2,
                                         CAM_H as i16
                                             - bg[GROUND_INDEX][object_spawn]
-                                            - TILE_SIZE as i16 - 75,
+                                            - TILE_SIZE as i16
+                                            - 75,
                                         TILE_SIZE,
                                         TILE_SIZE
                                     );
+                                    p.pos = (p.hitbox().x(), p.hitbox().y());
                                 }
                             }
                             _ => {}
@@ -899,35 +887,35 @@ impl Game for Runner {
                 //Power asset drawing
                 if power_tick > 0 {
                     match power {
-                        Some(powers::PowerUps::SpeedBoost) => {
+                        Some(PowerType::SpeedBoost) => {
                             core.wincan.copy(
                                 &tex_speed,
                                 None,
                                 rect!(10, 100, TILE_SIZE, TILE_SIZE),
                             )?;
                         }
-                        Some(powers::PowerUps::ScoreMultiplier) => {
+                        Some(PowerType::ScoreMultiplier) => {
                             core.wincan.copy(
                                 &tex_multiplier,
                                 None,
                                 rect!(10, 100, TILE_SIZE, TILE_SIZE),
                             )?;
                         }
-                        Some(powers::PowerUps::BouncyShoes) => {
+                        Some(PowerType::BouncyShoes) => {
                             core.wincan.copy(
                                 &tex_bouncy,
                                 None,
                                 rect!(10, 100, TILE_SIZE, TILE_SIZE),
                             )?;
                         }
-                        Some(powers::PowerUps::LowerGravity) => {
+                        Some(PowerType::LowerGravity) => {
                             core.wincan.copy(
                                 &tex_floaty,
                                 None,
                                 rect!(10, 100, TILE_SIZE, TILE_SIZE),
                             )?;
                         }
-                        Some(powers::PowerUps::Shield) => {
+                        Some(PowerType::Shield) => {
                             core.wincan.copy(
                                 &tex_shield,
                                 None,
@@ -1001,9 +989,7 @@ impl Game for Runner {
                     core.wincan.draw_rect(*h)?;
                 }
                 */
-                for h in player.hitbox().iter_mut() {
-                    core.wincan.draw_rect(*h)?;
-                }
+                core.wincan.draw_rect(player.hitbox())?;
                 let mut i: usize = 0;
                 // Draw obstacles
                 for o in obstacles.iter_mut() {
@@ -1011,7 +997,7 @@ impl Game for Runner {
                     if (o.spawned && o.x() > 15 && o.y() > 0 && o.y() < CAM_H as i32) {
                         //hacky - will not work if more than one obstacle spawned
                         //println!("XXXXX ypos{} vyo{} ayo{}  ", o.pos.1, o.velocity.1, o.accel.1 );
-                        match o.o_type {
+                        match o.obstacle_type() {
                             ObstacleType::Statue => {
                                 core.wincan.copy_ex(
                                     o.texture(),
@@ -1054,13 +1040,14 @@ impl Game for Runner {
                             }
                             _ => {}
                         }
-                    }
-                    else{
-                        if(o.spawned) {o.delete_me = true;}
+                    } else {
+                        if (o.spawned) {
+                            o.delete_me = true;
+                        }
                         //object_count-= 1;
                     }
-                    
-                    i+=1;
+
+                    i += 1;
                 }
 
                 //only keep obstacles that dont want deleted
@@ -1191,16 +1178,16 @@ impl Game for Runner {
 }
 
 //Remaking rand::random() to fit with powers.
-impl Distribution<powers::PowerUps> for Standard {
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> powers::PowerUps {
+impl Distribution<PowerType> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> PowerType {
         // match rng.gen_range(0, 3) { // rand 0.5, 0.6, 0.7
         match rng.gen_range(0..=4) {
             // rand 0.8
-            0 => powers::PowerUps::SpeedBoost,
-            1 => powers::PowerUps::ScoreMultiplier,
-            2 => powers::PowerUps::BouncyShoes,
-            3 => powers::PowerUps::LowerGravity,
-            _ => powers::PowerUps::Shield,
+            0 => PowerType::SpeedBoost,
+            1 => PowerType::ScoreMultiplier,
+            2 => PowerType::BouncyShoes,
+            3 => PowerType::LowerGravity,
+            _ => PowerType::Shield,
         }
     }
 }
