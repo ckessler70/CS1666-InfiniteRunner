@@ -328,11 +328,12 @@ impl Game for Runner {
                     }
                 }
 
-                let current_ground: TerrainSegment = get_current_ground(all_terrain, player.x());
-                // Could also use a helper method:
-                // next_ground = get_next_ground(all_terrain, player.x());
-                // angle = angle_between(current_ground, next_ground);
-                let angle = current_ground.angle_from_last();
+                let curr_ground_point: Point = get_ground_coord(all_terrain, player.x());
+                let next_ground_point =
+                    get_ground_coord(all_terrain, player.x() + TILE_SIZE as i32);
+                let angle = ((next_ground_point.y() as f64 - curr_ground_point.y() as f64)
+                    / (TILE_SIZE as f64))
+                    .atan();
 
                 /* ~~~~~~ Handle Input ~~~~~~ */
                 for event in core.event_pump.poll_iter() {
@@ -345,7 +346,7 @@ impl Game for Runner {
                                 if player.is_jumping() {
                                     player.resume_flipping();
                                 } else {
-                                    player.jump(current_ground, true, player_jump_change);
+                                    player.jump(curr_ground_point, true, player_jump_change);
                                 }
                             }
                             Keycode::Escape => {
@@ -451,7 +452,7 @@ impl Game for Runner {
                             // Forces jumping while active and jumps 0.3 velocity units higher
                             player_jump_change = 0.3;
                             // This will need changed for refractor
-                            player.jump(current_ground, true, player_jump_change);
+                            player.jump(curr_ground_point, true, player_jump_change);
                         }
                         Some(PowerType::LowerGravity) => {
                             // Accel rate is how the y velocity is clamped
@@ -502,7 +503,7 @@ impl Game for Runner {
                     obs.update_vel(0.0, 0.0); // These args do nothing
                     obs.update_pos(Point::new(0, 0), 15.0, false);
                 }
-                player.update_pos(current_ground, angle, game_over);
+                player.update_pos(curr_ground_point, angle, game_over);
                 player.update_vel(player_accel_rate, player_speed_adjust);
                 player.flip();
 
@@ -516,7 +517,7 @@ impl Game for Runner {
                     player.accel_y(),
                 ); */
 
-                if !player.collide_terrain(current_ground, angle) {
+                if !player.collide_terrain(curr_ground_point, angle) {
                     game_over = true;
                     initial_pause = true;
                     continue;
@@ -609,7 +610,7 @@ impl Game for Runner {
 
                     // Spawn new object
                     // Everything is using (x,y) = (CAM_W,0) right now,
-                    // but it should be using (CAM_W, current_ground.y())
+                    // but it should be using (CAM_W, curr_ground_point.y())
                     match new_object {
                         Some(StaticObject::Statue) => {
                             let obstacle = Obstacle::new(
@@ -701,15 +702,15 @@ impl Game for Runner {
                     // Adjust camera horizontally if updated player x pos is out of bounds
                     if player.x() < PLAYER_LEFT_BOUND {
                         let camera_adj_x = PLAYER_LEFT_BOUND - player.x();
-                    } else if (current_ground.x() + TILE_SIZE as i32) > PLAYER_RIGHT_BOUND {
+                    } else if (curr_ground_point.x() + TILE_SIZE as i32) > PLAYER_RIGHT_BOUND {
                         let camera_adj_x = PLAYER_RIGHT_BOUND - player.x();
                     }
 
                     // Adjust camera vertically based on y/height of the ground
-                    if current_ground.y() < PLAYER_UPPER_BOUND {
-                        let camera_adj_y = PLAYER_UPPER_BOUND - current_ground.y();
-                    } else if (current_ground.y() + TILE_SIZE as i32) > PLAYER_LOWER_BOUND {
-                        let camera_adj_y = PLAYER_LOWER_BOUND - current_ground.y();
+                    if curr_ground_point.y() < PLAYER_UPPER_BOUND {
+                        let camera_adj_y = PLAYER_UPPER_BOUND - curr_ground_point.y();
+                    } else if (curr_ground_point.y() + TILE_SIZE as i32) > PLAYER_LOWER_BOUND {
+                        let camera_adj_y = PLAYER_LOWER_BOUND - curr_ground_point.y();
                     }
 
                     // Add adjustment to terrain
@@ -1076,20 +1077,16 @@ impl Game for Runner {
             }
 
             /* ~~~~~~ Helper Functions ~~~~~ */
-            fn get_current_ground(
-                all_terrain: Vec<TerrainSegment>,
-                player_x: i32,
-            ) -> TerrainSegment {
+            // Given the current terrain and an x coordinate of the screen,
+            // returns the (x, y) of the ground at that x
+            fn get_ground_coord(all_terrain: Vec<TerrainSegment>, screen_x: i32) -> Point {
                 for ground in all_terrain.iter() {
-                    if (ground.x() <= player_x) & (ground.x() + ground.w() >= player_x) {
-                        return *ground;
+                    if (screen_x >= ground.x()) & (screen_x <= ground.x() + ground.w()) {
+                        let point_ind: usize = (screen_x - ground.x()) as usize;
+                        let coords: (i32, i32) = *ground.curve().get(point_ind).unwrap();
                     }
                 }
-                return *all_terrain.get(0).unwrap(); // Probably a bad idea...
-                                                     // but
-                                                     // idk what else to return
-                                                     // by
-                                                     // default
+                return Point::new(-1, -1);
             }
 
             Ok(GameState {

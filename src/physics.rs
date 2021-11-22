@@ -599,7 +599,7 @@ impl<'a> Collider<'a> for Player<'a> {
             self.velocity.1 = p_vy_f;
             Physics::apply_gravity(obstacle, 0.0, 0.3);
             /************************************************** */
-            match obstacle.o_type {
+            match obstacle.obstacle_type {
                 ObstacleType::Statue => {
                     if shielded {
                         //player has shield
@@ -642,7 +642,7 @@ impl<'a> Collider<'a> for Player<'a> {
         // otherwise they will "stick" to the top on the way up
         else if (self.vel_y() < 0.0) {
             // println!("collided with top of obstacle");
-            match obstacle.o_type {
+            match obstacle.obstacle_type {
                 ObstacleType::Statue => {
                     self.pos.1 = (obstacle.y() as f64 - 0.95 * (TILE_SIZE as f64));
                     self.align_hitbox_to_pos();
@@ -749,12 +749,17 @@ pub struct Obstacle<'a> {
 /// * Add default impls of certain obstacle traits so that it is easier to make
 /// different types of obstacles
 impl<'a> Obstacle<'a> {
-    pub fn new(hitbox: Rect, mass: f64, texture: Texture<'a>, o_type: ObstacleType) -> Obstacle {
+    pub fn new(
+        hitbox: Rect,
+        mass: f64,
+        texture: Texture<'a>,
+        obstacle_type: ObstacleType,
+    ) -> Obstacle {
         Obstacle {
             pos: (hitbox.x() as f64, hitbox.y() as f64),
             velocity: (0.0, 0.0),
             accel: (0.0, 0.0),
-            o_type,
+            obstacle_type,
             hitbox,
             texture,
             mass, // maybe randomize? idk @procedural gen team
