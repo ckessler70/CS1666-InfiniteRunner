@@ -112,8 +112,8 @@ impl TerrainSegment {
         self.color
     }
 
-    pub fn curve(&self) -> Vec<(i32, i32)> {
-        self.curve
+    pub fn curve(&self) -> &Vec<(i32, i32)> {
+        &(self.curve)
     }
 }
 

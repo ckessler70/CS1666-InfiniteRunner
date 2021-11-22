@@ -328,9 +328,9 @@ impl Game for Runner {
                     }
                 }
 
-                let curr_ground_point: Point = get_ground_coord(all_terrain, player.x());
-                let next_ground_point =
-                    get_ground_coord(all_terrain, player.x() + TILE_SIZE as i32);
+                let curr_ground_point: Point = get_ground_coord(&all_terrain, player.x());
+                let next_ground_point: Point =
+                    get_ground_coord(&all_terrain, player.x() + TILE_SIZE as i32);
                 let angle = ((next_ground_point.y() as f64 - curr_ground_point.y() as f64)
                     / (TILE_SIZE as f64))
                     .atan();
@@ -593,8 +593,9 @@ impl Game for Runner {
                     }
 
                     // Choose new object to generate
-                    let new_object: Option<StaticObject> = None;
-                    let curr_num_objects = all_obstacles.len() + all_coins.len() + all_powers.len();
+                    let mut new_object: Option<StaticObject> = None;
+                    let mut curr_num_objects =
+                        all_obstacles.len() + all_coins.len() + all_powers.len();
                     let spawn_trigger = rng.gen_range(0..MAX_NUM_OBJECTS);
                     if spawn_timer > 0 {
                         spawn_timer -= 1;
@@ -620,7 +621,7 @@ impl Game for Runner {
                                 ObstacleType::Statue,
                             );
                             all_obstacles.push(obstacle);
-                            new_object = None;
+                            // new_object = None;
                         }
                         Some(StaticObject::Coin) => {
                             let coin = Coin::new(
@@ -629,7 +630,7 @@ impl Game for Runner {
                                 1000,
                             );
                             all_coins.push(coin);
-                            new_object = None;
+                            // new_object = None;
                         }
                         Some(StaticObject::Spring) => {
                             let obstacle = Obstacle::new(
@@ -639,7 +640,7 @@ impl Game for Runner {
                                 ObstacleType::Spring,
                             );
                             all_obstacles.push(obstacle);
-                            new_object = None;
+                            // new_object = None;
                         }
                         Some(StaticObject::Power) => {
                             let pow = Power::new(
@@ -648,7 +649,7 @@ impl Game for Runner {
                                 Some(proceduralgen::choose_power_up()),
                             );
                             all_powers.push(pow);
-                            new_object = None;
+                            // new_object = None;
                         }
                         _ => {}
                     }
@@ -670,7 +671,7 @@ impl Game for Runner {
                      * by the distance they should move this single iteration of the game loop
                      */
                     let iteration_distance: i32 = MIN_SPEED + player.vel_x() as i32;
-                    for ground in all_terrain.iter() {
+                    for ground in all_terrain.iter_mut() {
                         ground.travel_update(iteration_distance);
                     }
                     /*  travel_update needs to be implemented in physics.rs
@@ -696,8 +697,8 @@ impl Game for Runner {
                      * removal of offscreen objects from their vectors,
                      * animation updates, the drawing section, and FPS calculation only.
                      */
-                    let mut camera_adj_x: i32 = 0;
-                    let mut camera_adj_y: i32 = 0;
+                    let camera_adj_x: i32 = 0;
+                    let camera_adj_y: i32 = 0;
 
                     // Adjust camera horizontally if updated player x pos is out of bounds
                     if player.x() < PLAYER_LEFT_BOUND {
@@ -714,7 +715,7 @@ impl Game for Runner {
                     }
 
                     // Add adjustment to terrain
-                    for ground in all_terrain.iter() {
+                    for ground in all_terrain.iter_mut() {
                         ground.camera_adj(camera_adj_x, camera_adj_y);
                     }
 
@@ -744,39 +745,47 @@ impl Game for Runner {
 
                     /* ~~~~~~ Remove stuff which is now offscreen ~~~~~~ */
                     // Terrain
-                    let mut ind = 0;
+                    let mut ind: usize = 0;
                     for ground in all_terrain.iter() {
                         if ground.x() + ground.w() <= 0 {
-                            all_terrain.remove(ind);
+                            ind += 1;
                         }
-                        ind += 1;
+                    }
+                    for i in 0..ind {
+                        all_terrain.remove(i);
                     }
 
                     //  Obstacles
                     ind = 0;
                     for obs in all_obstacles.iter() {
                         if obs.x() + TILE_SIZE as i32 <= 0 {
-                            all_obstacles.remove(ind);
+                            ind += 1;
                         }
-                        ind += 1;
+                    }
+                    for i in 0..ind {
+                        all_obstacles.remove(i);
                     }
 
                     // Coins
                     ind = 0;
                     for coin in all_coins.iter() {
                         if coin.x() + TILE_SIZE as i32 <= 0 {
-                            all_coins.remove(ind);
+                            ind += 1;
                         }
-                        ind += 1;
+                    }
+                    for i in 0..ind {
+                        all_coins.remove(i);
                     }
 
                     // Power ups
                     ind = 0;
-                    for power in all_powers.iter() {
+                    for power in all_powers.iter_mut() {
                         if power.x() + TILE_SIZE as i32 <= 0 {
-                            all_powers.remove(ind);
+                            ind += 1;
                         }
-                        ind += 1;
+                    }
+                    for i in 0..ind {
+                        all_powers.remove(i);
                     }
 
                     /* ~~~~~~ Animation Updates ~~~~~~ */
@@ -1079,20 +1088,22 @@ impl Game for Runner {
             /* ~~~~~~ Helper Functions ~~~~~ */
             // Given the current terrain and an x coordinate of the screen,
             // returns the (x, y) of the ground at that x
-            fn get_ground_coord(all_terrain: Vec<TerrainSegment>, screen_x: i32) -> Point {
+            fn get_ground_coord(all_terrain: &Vec<TerrainSegment>, screen_x: i32) -> Point {
                 for ground in all_terrain.iter() {
                     if (screen_x >= ground.x()) & (screen_x <= ground.x() + ground.w()) {
                         let point_ind: usize = (screen_x - ground.x()) as usize;
-                        return *ground.curve().get(point_ind).unwrap();
+                        return Point::new(
+                            ground.curve().get(point_ind).unwrap().0,
+                            ground.curve().get(point_ind).unwrap().1,
+                        );
                     }
                 }
                 return Point::new(-1, -1);
             }
-
-            Ok(GameState {
-                status: Some(next_status),
-                score: total_score,
-            })
         } // End gameloop
+        Ok(GameState {
+            status: Some(next_status),
+            score: total_score,
+        })
     } // End run fn
 } // End impl
