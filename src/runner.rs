@@ -67,6 +67,10 @@ const PLAYER_RIGHT_BOUND: i32 = (CAM_W / 2) as i32 - (TILE_SIZE / 2) as i32; // 
  */
 const MIN_SPEED: i32 = 1;
 
+// Max total number of coins, obstacles, and powers that can exist at
+// once. Could be split up later for more complicated procgen
+const MAX_NUM_OBJECTS: i32 = 10;
+
 pub struct Runner;
 
 impl Game for Runner {
@@ -146,22 +150,23 @@ impl Game for Runner {
 
         // Initialize ground / object vectors
         let mut all_terrain: Vec<TerrainSegment> = Vec::new();
-        let mut all_obstacles: Vec<Obstacle> = Vec::new(); // renamed from obstacles
-        let mut all_coins: Vec<Coin> = Vec::new(); // renamed from coins
-        let mut all_powers: Vec<Power> = Vec::new(); // renamed from powers
+        let mut all_obstacles: Vec<Obstacle> = Vec::new();
+        let mut all_coins: Vec<Coin> = Vec::new();
+        let mut all_powers: Vec<Power> = Vec::new(); // Refers to powers currently spawned on the
+                                                     // ground, not active powers
 
         // Used to keep track of animation status
         let mut player_anim: i32 = 0; // 4 frames of animation
         let mut coin_anim: i32 = 0; // 60 frames of animation
 
         let mut score: i32 = 0;
-        // let mut tick_score: i32 = 0;
+        // let mut mult_power_tick: i32 = 0;
         // let mut coin_count: i32 = 0; // How is this being used?
 
         let mut game_paused: bool = false;
         let mut initial_pause: bool = false;
         let mut game_over: bool = false;
-        let mut power_override: bool = false; // Probably deprecated
+        // let mut power_override: bool = false; // Probably deprecated
         let mut shielded = false;
 
         // Number of frames to delay the end of the game by for demonstrating player
@@ -180,8 +185,10 @@ impl Game for Runner {
         // Object spawning vars
         // let mut object_spawn: usize = 0;
         // let mut object_count: i32 = 0;
-        let mut spawn_timer = 500;
-        // let mut object = None;
+        let mut spawn_timer: i32 = 500; // Can spawn a new object when it reaches 0
+        let mut min_spawn_gap: i32 = 500; // Value spawn_timer is reset to upon spawning
+                                          // an object. Decreases over time.
+        let mut spawn_dec: i32 = 1; // Timer countdown per game loop
 
         // let mut curr_power: Option<proceduralgen::Powers> = None;
         // let mut next_power: Option<proceduralgen::Powers> = None;
@@ -191,9 +198,9 @@ impl Game for Runner {
         let mut player_jump_change: f64 = 0.0;
         let mut player_speed_adjust: f64 = 0.0;
 
-        // Background sine wave vars
+        // Background & sine wave vars
         let mut bg_buff = 0;
-        // let mut tick = 0;
+        let mut bg_tick = 0;
         // let mut power_tick: i32 = 0;
         let mut buff_1: usize = 0;
         let mut buff_2: usize = 0;
@@ -265,6 +272,8 @@ impl Game for Runner {
         'gameloop: loop {
             last_raw_time = Instant::now(); // FPS tracking
 
+            let mut curr_step_score: i32 = 0; // Score collect in a single iteration of the game loop
+
             /* ~~~~~~ Pausing Handler ~~~~~~ */
             if game_paused {
                 for event in core.event_pump.poll_iter() {
@@ -319,9 +328,6 @@ impl Game for Runner {
             }
             // Normal unpaused game state
             else {
-                /* ~~~~~~ Calculations Section ~~~~~~ */
-                // Almost all math goes here
-
                 // End game loop, 'player has lost' state
                 if game_over {
                     game_over_timer -= 1; // Animation buffer?
@@ -432,7 +438,7 @@ impl Game for Runner {
                     }
                 }
 
-                tick_score = 1;
+                mult_power_tick = 1;
                 //}
 
                 /* ~~~~~~ Player Collecting an Object Section ~~~~~~ */
@@ -482,12 +488,16 @@ impl Game for Runner {
 
                             //so you only collect each coin once
                             coin.collect(); //deletes the coin once collected (but takes too long)
-                            coin_count += 1;
-                            tick_score += coin.value(); //increments the score
-                                                        // based on the coins
-                                                        // value
-                                                        // maybe print next to
-                                                        // score: "+ c.value()""
+                            score +=      // coin_count += 1;
+                            mult_power_tick += coin.value(); //increments the
+                                                             // score
+                                                             // based on the
+                                                             // coins
+                                                             // value
+                                                             // maybe print next
+                                                             // to
+                                                             // score: "+ c.
+                                                             // value()""
                         }
                         continue;
                     }
@@ -554,7 +564,7 @@ impl Game for Runner {
                         }
                         Some(proceduralgen::Powers::ScoreMultiplier) => {
                             // Doubles tick score while active
-                            tick_score *= 2;
+                            mult_power_tick *= 2;
                         }
                         Some(proceduralgen::Powers::BouncyShoes) => {
                             // Forces jumping while active and jumps 0.3 velocity units higher
@@ -641,7 +651,7 @@ impl Game for Runner {
                 // Generate new terrain / objects if player hasn't died
                 if !game_over {
                     // Every 3 ticks, build a new front mountain segment
-                    if tick % 3 == 0 {
+                    if bg_tick % 3 == 0 {
                         for i in 0..(BG_CURVES_SIZE as usize - 1) {
                             background_curves[IND_BACKGROUND_MID][i] =
                                 background_curves[IND_BACKGROUND_MID][i + 1];
@@ -659,7 +669,7 @@ impl Game for Runner {
                     }
 
                     // Every 5 ticks, build a new back mountain segment
-                    if tick % 5 == 0 {
+                    if bg_tick % 5 == 0 {
                         for i in 0..(BG_CURVES_SIZE as usize - 1) {
                             background_curves[IND_BACKGROUND_BACK][i] =
                                 background_curves[IND_BACKGROUND_BACK][i + 1];
@@ -676,6 +686,44 @@ impl Game for Runner {
                             chunk_2;
                     }
 
+                    // Decrease min_spawn_gap to inscrease spawn rates based on score
+                    // These numbers are probably terrible, we should mess around with it
+                    if score > 10000 {
+                        min_spawn_gap = 15;
+                    } else if score > 20000 {
+                        min_spawn_gap = 20;
+                    } else if score > 30000 {
+                        min_spawn_gap = 25;
+                    } else if score > 40000 {
+                        min_spawn_gap = 30;
+                    } else if score > 50000 {
+                        min_spawn_gap = 35;
+                    } else if score > 60000 {
+                        min_spawn_gap = 40;
+                    } else if score > 70000 {
+                        min_spawn_gap = 45;
+                    } else if score > 80000 {
+                        min_spawn_gap = 50;
+                    } else if score > 90000 {
+                        min_spawn_gap = 60;
+                    } else if score > 100000 {
+                        min_spawn_gap = 70;
+                    }
+
+                    // Generate new objects
+                    let curr_num_objects = all_obstacles.len() + all_coins.len() + all_powers.len();
+                    let spawn_trigger = rng.gen_range(0..MAX_NUM_OBJECTS);
+                    if spawn_timer > 0 {
+                        spawn_timer -= spawn_dec;
+                    } else if spawn_trigger >= curr_num_objects {
+                        object = Some(proceduralgen::choose_static_object());
+                        spawn_timer = min_spawn_gap;
+                    } else if spawn_trigger < curr_num_objects {
+                        // Min spawn gap can be replaced with basically any value for this random
+                        // range. Smaller values will spawn objects more often
+                        spawn_timer = rng.gen_range(0..min_spawn_gap);
+                    }
+                    /*
                     if tick % spawn_timer == 0 {
                         let num_active = all_obstacles.len() + all_coins.len() + all_powers.len();
                         let spawn_check = rng.gen_range(0..=10);
@@ -688,8 +736,10 @@ impl Game for Runner {
                             object = None;
                         }
                     }
+                    */
 
-                    if tick % 10 == 0 {
+                    // Shift background images & sine waves?
+                    if bg_tick % 10 == 0 {
                         bg_buff -= 1;
                     }
 
@@ -860,6 +910,41 @@ impl Game for Runner {
                         _ => {}
                     }
                 }
+
+                /* Update score, and increase object spawn rates
+                 * if score passes a milestone
+                 */
+                // This should be placed after hitbox updates but before drawing
+                if !game_over {
+                    curr_step_score *= power_multiplier;
+                    score += curr_step_score;
+                }
+
+                /*
+                // Wouldn't it be nice if there was some way to communicate the purpose
+                // of a code block?
+                spawn_timer = if score > 10000 && score < 20000 {
+                    390
+                } else if score > 20000 && score < 30000 {
+                    380
+                } else if score > 30000 && score < 40000 {
+                    370
+                } else if score > 40000 && score < 50000 {
+                    360
+                } else if score > 50000 && score < 60000 {
+                    350
+                } else if score > 60000 && score < 70000 {
+                    340
+                } else if score > 70000 && score < 80000 {
+                    330
+                } else if score > 80000 && score < 90000 {
+                    320
+                } else if score > 90000 && score < 100000 {
+                    300 // Cap?
+                } else {
+                    400 // Default
+                };
+                */
 
                 /* Update ground / object positions to move player forward
                  * by the distance they should move this single iteration of the game loop
@@ -1085,36 +1170,6 @@ impl Game for Runner {
 
                 if -bg_buff == CAM_W as i32 {
                     bg_buff = 0;
-                }
-
-                // Wouldn't it be nice if there was some way to communicate the purpose
-                // of a code block?
-                spawn_timer = if score > 10000 && score < 20000 {
-                    390
-                } else if score > 20000 && score < 30000 {
-                    380
-                } else if score > 30000 && score < 40000 {
-                    370
-                } else if score > 40000 && score < 50000 {
-                    360
-                } else if score > 50000 && score < 60000 {
-                    350
-                } else if score > 60000 && score < 70000 {
-                    340
-                } else if score > 70000 && score < 80000 {
-                    330
-                } else if score > 80000 && score < 90000 {
-                    320
-                } else if score > 90000 && score < 100000 {
-                    300 // Cap?
-                } else {
-                    400 // Default
-                };
-
-                // Increment survival score
-                // This should be placed after hitbox updates but before drawing
-                if !game_over {
-                    score += tick_score;
                 }
 
                 /* ~~~~~~ Draw All Elements ~~~~~~ */
