@@ -147,8 +147,11 @@ impl Game for Runner {
             3.0,
             texture_creator.load_texture("assets/player.png")?,
         );
+        let mut active_power: Option<proceduralgen::Powers> = None;
+        let mut power_timer: i32 = 0;   // Current powerup expires when it reaches 0
 
         // Initialize ground / object vectors
+        let mut curr_num_objects: i32 = 0;
         let mut all_terrain: Vec<TerrainSegment> = Vec::new();
         let mut all_obstacles: Vec<Obstacle> = Vec::new();
         let mut all_coins: Vec<Coin> = Vec::new();
@@ -160,7 +163,7 @@ impl Game for Runner {
         let mut coin_anim: i32 = 0; // 60 frames of animation
 
         let mut score: i32 = 0;
-        // let mut mult_power_tick: i32 = 0;
+        // let mut mult_power_timer: i32 = 0;
         // let mut coin_count: i32 = 0; // How is this being used?
 
         let mut game_paused: bool = false;
@@ -201,7 +204,6 @@ impl Game for Runner {
         // Background & sine wave vars
         let mut bg_buff = 0;
         let mut bg_tick = 0;
-        // let mut power_tick: i32 = 0;
         let mut buff_1: usize = 0;
         let mut buff_2: usize = 0;
         // Perlin noise curves the player can't interact with, for visuals only
@@ -330,7 +332,7 @@ impl Game for Runner {
             else {
                 // End game loop, 'player has lost' state
                 if game_over {
-                    game_over_timer -= 1; // Animation buffer?
+                    game_over_timer -= 1; // Animation buffer
                     if game_over_timer == 0 {
                         break 'gameloop;
                     }
@@ -400,11 +402,11 @@ impl Game for Runner {
                 let current_ground: TerrainSegment = get_current_ground(all_terrain, player.x());
                 let angle = current_ground.angle_from_last();
 
-                //Your time has come (refractor)
-                // This conditional statement is here so that the game will go on for a few more
-                // frames without player input once the player has died. The reason for this is
-                // to demonstrate collisions even though the camera does not follow the player.
-                // NOTE: Once the camera properly follows the player, this conditional should be
+                // Outer conditional statement is here so that the game will go on for a few
+                // more frames without player input once the player has died.
+                // The reason for this is to demonstrate collisions even though
+                // the camera does not follow the player. NOTE: Once the camera
+                // properly follows the player, this conditional should be
                 // removed.
                 //if !game_over {
                 for event in core.event_pump.poll_iter() {
@@ -437,8 +439,7 @@ impl Game for Runner {
                         _ => {}
                     }
                 }
-
-                mult_power_tick = 1;
+                // mult_power_timer = 1;
                 //}
 
                 /* ~~~~~~ Player Collecting an Object Section ~~~~~~ */
@@ -485,19 +486,9 @@ impl Game for Runner {
                     if Physics::check_collection(&mut player, coin) {
                         if !coin.collected() {
                             to_remove_ind = counter;
-
                             //so you only collect each coin once
                             coin.collect(); //deletes the coin once collected (but takes too long)
-                            score +=      // coin_count += 1;
-                            mult_power_tick += coin.value(); //increments the
-                                                             // score
-                                                             // based on the
-                                                             // coins
-                                                             // value
-                                                             // maybe print next
-                                                             // to
-                                                             // score: "+ c.
-                                                             // value()""
+                            curr_step_score += coin.value();
                         }
                         continue;
                     }
@@ -510,40 +501,41 @@ impl Game for Runner {
                 // Remove power ups if player collects them
                 // Rough, but should follow the coin idea closely.
                 let mut to_remove_ind: i32 = -1;
-                let mut counter = 0;
+                counter = 0;
                 for power in all_powers.iter_mut() {
                     if Physics::check_power(&mut player, power) {
                         if !power.collected() {
                             to_remove_ind = counter;
 
-                            match next_power {
+                            match power.power_type {
                                 Some(proceduralgen::Powers::SpeedBoost) => {
-                                    curr_power = Some(proceduralgen::Powers::SpeedBoost);
+                                    active_power = Some(proceduralgen::Powers::SpeedBoost);
                                 }
                                 Some(proceduralgen::Powers::ScoreMultiplier) => {
-                                    curr_power = Some(proceduralgen::Powers::ScoreMultiplier);
+                                    active_power = Some(proceduralgen::Powers::ScoreMultiplier);
                                 }
                                 Some(proceduralgen::Powers::BouncyShoes) => {
-                                    curr_power = Some(proceduralgen::Powers::BouncyShoes);
+                                    active_power = Some(proceduralgen::Powers::BouncyShoes);
                                 }
                                 Some(proceduralgen::Powers::LowerGravity) => {
-                                    curr_power = Some(proceduralgen::Powers::LowerGravity);
+                                    active_power = Some(proceduralgen::Powers::LowerGravity);
                                 }
                                 Some(proceduralgen::Powers::Shield) => {
-                                    curr_power = Some(proceduralgen::Powers::Shield);
+                                    active_power = Some(proceduralgen::Powers::Shield);
                                 }
                                 _ => {}
                             }
 
                             // Reset any previously active power values to default
-                            power_override = false;
+                            // power_override = false; // Shouldn't need a var to say if we're
+                                                       // overriding a power, just do it
                             player_accel_rate = -10.0;
                             player_jump_change = 0.0;
                             player_speed_adjust = 0.0;
                             shielded = false;
 
                             power.collect();
-                            power_tick = 360;
+                            power_timer = 360; // Hardcoded powerup duration
                         }
                         continue;
                     }
@@ -554,9 +546,9 @@ impl Game for Runner {
                 }
 
                 /* ~~~~~~ Power Handling Section ~~~~~~ */
-                if power_tick > 0 {
-                    power_tick -= 1;
-                    match curr_power {
+                if power_timer > 0 {
+                    power_timer -= 1;
+                    match active_power {
                         Some(proceduralgen::Powers::SpeedBoost) => {
                             // May not be the proper way to handle this.
                             // Adds player speed adjust to player's velocity
@@ -564,7 +556,8 @@ impl Game for Runner {
                         }
                         Some(proceduralgen::Powers::ScoreMultiplier) => {
                             // Doubles tick score while active
-                            mult_power_tick *= 2;
+                            // mult_power_timer *= 2;
+                            // Handled below when adding curr_step_score to score
                         }
                         Some(proceduralgen::Powers::BouncyShoes) => {
                             // Forces jumping while active and jumps 0.3 velocity units higher
@@ -584,11 +577,10 @@ impl Game for Runner {
                         }
                         _ => {}
                     }
-                } else if power_tick == 0 {
-                    power_tick -= 1;
-
+                } else if power_timer <= 0 {
+                    // power_timer -= 1;
                     // Reset values to default if power times out
-                    match curr_power {
+                    match active_power {
                         // Stop any power from going
                         Some(proceduralgen::Powers::SpeedBoost) => {
                             player_speed_adjust = 0.0;
@@ -606,7 +598,7 @@ impl Game for Runner {
                         }
                         _ => {}
                     }
-                    curr_power = None;
+                    active_power = None;
                 }
 
                 // Applies gravity, normal & friction now
@@ -687,36 +679,38 @@ impl Game for Runner {
                     }
 
                     // Decrease min_spawn_gap to inscrease spawn rates based on score
-                    // These numbers are probably terrible, we should mess around with it
+                    // These numbers could be terrible, we should mess around with it
                     if score > 10000 {
-                        min_spawn_gap = 15;
+                        min_spawn_gap = 480;
                     } else if score > 20000 {
-                        min_spawn_gap = 20;
+                        min_spawn_gap = 460;
                     } else if score > 30000 {
-                        min_spawn_gap = 25;
+                        min_spawn_gap = 440;
                     } else if score > 40000 {
-                        min_spawn_gap = 30;
+                        min_spawn_gap = 420;
                     } else if score > 50000 {
-                        min_spawn_gap = 35;
+                        min_spawn_gap = 400;
                     } else if score > 60000 {
-                        min_spawn_gap = 40;
+                        min_spawn_gap = 380;
                     } else if score > 70000 {
-                        min_spawn_gap = 45;
+                        min_spawn_gap = 360;
                     } else if score > 80000 {
-                        min_spawn_gap = 50;
+                        min_spawn_gap = 340;
                     } else if score > 90000 {
-                        min_spawn_gap = 60;
+                        min_spawn_gap = 320;
                     } else if score > 100000 {
-                        min_spawn_gap = 70;
+                        min_spawn_gap = 300;
                     }
 
                     // Generate new objects
+                    let new_object: Option<proceduralgen::Powers> = None;
                     let curr_num_objects = all_obstacles.len() + all_coins.len() + all_powers.len();
                     let spawn_trigger = rng.gen_range(0..MAX_NUM_OBJECTS);
                     if spawn_timer > 0 {
                         spawn_timer -= spawn_dec;
                     } else if spawn_trigger >= curr_num_objects {
-                        object = Some(proceduralgen::choose_static_object());
+                        new_object = Some(proceduralgen::choose_static_object());
+                        curr_num_objects += 1;
                         spawn_timer = min_spawn_gap;
                     } else if spawn_trigger < curr_num_objects {
                         // Min spawn gap can be replaced with basically any value for this random
@@ -743,6 +737,7 @@ impl Game for Runner {
                         bg_buff -= 1;
                     }
 
+                    /*
                     //creates a single obstacle/coin or overwrites the old one
                     //everytime one a new one is spawned & adds it to corresponding vector
                     //not a good impl bc will not work when > 1 obstacle/coin spawned at a time
@@ -793,7 +788,8 @@ impl Game for Runner {
                             _ => {}
                         }
                     }
-
+                    */
+                    /*
                     // Object spawning
                     match object {
                         Some(proceduralgen::StaticObject::Statue) => {
@@ -910,13 +906,18 @@ impl Game for Runner {
                         _ => {}
                     }
                 }
-
+                */
                 /* Update score, and increase object spawn rates
                  * if score passes a milestone
                  */
                 // This should be placed after hitbox updates but before drawing
                 if !game_over {
-                    curr_step_score *= power_multiplier;
+                    match active_power {
+                        Some(proceduralgen::Powers::ScoreMultiplier) => {
+                            curr_step_score *= power_multiplier;
+                        }
+                        _ => {}
+                    }
                     score += curr_step_score;
                 }
 
@@ -1237,7 +1238,7 @@ impl Game for Runner {
 
                 /*
                 // Power assets
-                if power_tick > 0 {
+                if power_timer > 0 {
                     match curr_power {
                         Some(proceduralgen::Powers::SpeedBoost) => {
                             core.wincan.copy(
@@ -1277,7 +1278,7 @@ impl Game for Runner {
                         _ => {}
                     }
 
-                    let m = power_tick as f64 / 360.0;
+                    let m = power_timer as f64 / 360.0;
 
                     let r = 256.0 * (1.0 - m);
                     let g = 256.0 * (m);
@@ -1489,7 +1490,8 @@ impl Game for Runner {
                 }
             }
             return *all_terrain.get(0).unwrap(); // Probably a bad idea... but
-                                                 // idk what else to use do
+                                                 // idk what else to return by
+                                                 // default
         }
 
         Ok(GameState {

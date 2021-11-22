@@ -9,7 +9,8 @@ use std::num;
 
 // use crate::ProceduralGen;
 
-//LOWER_SPEED is normally 1.0; it has been set to -20.0 for the purpose of demonstrating collisions
+//LOWER_SPEED is normally 1.0; it has been set to -20.0 for the purpose of
+// demonstrating collisions
 const LOWER_SPEED: f64 = -5.0;
 const UPPER_SPEED: f64 = 5.0;
 // const GRAVITY: f64 = 9.80665;
@@ -32,8 +33,9 @@ impl Physics {
     }
 
     pub fn check_power(player: &Player, power: &Power) -> bool {
-        // For collection, collsion including force and torque does not need to be accounted for
-        // If any of the player hitboxes intersect with a `Collectible`, the object will be aquired by the player
+        // For collection, collsion including force and torque does not need to be
+        // accounted for If any of the player hitboxes intersect with a
+        // `Collectible`, the object will be aquired by the player
         for h in player.hitbox().iter() {
             if h.has_intersection(power.hitbox()) {
                 return true;
@@ -544,7 +546,8 @@ impl<'a> Collider<'a> for Player<'a> {
     fn collide(&mut self, obstacle: &mut Obstacle, hitboxes: (Rect, Rect), shielded: bool) -> bool {
         let mut result = false;
 
-        // if the collision box is taller than it is wide, the player hit the side of the object
+        // if the collision box is taller than it is wide, the player hit the side of
+        // the object
         if (hitboxes.0.intersection(hitboxes.1).unwrap().height()
             > hitboxes.0.intersection(hitboxes.1).unwrap().width())
         {
@@ -552,7 +555,7 @@ impl<'a> Collider<'a> for Player<'a> {
 
             // no matter what the obstacle's type is, flag it as having collided
             obstacle.collided = true;
-            /********** ELASTIC COLLISION CALCULATION **********/
+            /********** ELASTIC COLLISION CALCULATION ********* */
             // https://en.wikipedia.org/wiki/Elastic_collision#One-dimensional_Newtonian
             // Assumed object has velocity (0,0)
             // Assumed player has velocity (vx,vy)
@@ -581,16 +584,19 @@ impl<'a> Collider<'a> for Player<'a> {
             // if o_vy_f >= 0.0 || !obstacle.is_onground() {
             //     obstacle.velocity.1 = o_vy_f;
             // }
-            // Implicitly apply the force of collision to the obstacle by updating its x and y velocity to the values calculated from the collision equation
-            // Unsure of what this does, but it seems like it moves the player back one tile upon collision so as not to have intersecting hitboxes
+            // Implicitly apply the force of collision to the obstacle by updating its x and
+            // y velocity to the values calculated from the collision equation
+            // Unsure of what this does, but it seems like it moves the player back one tile
+            // upon collision so as not to have intersecting hitboxes
             self.pos.0 = (obstacle.x() as f64 - 1.05 * TILE_SIZE);
             // Update the player's displayed position to the new "bumped back" value
             self.align_hitbox_to_pos();
-            // Implicitly apply the force of collision to the player by updating its x and y velocity to the values calculated from the collision equation
+            // Implicitly apply the force of collision to the player by updating its x and y
+            // velocity to the values calculated from the collision equation
             self.velocity.0 = p_vx_f;
             self.velocity.1 = p_vy_f;
             Physics::apply_gravity(obstacle, 0.0, 0.3);
-            /***************************************************/
+            /************************************************** */
             match obstacle.o_type {
                 ObstacleType::Statue => {
                     if shielded {
@@ -623,13 +629,15 @@ impl<'a> Collider<'a> for Player<'a> {
             // self.velocity.0 = 0.0;
             // self.apply_force((self.mass(), 0.0));
 
-            // for now (week 5), end the game when the player hits the side of an object
-            // alternately, set this value to true to cause the player to stop when they run into the object
+            // for now (week 5), end the game when the player hits the side of
+            // an object alternately, set this value to true to
+            // cause the player to stop when they run into the object
             // the screen does not follow the player when they stop
             //bool
         }
         // if the collision box is wider than it is tall, the player hit the top of the object
-        // don't apply the collision to the top of an object if the player is moving upward, otherwise they will "stick" to the top on the way up
+        // don't apply the collision to the top of an object if the player is moving upward,
+        // otherwise they will "stick" to the top on the way up
         else if (self.vel_y() < 0.0) {
             // println!("collided with top of obstacle");
             match obstacle.o_type {
@@ -825,8 +833,8 @@ impl<'a> Entity<'a> for Obstacle<'a> {
     }
 
     fn update_pos(&mut self, ground: Point, angle: f64, game_over: bool) {
-        // uncomment this to restore an arbitrary spin that is applied to all obstacles on collision
-        // if self.collided {
+        // uncomment this to restore an arbitrary spin that is applied to all obstacles
+        // on collision if self.collided {
         //     self.theta += angle;
         // }
         self.pos.0 -= self.velocity.0;
@@ -879,8 +887,10 @@ impl<'a> Dynamic<'a> for Obstacle<'a> {
         // diagonally
         self.velocity.0 = (self.velocity.0 + self.accel.0).clamp(-20.0, 20.0);
         self.velocity.1 = (self.velocity.1 + self.accel.1).clamp(-20.0, 20.0);
-        //(self.velocity.0 + self.accel.0 + speed_adjust).clamp(LOWER_SPEED, UPPER_SPEED);
-        //self.velocity.1 = (self.velocity.1 + self.accel.1).clamp(fall_rate, 1000.0);
+        //(self.velocity.0 + self.accel.0 + speed_adjust).clamp(LOWER_SPEED,
+        //(self.velocity.0 UPPER_SPEED);
+        //self.velocity.1 = (self.velocity.1 + self.accel.1).clamp(fall_rate,
+        // 1000.0);
     }
 
     fn update_omega(&mut self) {
@@ -909,8 +919,9 @@ impl<'a> Body<'a> for Obstacle<'a> {
     fn rotational_inertia(&self) -> f64 {
         // TODO:
         // Rotaional inertia -- I = L/omega
-        // I think we'll wanna use L = mass*R^2     (ie. angular momentum for a sphere/thing with effective radius R)
-        // Torque (if we need it) tau = I * alpha
+        // I think we'll wanna use L = mass*R^2     (ie. angular momentum for a
+        // sphere/thing with effective radius R) Torque (if we need it) tau = I
+        // * alpha
         if !self.jumping {
             return 0.0;
         }
@@ -1041,6 +1052,7 @@ pub struct Power<'a> {
     pub pos: Rect,
     texture: Texture<'a>,
     pub collected: bool,
+    // pub power_type: Option<proceduralgen::Powers> = None;
 }
 
 impl<'a> Power<'a> {

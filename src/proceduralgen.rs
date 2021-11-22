@@ -16,7 +16,7 @@ const CAM_W: u32 = 1280;
 // Reason for it being 1/10th width is that it was the highest resolution we
 // could get with previous iterations of that array and still have good
 // performance
-const SIZE: usize = CAM_W as usize / 10; // Size of what? Why 1/10 of screen width specifically?
+const SIZE: usize = CAM_W as usize / 10; // 1/10 of screen for good performance
 
 // Similar to SIZE, the length of the ground_buffer array.
 // Reason for it being 1/4th width is arbitrary. As long as it is consistent,
