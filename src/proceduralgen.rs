@@ -15,14 +15,14 @@ use sdl2::render::Texture;
 
 const CAM_W: u32 = 1280;
 
-// SIZE relates to the length of the background hills array.
+// BG_CURVES_SIZE relates to the length of the background hills array.
 // Used to convert width of drawn rectangles to fill up the screen.
 // Reason for it being 1/10th width is that it was the highest resolution we
 // could get with previous iterations of that array and still have good
 // performance
-const SIZE: usize = CAM_W as usize / 10; // 1/10 of screen for good performance
+const BG_CURVES_SIZE: usize = CAM_W as usize / 10; // 1/10 of screen for good performance
 
-// Similar to SIZE, the length of the ground_buffer array.
+// Similar to BG_CURVES_SIZE, the length of the ground_buffer array.
 // Reason for it being 1/4th width is arbitrary. As long as it is consistent,
 // can be any length const CAM_W: usize = CAM_W as usize / 4; // Why 1/4 of
 // screen width specifically?
@@ -32,11 +32,11 @@ pub struct ProceduralGen;
 
 // Representation of a single bezier curve
 pub struct TerrainSegment {
-    pos: Rect,                               // Bounding box
-    curve: [(i32, i32); CAM_W as usize + 1], // Array of points defining the bezier curve
-    angle_from_last: f64,                    /* Angle between previous segment and this segment,
-                                              * should trend
-                                              * downward on average */
+    pos: Rect,              // Bounding box
+    curve: Vec<(i32, i32)>, // Dynamic array of points defining the bezier curve
+    angle_from_last: f64,   /* Angle between previous segment and this segment,
+                             * should trend
+                             * downward on average */
     terrain_type: TerrainType,
     color: Color,
 }
@@ -45,7 +45,7 @@ pub struct TerrainSegment {
 impl TerrainSegment {
     pub fn new(
         pos: Rect,
-        curve: [(i32, i32); CAM_W as usize + 1],
+        curve: Vec<(i32, i32)>,
         angle_from_last: f64,
         terrain_type: TerrainType,
         color: Color,
@@ -78,31 +78,6 @@ impl TerrainSegment {
             *x += travel_adj;
         }
     }
-
-    /*
-        pub fn get_view(&self) -> Vec<(i32, i32)> {
-            let mut view: Vec<(i32, i32)> = Vec::new();
-
-            // println!("{:?}", self.pos.x());
-            if self.pos.x() > self.curve.len() as i32 {
-                return view;
-            }
-
-            for i in self.pos.x()..self.pos.x() + SIZE as i32 {
-                if i < 0 {
-                    continue;
-                }
-
-                if i < self.curve.len() as i32 - 1 && i >= 0 {
-                    view.push(self.curve[i as usize])
-                } else {
-                    break;
-                }
-            }
-
-            return view;
-        }
-    */
 
     // Accessors
     pub fn x(&self) -> i32 {
@@ -137,7 +112,7 @@ impl TerrainSegment {
         self.color
     }
 
-    pub fn curve(&self) -> [(i32, i32); CAM_W as usize + 1] {
+    pub fn curve(&self) -> Vec<(i32, i32)> {
         self.curve
     }
 }
@@ -153,13 +128,12 @@ impl ProceduralGen {
     }
 
     /*
-     *
-     */
     pub fn init_terrain<'a>(cam_w: i32, cam_h: i32, texture: &'a Texture<'a>) /* -> TerrainSegment */
     {
         // TerrainSegment::new(rect!(0, cam_h * 2 / 3, cam_w, cam_h / 3),
         // &texture)
     }
+    */
 
     /*  Initilization of terrain segments
      *
@@ -420,7 +394,7 @@ impl ProceduralGen {
         _is_pit: bool,
         _is_flat: bool,
         _is_cliff: bool,
-    ) -> [(i32, i32); CAM_W as usize + 1] {
+    ) -> Vec<(i32, i32)> {
         //last point will act as bouncy flag.
         let mut rng = rand::thread_rng();
 
@@ -501,7 +475,7 @@ impl ProceduralGen {
         };
 
         // Extract x and y point from last terrain segment
-        let mut curve = gen_bezier_curve(
+        let mut last_curve_point = gen_bezier_curve(
             prev_point,
             cam_w,
             cam_h,
@@ -514,17 +488,17 @@ impl ProceduralGen {
         let is_bouncy = rng.gen_range(0.0..1.0);
 
         if (is_bouncy < 0.5) {
-            curve[curve.len() - 1] = (1, 1); //True value
+            last_curve_point[last_curve_point.len() - 1] = (1, 1); //True value
         } else {
-            curve[curve.len() - 1] = (0, 0); //False value
+            last_curve_point[last_curve_point.len() - 1] = (0, 0); //False value
         }
 
-        return (curve);
+        return (last_curve_point);
     }
 }
 
 /*  Function for extending a cubic bezier curve while keeping the chained
- * curve  smooth. Works similarly to gen_cubic_bezier_curve_points()
+ *  curve smooth. Works similarly to gen_cubic_bezier_curve_points()
  *      http://www.inf.ed.ac.uk/teaching/courses/cg/d3/bezierJoin.html
  */
 pub fn extend_cubic_bezier_curve(
@@ -533,8 +507,8 @@ pub fn extend_cubic_bezier_curve(
     //no p0 or p1, above data structures work instead
     p2: (f64, f64),
     p3: (f64, f64),
-) -> [(i32, i32); CAM_W as usize + 1] {
-    let mut points: [(i32, i32); CAM_W as usize + 1] = [(-1, -1); CAM_W as usize + 1];
+) -> Vec<(i32, i32)> {
+    let mut points: Vec<(i32, i32)> = vec![(-1, -1)];
 
     //Calculate p1
     let mut p1: (f64, f64) = (0.0, 0.0);
@@ -573,7 +547,7 @@ fn gen_bezier_curve(
     point_mod_2: (f64, f64),
     point_mod_3: (f64, f64),
     buffer: i32,
-) -> [(i32, i32); CAM_W as usize + 1] {
+) -> Vec<(i32, i32)> {
     //TODO - CONTROL POINT LOGIC NEEDS TO BE REFINED
     //Bezier curve
 
@@ -589,8 +563,7 @@ fn gen_bezier_curve(
 
         let p2: (f64, f64) = (length as f64 + p0.0, point_mod_2.1 * (height / 3) as f64);
 
-        let group_of_points: [(i32, i32); CAM_W as usize + 1] =
-            gen_quadratic_bezier_curve_points(p0, p1, p2);
+        let group_of_points: Vec<(i32, i32)> = gen_quadratic_bezier_curve_points(p0, p1, p2);
 
         return group_of_points;
     } else {
@@ -615,8 +588,7 @@ fn gen_bezier_curve(
 
         let p3: (f64, f64) = (length as f64 + p0.0, point_mod_3.1 * (height / 3) as f64);
 
-        let group_of_points: [(i32, i32); CAM_W as usize + 1] =
-            gen_cubic_bezier_curve_points(p0, p1, p2, p3);
+        let group_of_points: Vec<(i32, i32)> = gen_cubic_bezier_curve_points(p0, p1, p2, p3);
 
         return group_of_points;
     }
@@ -634,8 +606,8 @@ pub fn gen_cubic_bezier_curve_points(
     p1: (f64, f64),
     p2: (f64, f64),
     p3: (f64, f64),
-) -> [(i32, i32); CAM_W as usize + 1] {
-    let mut points: [(i32, i32); CAM_W as usize + 1] = [(-1, -1); CAM_W as usize + 1];
+) -> Vec<(i32, i32)> {
+    let mut points: Vec<(i32, i32)> = vec![(-1, -1)];
 
     for t in 0..CAM_W as usize {
         let point = t as f64;
@@ -656,8 +628,8 @@ pub fn gen_quadratic_bezier_curve_points(
     p0: (f64, f64), // Start point
     p1: (f64, f64), // Mid point
     p2: (f64, f64), // End point
-) -> [(i32, i32); CAM_W as usize + 1] {
-    let mut points: [(i32, i32); CAM_W as usize + 1] = [(-1, -1); CAM_W as usize + 1];
+) -> Vec<(i32, i32)> {
+    let mut points: Vec<(i32, i32)> = vec![(-1, -1)];
     for t in 0..CAM_W as usize {
         let point = t as f64;
         //points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / 32.0);

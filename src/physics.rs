@@ -1049,16 +1049,20 @@ pub struct Power<'a> {
     pub pos: Rect,
     texture: Texture<'a>,
     pub collected: bool,
-    pub power_type: Option<inf_runner::Powers>,
+    pub power_type: Option<inf_runner::PowerType>,
 }
 
 impl<'a> Power<'a> {
-    pub fn new(pos: Rect, texture: Texture<'a>) -> Power {
+    pub fn new(
+        pos: Rect,
+        texture: Texture<'a>,
+        power_type: Option<inf_runner::PowerType>,
+    ) -> Power {
         Power {
             pos,
             texture,
             collected: false,
-            power_type: None,
+            power_type,
         }
     }
 

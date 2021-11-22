@@ -151,6 +151,7 @@ impl Game for Runner {
         );
         let mut active_power: Option<PowerType> = None;
         let mut power_timer: i32 = 0; // Current powerup expires when it reaches 0
+        let mut coin_count: i32 = 0; // Total num coins collected
 
         // Initialize ground / object vectors
         let mut curr_num_objects: i32 = 0;
@@ -164,14 +165,14 @@ impl Game for Runner {
         let mut player_anim: i32 = 0; // 4 frames of animation
         let mut coin_anim: i32 = 0; // 60 frames of animation
 
-        let mut score: i32 = 0;
-        // let mut mult_power_timer: i32 = 0;
-        // let mut coin_count: i32 = 0; // How is this being used?
+        // Score of an entire run
+        let mut total_score: i32 = 0;
 
         let mut game_paused: bool = false;
         let mut initial_pause: bool = false;
         let mut game_over: bool = false;
-        // let mut power_override: bool = false; // Probably deprecated
+
+        // Seems out of place?
         let mut shielded = false;
 
         // Number of frames to delay the end of the game by for demonstrating player
@@ -184,7 +185,7 @@ impl Game for Runner {
         let mut last_raw_time;
         let mut last_measurement_time = Instant::now();
 
-        // ???
+        // Used to transition to credits or back to title screen
         let mut next_status = GameStatus::Main;
 
         // Object spawning vars
@@ -250,16 +251,6 @@ impl Game for Runner {
             false,
         ));
 
-        // ground_buffer = proceduralgen::ProceduralGen::gen_bezier_land(
-        //     &random,
-        //     p0,
-        //     CAM_W as i32,
-        //     CAM_H as i32,
-        //     false,
-        //     false,
-        //     false,
-        // );
-
         // Pre-Generate perlin curves for background hills
         for i in 0..BG_CURVES_SIZE {
             background_curves[IND_BACKGROUND_MID][i] =
@@ -272,7 +263,8 @@ impl Game for Runner {
         'gameloop: loop {
             last_raw_time = Instant::now(); // FPS tracking
 
-            let mut curr_step_score: i32 = 0; // Score collect in a single iteration of the game loop
+            // Score collected in a single iteration of the game loop
+            let mut curr_step_score: i32 = 0;
 
             /* ~~~~~~ Pausing Handler ~~~~~~ */
             if game_paused {
@@ -336,77 +328,13 @@ impl Game for Runner {
                     }
                 }
 
-                /*
-                If only there was some way for us to communicate the purpose of a section of code.
-                if all_terrain[0].x() > all_terrain[0].curve().len() as i32 - 1 {
-                    all_terrain.remove(0);
-                    all_terrain.push(ProceduralGen::gen_terrain(
-                        &random,
-                        (
-                            0.0,
-                            all_terrain[0].curve()[all_terrain[0].curve().len() - 2].1 as f64,
-                        ),
-                        CAM_W as i32,
-                        CAM_H as i32,
-                        false,
-                        false,
-                        false,
-                    ));
-                }
-
-                ground_buffer = Vec::new(); // Reinit it
-
-                ground_buffer = all_terrain[0].get_view();
-
-                if ground_buffer.len() < BG_CURVES_SIZE {
-                    let mut ap_buff: Vec<(i32, i32)> = Vec::new();
-
-                    ap_buff = all_terrain[1].get_view();
-
-                    for i in ap_buff.iter_mut() {
-                        if ground_buffer.len() < BG_CURVES_SIZE {
-                            ground_buffer.push(*i);
-                        } else {
-                            break;
-                        }
-                    }
-                }
-                */
-
-                /* Deprecated
-                let current_ground = Point::new(
-                    player.x(),
-                    CAM_H as i32
-                        - ground_buffer[((player.x() as usize)
-                            / (CAM_W / BG_CURVES_SIZE as u32) as usize)
-                            % 128]
-                            .1,
-                );
-                // Right ground position
-                let next_ground = Point::new(
-                    player.x() + TILE_SIZE as i32,
-                    CAM_H as i32
-                        - ground_buffer[(((player.x() + TILE_SIZE as i32) as usize)
-                            / (CAM_W / BG_CURVES_SIZE as u32) as usize)
-                            % 128]
-                            .1,
-                );
-                // Angle between
-                let angle = ((next_ground.y() as f64 - current_ground.y() as f64)
-                    / (TILE_SIZE as f64))
-                    .atan();
-                */
-
                 let current_ground: TerrainSegment = get_current_ground(all_terrain, player.x());
+                // Could also use a helper method:
+                // next_ground = get_next_ground(all_terrain, player.x());
+                // angle = angle_between(current_ground, next_ground);
                 let angle = current_ground.angle_from_last();
 
-                // Outer conditional statement is here so that the game will go on for a few
-                // more frames without player input once the player has died.
-                // The reason for this is to demonstrate collisions even though
-                // the camera does not follow the player. NOTE: Once the camera
-                // properly follows the player, this conditional should be
-                // removed.
-                //if !game_over {
+                /* ~~~~~~ Handle Input ~~~~~~ */
                 for event in core.event_pump.poll_iter() {
                     match event {
                         Event::Quit { .. } => break 'gameloop,
@@ -437,46 +365,8 @@ impl Game for Runner {
                         _ => {}
                     }
                 }
-                // mult_power_timer = 1;
-                //}
 
-                /* ~~~~~~ Player Collecting an Object Section ~~~~~~ */
-                /* Unnesseccary as player doesn't collect obstacles
-                let mut to_remove: i32 = -1;
-                let mut counter = 0;
-
-                // Description
-                //in the future when obstacles & coins are proc genned we will probs wanna
-                //only check for obstacles/coins based on their location relative to players x
-                // cord
-                //(also: idt this can be a for loop bc it moves the obstacles values?)
-                for obs in all_obstacles.iter_mut() {
-                    //.filter(|near by obstacles|).collect()
-                    if let Some(collision_boxes) = player.check_collision(obs) {
-                        to_remove = counter;
-
-                        if !player.collide(obs, collision_boxes, shielded) {
-                            game_over = true;
-                            initial_pause = true;
-                            continue 'gameloop;
-                        }
-                        //println!("ypos{} vyo{} ayo{}  ", obs.pos.1, obs.velocity.1, obs.accel.1
-                        // ); obs.update_vel(0.0,0.0);   //these args do
-                        // nothing obs.update_pos(Point::new(0,0), 3.0);
-                        // //the 3 makes the obstacle spin println!("ypos{}
-                        // vyo{} ayo{}  ", obs.pos.1, obs.velocity.1, obs.accel.1 );
-                        // Real Solution: need to actually resolve the collision, should go
-                        // something like this player.collide(obs);
-                        // Physics::apply_gravity(obs, 0.0, 0.3); //maybe...
-                        continue;
-                    };
-                    counter += 1;
-                }
-                if to_remove != -1 {
-                    obstacles.remove(to_remove as usize);
-                }
-                */
-
+                /* ~~~~~~ Handle Player Collecting an Object ~~~~~~ */
                 // Remove coins if player collects them
                 let mut to_remove_ind: i32 = -1;
                 let mut counter = 0;
@@ -486,6 +376,7 @@ impl Game for Runner {
                             to_remove_ind = counter;
                             //so you only collect each coin once
                             coin.collect(); //deletes the coin once collected (but takes too long)
+                            coin_count += 1;
                             curr_step_score += coin.value();
                         }
                         continue;
@@ -525,8 +416,8 @@ impl Game for Runner {
                             }
 
                             // Reset any previously active power values to default
-                            // power_override = false; // Shouldn't need a var to say if we're
-                            // overriding a power, just do it
+                            // Shouldn't need a var to say if we're overriding a power, just do it
+                            // power_override = false;
                             player_accel_rate = -10.0;
                             player_jump_change = 0.0;
                             player_speed_adjust = 0.0;
@@ -553,10 +444,8 @@ impl Game for Runner {
                             player_speed_adjust = 5.0;
                         }
                         Some(PowerType::ScoreMultiplier) => {
-                            // Doubles tick score while active
-                            // mult_power_timer *= 2;
                             // Handled below when adding curr_step_score to
-                            // score
+                            // total_score
                         }
                         Some(PowerType::BouncyShoes) => {
                             // Forces jumping while active and jumps 0.3 velocity units higher
@@ -576,8 +465,8 @@ impl Game for Runner {
                         }
                         _ => {}
                     }
-                } else if power_timer <= 0 {
-                    // power_timer -= 1;
+                } else {
+                    // power_timer = 0
                     // Reset values to default if power times out
                     match active_power {
                         // Stop any power from going
@@ -633,7 +522,7 @@ impl Game for Runner {
                     continue;
                 }
 
-                // What do these draw lines do / where are they actually supposed to be
+                // What do these draw lines do and where are they actually supposed to be
                 core.wincan.set_draw_color(Color::RGBA(3, 120, 206, 255));
                 core.wincan.clear();
 
@@ -675,31 +564,34 @@ impl Game for Runner {
                             chunk_2;
                     }
 
-                    // Decrease min_spawn_gap to inscrease spawn rates based on score
+                    /* ~~~~~~ Object Generation ~~~~~~ */
+                    // Decrease min_spawn_gap to increase spawn rates based on total_score
                     // These numbers could be terrible, we should mess around with it
-                    if score > 10000 {
-                        min_spawn_gap = 480;
-                    } else if score > 20000 {
-                        min_spawn_gap = 460;
-                    } else if score > 30000 {
-                        min_spawn_gap = 440;
-                    } else if score > 40000 {
-                        min_spawn_gap = 420;
-                    } else if score > 50000 {
-                        min_spawn_gap = 400;
-                    } else if score > 60000 {
-                        min_spawn_gap = 380;
-                    } else if score > 70000 {
-                        min_spawn_gap = 360;
-                    } else if score > 80000 {
-                        min_spawn_gap = 340;
-                    } else if score > 90000 {
+                    if total_score > 100000 {
+                        min_spawn_gap = 300; // Cap
+                    } else if total_score > 90000 {
                         min_spawn_gap = 320;
-                    } else if score > 100000 {
-                        min_spawn_gap = 300;
+                    } else if total_score > 80000 {
+                        min_spawn_gap = 340;
+                    } else if total_score > 70000 {
+                        min_spawn_gap = 360;
+                    } else if total_score > 60000 {
+                        min_spawn_gap = 380;
+                    } else if total_score > 50000 {
+                        min_spawn_gap = 400;
+                    } else if total_score > 40000 {
+                        min_spawn_gap = 420;
+                    } else if total_score > 30000 {
+                        min_spawn_gap = 440;
+                    } else if total_score > 30000 {
+                        min_spawn_gap = 460;
+                    } else if total_score > 10000 {
+                        min_spawn_gap = 480;
+                    } else {
+                        min_spawn_gap = 500; // Default
                     }
 
-                    // Generate new objects
+                    // Choose new object to generate
                     let new_object: Option<StaticObject> = None;
                     let curr_num_objects = all_obstacles.len() + all_coins.len() + all_powers.len();
                     let spawn_trigger = rng.gen_range(0..MAX_NUM_OBJECTS);
@@ -714,200 +606,55 @@ impl Game for Runner {
                         // range. Smaller values will spawn objects more often
                         spawn_timer = rng.gen_range(0..min_spawn_gap);
                     }
-                    /*
-                    if tick % spawn_timer == 0 {
-                        let num_active = all_obstacles.len() + all_coins.len() + all_powers.len();
-                        let spawn_check = rng.gen_range(0..=10);
 
-                        if spawn_check > num_active {
-                            object = Some(proceduralgen::choose_static_object());
-
-                            object_count += 1;
-                        } else {
-                            object = None;
+                    // Spawn new object
+                    // Everything is using (x,y) = (CAM_W,0) right now,
+                    // but it should be using (CAM_W, current_ground.y())
+                    match new_object {
+                        Some(StaticObject::Statue) => {
+                            let obstacle = Obstacle::new(
+                                rect!(CAM_W, 0, 0, 0),
+                                50.0,
+                                texture_creator.load_texture("assets/statue.png")?,
+                                ObstacleType::Statue,
+                            );
+                            all_obstacles.push(obstacle);
+                            new_object = None;
                         }
-                    }
-                    */
-
-                    // Shift background images & sine waves?
-                    if bg_tick % 10 == 0 {
-                        bg_buff -= 1;
-                    }
-
-                    /*
-                    //creates a single obstacle/coin or overwrites the old one
-                    //everytime one a new one is spawned & adds it to corresponding vector
-                    //not a good impl bc will not work when > 1 obstacle/coin spawned at a time
-                    if (object_count > 0) {
-                        match object {
-                            Some(StaticObject::Statue) => {
-                                let obstacle = Obstacle::new(
-                                    rect!(CAM_W, 0, 0, 0),
-                                    50.0,
-                                    texture_creator.load_texture("assets/statue.png")?,
-                                    ObstacleType::Statue,
-                                );
-                                all_obstacles.push(obstacle);
-                                object_count -= 1;
-                                // object = None;
-                            }
-                            Some(StaticObject::Coin) => {
-                                let coin = Coin::new(
-                                    rect!(CAM_W, 0, 0, 0),
-                                    texture_creator.load_texture("assets/coin.png")?,
-                                    1000,
-                                );
-                                all_coins.push(coin);
-                                object_count -= 1;
-                                // object = None;
-                            }
-                            Some(StaticObject::Spring) => {
-                                let obstacle = Obstacle::new(
-                                    rect!(CAM_W, 0, 0, 0),
-                                    1.0,
-                                    texture_creator.load_texture("assets/temp_spring.jpg")?,
-                                    ObstacleType::Spring,
-                                );
-                                all_obstacles.push(obstacle);
-                                object_count -= 1;
-                                // object = None;
-                            }
-                            Some(StaticObject::Power) => {
-                                next_power = Some(proceduralgen::choose_power_up());
-                                let pow = Power::new(
-                                    rect!(CAM_W, 0, 0, 0),
-                                    texture_creator.load_texture("assets/powerup.png")?,
-                                );
-                                all_powers.push(pow);
-                                object_count -= 1;
-                                // object = None;
-                            }
-                            _ => {}
+                        Some(StaticObject::Coin) => {
+                            let coin = Coin::new(
+                                rect!(CAM_W, 0, 0, 0),
+                                texture_creator.load_texture("assets/coin.png")?,
+                                1000,
+                            );
+                            all_coins.push(coin);
+                            new_object = None;
                         }
-                    }
-                    */
-                    /*
-                        // Object spawning
-                        match object {
-                            Some(StaticObject::Statue) => {
-                                //update physics obstacle position
-                                for obs in all_obstacles.iter_mut() {
-                                    //this is hacky & dumb (will only work if one obstacle spawned
-                                    // at a time)
-                                    if !obs.collided() && obs.mass > 1.0 {
-                                        let mut y_offset = all_terrain[0].x()
-                                            + ((player.x() as usize)
-                                                / (CAM_W / BG_CURVES_SIZE as u32) as usize)
-                                                as i32
-                                            + obs.x();
-                                        y_offset = if y_offset > 1280 {
-                                            all_terrain[1].curve()[(y_offset % 1280) as usize].1
-                                        } else {
-                                            all_terrain[0].curve()[y_offset as usize].1
-                                        };
-
-                                        //once it collides we can't draw it like this
-                                        obs.hitbox = rect!(
-                                            obs.x(),
-                                            CAM_H as i32
-                                            - y_offset
-                                            // - y pos at terrain segment under player
-                                            - TILE_SIZE as i32,
-                                            TILE_SIZE,
-                                            TILE_SIZE
-                                        );
-                                        obs.pos = (obs.hitbox.x() as f64, obs.hitbox.y() as f64);
-                                        println!("obstacles {:?}", obs.pos);
-                                    }
-                                }
-                            }
-                            Some(StaticObject::Coin) => {
-                                //update physics coins position
-                                for coin in all_coins.iter_mut() {
-                                    let mut y_offset = all_terrain[0].x()
-                                        + ((player.x() as usize)
-                                            / (CAM_W / BG_CURVES_SIZE as u32) as usize)
-                                            as i32
-                                        + coin.x();
-                                    y_offset = if y_offset > 1280 {
-                                        all_terrain[1].curve()[(y_offset % 1280) as usize].1
-                                    } else {
-                                        all_terrain[0].curve()[y_offset as usize].1
-                                    };
-
-                                    //hacky "soln" part 2
-                                    coin.hitbox = rect!(
-                                        coin.x(),
-                                        CAM_H as i32 - y_offset - TILE_SIZE as i32,
-                                        TILE_SIZE,
-                                        TILE_SIZE
-                                    );
-                                    coin.pos = (coin.hitbox.x() as f64, coin.hitbox.y() as f64);
-                                    println!("coins {:?}", coin.pos);
-                                }
-                            }
-                            Some(StaticObject::Spring) => {
-                                //update physics obstacle position
-                                for obs in all_obstacles.iter_mut() {
-                                    //this is hacky & dumb (will only work if one obstacle spawned
-                                    // at a time)
-                                    if !obs.collided() && obs.mass < 2.0 {
-                                        let mut y_offset = all_terrain[0].x()
-                                            + ((player.x() as usize)
-                                                / (CAM_W / BG_CURVES_SIZE as u32) as usize)
-                                                as i32
-                                            + obs.x();
-                                        y_offset = if y_offset > 1280 {
-                                            all_terrain[1].curve()[(y_offset % 1280) as usize].1
-                                        } else {
-                                            all_terrain[0].curve()[y_offset as usize].1
-                                        };
-
-                                        //gaurantees spring for now
-                                        //once it collides we can't draw it like this
-                                        obs.hitbox = rect!(
-                                            obs.x(),
-                                            (CAM_H as i32 - y_offset - (TILE_SIZE / 4) as i32),
-                                            TILE_SIZE,
-                                            TILE_SIZE / 4
-                                        );
-                                        obs.pos = (obs.hitbox.x() as f64, obs.hitbox.y() as f64);
-                                        println!("springs {:?}", obs.pos);
-                                    }
-                                }
-                            }
-                            Some(StaticObject::Power) => {
-                                //update physics power position
-                                for power in all_powers.iter_mut() {
-                                    let mut y_offset = all_terrain[0].x()
-                                        + ((player.x() as usize)
-                                            / (CAM_W / BG_CURVES_SIZE as u32) as usize)
-                                            as i32
-                                        + power.x();
-                                    y_offset = if y_offset > 1280 {
-                                        all_terrain[1].curve()[(y_offset % 1280) as usize].1
-                                    } else {
-                                        all_terrain[0].curve()[y_offset as usize].1
-                                    };
-
-                                    power.pos = rect!(
-                                        power.x(),
-                                        CAM_H as i32 - y_offset - TILE_SIZE as i32,
-                                        TILE_SIZE,
-                                        TILE_SIZE
-                                    );
-
-                                    println!("powers {:?}", power.pos);
-                                }
-                            }
-                            _ => {}
+                        Some(StaticObject::Spring) => {
+                            let obstacle = Obstacle::new(
+                                rect!(CAM_W, 0, 0, 0),
+                                1.0,
+                                texture_creator.load_texture("assets/temp_spring.jpg")?,
+                                ObstacleType::Spring,
+                            );
+                            all_obstacles.push(obstacle);
+                            new_object = None;
                         }
+                        Some(StaticObject::Power) => {
+                            let pow = Power::new(
+                                rect!(CAM_W, 0, 0, 0),
+                                texture_creator.load_texture("assets/powerup.png")?,
+                                Some(proceduralgen::choose_power_up()),
+                            );
+                            all_powers.push(pow);
+                            new_object = None;
+                        }
+                        _ => {}
                     }
-                    */
-                    /* Update score, and increase object spawn rates
-                     * if score passes a milestone
-                     */
-                    // This should be placed after hitbox updates but before drawing
+
+                    // Update total_score
+                    // Poorly placed rn, should be after postion / hitbox / collision update
+                    // but before drawing
                     if !game_over {
                         match active_power {
                             Some(PowerType::ScoreMultiplier) => {
@@ -915,7 +662,7 @@ impl Game for Runner {
                             }
                             _ => {}
                         }
-                        score += curr_step_score;
+                        total_score += curr_step_score;
                     }
 
                     /* Update ground / object positions to move player forward
@@ -1030,118 +777,36 @@ impl Game for Runner {
                         }
                         ind += 1;
                     }
-                    /*
-                    let mut to_remove: Vec<_> = Vec::new();
-                    let mut counter = 0;
 
-                    for o in obstacles.iter_mut() {
-                        let y_pos = if (o.x() - camera_adj_x.abs()) < CAM_W as i32 {
-                            CAM_H as i32
-                                - ground_buffer[((((o.x() - camera_adj_x.abs()) + TILE_SIZE as i32)
-                                    as usize)
-                                    / (CAM_W / BG_CURVES_SIZE as u32) as usize)
-                                    % 128]
-                                    .1
-                                - TILE_SIZE as i32
-                        } else {
-                            0
-                        };
-
-                        o.pos = ((o.x() - camera_adj_x.abs()) as f64, y_pos as f64);
-                        o.align_hitbox_to_pos();
-                        if o.x() <= 0 {
-                            to_remove.push(counter);
-                        }
-
-                        // println!("obstacles {:?}", o.hitbox());
-                        counter += 1;
-                    }
-
-                    for r in to_remove.iter_mut() {
-                        obstacles.remove(*r);
-                    }
-
-                    //Coins
-                    let mut to_remove: Vec<_> = Vec::new();
-                    let mut counter = 0;
-
-                    for c in coins.iter_mut() {
-                        let y_pos = if (c.x() - camera_adj_x.abs()) < CAM_W as i32 {
-                            CAM_H as i32
-                                - ground_buffer[((((c.x() - camera_adj_x.abs()) + TILE_SIZE as i32)
-                                    as usize)
-                                    / (CAM_W / BG_CURVES_SIZE as u32) as usize)
-                                    % 128]
-                                    .1
-                                - TILE_SIZE as i32
-                        } else {
-                            0
-                        };
-
-                        c.pos = ((c.x() - camera_adj_x.abs()) as f64, y_pos as f64);
-                        c.align_hitbox_to_pos();
-                        if c.x() <= 0 {
-                            to_remove.push(counter);
-                        }
-                        // println!("coins {:?}", c.hitbox());
-                        counter += 1;
-                    }
-
-                    for r in to_remove.iter_mut() {
-                        coins.remove(*r);
-                    }
-
-                    //PowerUps
-                    let mut to_remove: Vec<_> = Vec::new();
-                    let mut counter = 0;
-
-                    for p in powers.iter_mut() {
-                        let y_pos = if (p.x() - camera_adj_x.abs()) < CAM_W as i32 {
-                            CAM_H as i32
-                                - ground_buffer[((((p.x() - camera_adj_x.abs()) + TILE_SIZE as i32)
-                                    as usize)
-                                    / (CAM_W / BG_CURVES_SIZE as u32) as usize)
-                                    % 128]
-                                    .1
-                                - TILE_SIZE as i32
-                        } else {
-                            0
-                        };
-
-                        p.pos = rect!(
-                            (p.x() - camera_adj_x.abs()) as f64,
-                            y_pos as f64,
-                            TILE_SIZE,
-                            TILE_SIZE
-                        ); // Don't know why this one needs a full rect declearation to update pos
-                           // println!("powers {:?}", p.hitbox());
-                        if p.x() <= 0 {
-                            to_remove.push(counter);
-                        }
-                        counter += 1;
-                    }
-
-                    for r in to_remove.iter_mut() {
-                        powers.remove(*r);
-                    }
-                    */
-
+                    /* ~~~~~~ Animation Updates ~~~~~~ */
                     bg_tick += 1;
+
                     /* Player animation is barely visible, maybe reimplement later?
                     if bg_tick % 2 == 0 {
                         player_anim += 1;
                         player_anim %= 4;
                     }
                     */
+
+                    // Shift background images & sine waves?
+                    if bg_tick % 10 == 0 {
+                        bg_buff -= 1;
+                    }
+
                     // Reset sine wave tick (to prevent large values?)
                     if bg_tick % 3 == 0 && bg_tick % 5 == 0 {
                         bg_tick = 0;
                     }
+
                     // Reset background image buffer upon leftmost bg image moving completely
                     // offscreen
                     if -bg_buff == CAM_W as i32 {
                         bg_buff = 0;
                     }
+
+                    // Next frame for coin animation
+                    coin_anim += 1;
+                    coin_anim %= 60;
 
                     /* ~~~~~~ Draw All Elements ~~~~~~ */
                     core.wincan.set_draw_color(Color::RGBA(0, 0, 0, 255));
@@ -1192,78 +857,59 @@ impl Game for Runner {
                         ))?;
                     }
 
+                    // Active Power HUD Display
+                    match active_power {
+                        Some(PowerType::SpeedBoost) => {
+                            core.wincan.copy(
+                                &tex_speed,
+                                None,
+                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
+                            )?;
+                        }
+                        Some(PowerType::ScoreMultiplier) => {
+                            core.wincan.copy(
+                                &tex_multiplier,
+                                None,
+                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
+                            )?;
+                        }
+                        Some(PowerType::BouncyShoes) => {
+                            core.wincan.copy(
+                                &tex_bouncy,
+                                None,
+                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
+                            )?;
+                        }
+                        Some(PowerType::LowerGravity) => {
+                            core.wincan.copy(
+                                &tex_floaty,
+                                None,
+                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
+                            )?;
+                        }
+                        Some(PowerType::Shield) => {
+                            core.wincan.copy(
+                                &tex_shield,
+                                None,
+                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
+                            )?;
+                        }
+                        _ => {}
+                    }
+
+                    // Power duration bar
+                    let m = power_timer as f64 / 360.0;
+                    let r = 256.0 * (1.0 - m);
+                    let g = 256.0 * (m);
+                    let w = TILE_SIZE as f64 * m;
+                    core.wincan.set_draw_color(Color::RGB(r as u8, g as u8, 0));
+                    core.wincan.fill_rect(rect!(10, 210, w as u8, 10))?;
+
                     // Terrain
                     for ground in all_terrain.iter() {
                         core.wincan.set_draw_color(ground.color());
                         core.wincan.fill_rect(ground.pos())?;
                     }
-                    /*
-                    let mut ground_ct = 0;
-                    for i in ground_buffer.iter_mut() {
-                        core.wincan.set_draw_color(all_terrain[0].color());
-                        core.wincan.fill_rect(rect! {
-                            ground_ct * CAM_W as usize / BG_CURVES_SIZE + CAM_W as usize / BG_CURVES_SIZE / 2,
-                            CAM_H as i32 - i.1,
-                            CAM_W as usize / BG_CURVES_SIZE,
-                            CAM_H as i32
-                        })?;
-
-                        ground_ct += 1;
-                    }
-                    */
-
-                    /*
-                    // Power assets
-                    if power_timer > 0 {
-                        match curr_power {
-                            Some(PowerType::SpeedBoost) => {
-                                core.wincan.copy(
-                                    &tex_speed,
-                                    None,
-                                    rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                                )?;
-                            }
-                            Some(PowerType::ScoreMultiplier) => {
-                                core.wincan.copy(
-                                    &tex_multiplier,
-                                    None,
-                                    rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                                )?;
-                            }
-                            Some(PowerType::BouncyShoes) => {
-                                core.wincan.copy(
-                                    &tex_bouncy,
-                                    None,
-                                    rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                                )?;
-                            }
-                            Some(PowerType::LowerGravity) => {
-                                core.wincan.copy(
-                                    &tex_floaty,
-                                    None,
-                                    rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                                )?;
-                            }
-                            Some(PowerType::Shield) => {
-                                core.wincan.copy(
-                                    &tex_shield,
-                                    None,
-                                    rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                                )?;
-                            }
-                            _ => {}
-                        }
-
-                        let m = power_timer as f64 / 360.0;
-
-                        let r = 256.0 * (1.0 - m);
-                        let g = 256.0 * (m);
-                        let w = TILE_SIZE as f64 * m;
-
-                        core.wincan.set_draw_color(Color::RGB(r as u8, g as u8, 0));
-                        core.wincan.fill_rect(rect!(10, 210, w as u8, 10))?;
-                    }
-                    */
 
                     // Set player texture
                     let mut tex_player = player.texture(); // Default
@@ -1292,14 +938,8 @@ impl Game for Runner {
 
                     // Obstacles
                     for obs in all_obstacles.iter() {
-                        /*
-                        // What is the purpose of this conditional?
-                        // All obstacles should be drawn no matter their position onscreen
-                        if (obs.x() > 50 && obs.y() > 20) {
-                        */
-                        //hacky - will not work if more than one obstacle spawned
-                        //println!("XXXXX ypos{} vyo{} ayo{}  ", o.pos.1, o.velocity.1,
-                        // o.accel.1 );
+                        // println!("XXXXX ypos{} vyo{} ayo{}  ", o.pos.1, o.velocity.1, o.accel.1
+                        // );
                         match obs.obstacle_type {
                             ObstacleType::Statue => {
                                 core.wincan.copy_ex(
@@ -1330,24 +970,10 @@ impl Game for Runner {
                             }
                             _ => {}
                         }
-                        // }
-                        /*else{
-                            drop(obs);
-                            object_count-= 1;
-                        }*/
                     }
 
                     // Coins
-                    // Next frame in animation
-                    coin_anim += 1;
-                    coin_anim %= 60;
                     for coin in all_coins.iter() {
-                        /*
-                        // What is the purpose of this conditional?
-                        // All coins should be drawn no matter their position onscreen
-                        if !coin.collected() && c.x() > 50 {
-                        */
-                        //hacky - will not work if more than one coin spawned
                         core.wincan.copy_ex(
                             coin.texture(),
                             rect!(coin_anim * TILE_SIZE as i32, 0, TILE_SIZE, TILE_SIZE),
@@ -1359,42 +985,30 @@ impl Game for Runner {
                         )?;
                         core.wincan.set_draw_color(Color::GREEN);
                         core.wincan.draw_rect(coin.hitbox())?;
-                        // }
                     }
 
-                    // Powers
-                    for p in all_powers.iter() {
-                        //need a method to delete it from vector, possibly somwthing like this
-                        // Should be handled after hitbox updates but before draw section
-                        /*if p.collected(){
-                            powers.retain(|x| x != p.collected);
-                        }*/
-
-                        // What is the purpose of this conditional?
-                        // All powers should be drawn no matter their position onscreen
-                        if !p.collected() && p.x() > 50 {
-                            //hacky - will not work if more than one power spawned
-                            core.wincan.copy_ex(
-                                p.texture(),
-                                rect!(0, 0, TILE_SIZE, TILE_SIZE),
-                                rect!(p.x(), p.y(), TILE_SIZE, TILE_SIZE),
-                                0.0,
-                                None,
-                                false,
-                                false,
-                            )?;
-                            core.wincan.set_draw_color(Color::YELLOW);
-                            core.wincan.draw_rect(p.hitbox())?;
-                        }
+                    // Powerups (on the ground, not active or collected)
+                    for power in all_powers.iter() {
+                        core.wincan.copy_ex(
+                            power.texture(),
+                            rect!(0, 0, TILE_SIZE, TILE_SIZE),
+                            rect!(power.x(), power.y(), TILE_SIZE, TILE_SIZE),
+                            0.0,
+                            None,
+                            false,
+                            false,
+                        )?;
+                        core.wincan.set_draw_color(Color::YELLOW);
+                        core.wincan.draw_rect(power.hitbox())?;
                     }
 
-                    // Setup for the text of the score to be displayed
+                    // Setup for the text of the total_score to be displayed
                     let tex_score = font
-                        .render(&format!("{:08}", score))
+                        .render(&format!("{:08}", total_score))
                         .blended(Color::RGBA(255, 0, 0, 100))
                         .map_err(|e| e.to_string())?;
 
-                    // Display score
+                    // Display total_score
                     let score_texture = texture_creator
                         .create_texture_from_surface(&tex_score)
                         .map_err(|e| e.to_string())?;
@@ -1424,18 +1038,17 @@ impl Game for Runner {
 
                     core.wincan.present();
 
-                    /*let other_surface = font
+                    // Display num coins collected
+                    let other_surface = font
                         .render(&format!("{:03}", coin_count))
                         .blended(Color::RGBA(100, 0, 200, 100))
                         .map_err(|e| e.to_string())?;
                     let coin_count_texture = texture_creator
                         .create_texture_from_surface(&other_surface)
                         .map_err(|e| e.to_string())?;
-
                     core.wincan
                         .copy(&coin_count_texture, None, Some(rect!(160, 10, 80, 50)))?;
-
-                    core.wincan.present();*/
+                    core.wincan.present();
                 }
 
                 /* ~~~~~~ FPS Calculation ~~~~~~ */
@@ -1481,7 +1094,7 @@ impl Game for Runner {
 
             Ok(GameState {
                 status: Some(next_status),
-                score: score,
+                score: total_score,
             })
         } // End gameloop
     } // End run fn
