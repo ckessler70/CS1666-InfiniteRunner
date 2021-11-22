@@ -252,11 +252,14 @@ impl ProceduralGen {
             100,
         );
 
+        // Due to weird rust semantics, need to make a var to hold curve length
+        let curve_len = curve.len();
+
         // Bouncy or not bouncy
         // May be obsolete with TerrainType
         match rng.gen_range(0..=1) {
-            1 => curve[curve.len() - 1] = (1, 1),
-            _ => curve[curve.len() - 1] = (0, 0),
+            1 => curve[curve_len - 1] = (1, 1),
+            _ => curve[curve_len - 1] = (0, 0),
         }
 
         let rect = rect!(0, 0, 10, 10); // ?
@@ -485,12 +488,14 @@ impl ProceduralGen {
             100,
         );
 
-        let is_bouncy = rng.gen_range(0.0..1.0);
+        // Due to weird rust semantics, need to make a var to hold curve length
+        let curve_len = last_curve_point.len();
 
-        if (is_bouncy < 0.5) {
-            last_curve_point[last_curve_point.len() - 1] = (1, 1); //True value
-        } else {
-            last_curve_point[last_curve_point.len() - 1] = (0, 0); //False value
+        // Bouncy or not bouncy
+        // May be obsolete with TerrainType
+        match rng.gen_range(0..=1) {
+            1 => last_curve_point[curve_len - 1] = (1, 1),
+            _ => last_curve_point[curve_len - 1] = (0, 0),
         }
 
         return (last_curve_point);
