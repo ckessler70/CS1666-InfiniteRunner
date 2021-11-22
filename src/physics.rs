@@ -18,20 +18,13 @@ pub struct Physics;
 
 impl Physics {
     // Checks if entities are colliding
-    // Calls on entities to *react* to collision, if applicable
     // Params: entityA, entityB
     // Returns: true if entities are colliding, false otherwise
     pub fn check_collision<'a>(
-        entityA: &mut impl Entity<'a>,
-        entityB: &mut impl Entity<'a>,
+        entity_a: &mut impl Entity<'a>,
+        entity_b: &mut impl Entity<'a>,
     ) -> bool {
-        if entityA.hitbox().has_intersection(entityB.hitbox()) {
-            entityA.react_to_collision(entityB);
-            entityB.react_to_collision(entityA);
-            true
-        } else {
-            false
-        }
+        entity_a.hitbox().has_intersection(entity_b.hitbox())
     }
 
     // Checks if player hasn't landed on their head
@@ -188,7 +181,6 @@ pub trait Entity<'a> {
 
     fn hitbox(&self) -> Rect;
     fn align_hitbox_to_pos(&mut self);
-    fn react_to_collision(&mut self, obstacle: &mut impl Entity<'a>) -> bool;
 }
 
 pub trait Body<'a>: Entity<'a> {
@@ -294,14 +286,12 @@ impl<'a> Player<'a> {
     }
 
     // Returns true if a jump was initiated
-    pub fn jump(&mut self, ground: Point, bouncy: bool, cancel: bool) -> bool {
+    pub fn jump(&mut self, ground: Point) -> bool {
         if self.hitbox().contains_point(ground) {
             self.hard_set_pos((self.pos.0, ground.y() as f64 - TILE_SIZE));
             self.align_hitbox_to_pos();
             self.apply_force((0.0, 100.0));
             self.jumping = true;
-
-            println!("JUMP POS: {} {}", self.pos.0, self.pos.1);
             true
         } else {
             false
@@ -313,6 +303,12 @@ impl<'a> Player<'a> {
             self.rotate();
         }
     }
+
+    pub fn collide_obstacle(&mut self, obstacle: &mut Obstacle) {}
+
+    pub fn collide_coin(&mut self, obstacle: &mut Obstacle) {}
+
+    pub fn collide_power(&mut self, obstacle: &mut Obstacle) {}
 }
 
 impl<'a> Entity<'a> for Player<'a> {
@@ -327,10 +323,6 @@ impl<'a> Entity<'a> for Player<'a> {
     fn align_hitbox_to_pos(&mut self) {
         self.hitbox.set_x(self.pos.0 as i32);
         self.hitbox.set_y(self.pos.1 as i32);
-    }
-
-    fn react_to_collision(&mut self, other: &mut impl Entity<'a>) -> bool {
-        false
     }
 }
 
@@ -354,10 +346,6 @@ impl<'a> Body<'a> for Player<'a> {
         }
 
         self.align_hitbox_to_pos();
-
-        println!("pos: {} {}", self.pos.0, self.pos.1);
-        println!("vel: {} {}", self.velocity.0, self.velocity.1);
-        println!("accel: {} {}", self.accel.0, self.accel.1);
     }
 
     fn hard_set_pos(&mut self, pos: (f64, f64)) {
@@ -491,10 +479,6 @@ impl<'a> Entity<'a> for Obstacle<'a> {
         self.hitbox.set_x(self.pos.0 as i32);
         self.hitbox.set_y(self.pos.1 as i32);
     }
-
-    fn react_to_collision(&mut self, other: &mut impl Entity<'a>) -> bool {
-        false
-    }
 }
 
 impl<'a> Body<'a> for Obstacle<'a> {
@@ -606,10 +590,6 @@ impl<'a> Entity<'a> for Coin<'a> {
         self.hitbox.set_x(self.pos.0);
         self.hitbox.set_y(self.pos.1);
     }
-
-    fn react_to_collision(&mut self, other: &mut impl Entity<'a>) -> bool {
-        false
-    }
 }
 
 impl<'a> Collectible<'a> for Coin<'a> {
@@ -676,10 +656,6 @@ impl<'a> Entity<'a> for Power<'a> {
     fn align_hitbox_to_pos(&mut self) {
         self.hitbox.set_x(self.pos.0 as i32);
         self.hitbox.set_y(self.pos.1 as i32);
-    }
-
-    fn react_to_collision(&mut self, other: &mut impl Entity<'a>) -> bool {
-        false
     }
 }
 

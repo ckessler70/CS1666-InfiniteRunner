@@ -128,7 +128,7 @@ impl Game for Runner {
 
         // number of frames to delay the end of the game by for demonstrating player collision
         // this should be removed once the camera tracks the player properly
-        let mut game_over_timer = 600;
+        let mut game_over_timer = 120;
 
         // FPS tracking
         let mut all_frames: i32 = 0;
@@ -147,12 +147,7 @@ impl Game for Runner {
 
         let mut object = None;
 
-        let mut power: Option<PowerType> = None;
         let mut next_power: Option<PowerType> = None;
-
-        let mut player_accel_rate: f64 = -10.0;
-        let mut player_jump_change: f64 = 0.0;
-        let mut player_speed_adjust: f64 = 0.0;
 
         // bg[0] = Front hills
         // bg[1] = Back hills
@@ -292,8 +287,6 @@ impl Game for Runner {
 
                     initial_pause = false;
                 }
-                // Remove "&& game_over_timer <= 0" once the camera properly tracks the player.
-                // For now, it is only here to delay the game end and demonstrate collision.
             } else {
                 if game_over {
                     game_over_timer -= 1;
@@ -325,6 +318,7 @@ impl Game for Runner {
                 let angle = ((next_ground.y() as f64 - current_ground.y() as f64)
                     / (TILE_SIZE as f64))
                     .atan();
+
                 // This conditional statement is here so that the game will go on for a few more frames without player input once the player has died. The reason for this is to demonstrate collisions even though the camera does not follow the player.
                 // NOTE: Once the camera properly follows the player, this conditional should be removed.
                 if !game_over {
@@ -338,7 +332,7 @@ impl Game for Runner {
                                     if player.is_jumping() {
                                         player.resume_flipping();
                                     } else {
-                                        player.jump(current_ground, true, false);
+                                        player.jump(current_ground);
                                     }
                                 }
                                 Keycode::Escape => {
@@ -362,25 +356,46 @@ impl Game for Runner {
                     tick_score = 1;
                 }
 
-                //in the future (maybee:
-                //only check for obstacles/coins based on their location relative to players x
+                //Power handling
+                if power_tick == 0 {
+                    power_tick -= 1;
+                    player.set_power_up(None);
+                } else if power_tick > 0 {
+                    power_tick -= 1;
+                }
+
+                // Apply bouncy shoes, if applicable
+                if let Some(PowerType::BouncyShoes) = player.power_up() {
+                    if !player.is_jumping() {
+                        player.jump(current_ground);
+                    }
+                }
+
+                //apply forces on player
+                let current_power = player.power_up();
+                Physics::apply_terrain_forces(
+                    &mut player,
+                    angle,
+                    current_ground,
+                    0.2,
+                    current_power,
+                );
+                Physics::apply_skate_force(&mut player, angle, current_ground);
+
+                //update player attributes
+                player.update_pos(current_ground, angle, game_over);
+                player.update_vel();
+                player.flip();
+
+                if !Physics::check_player_upright(&player, angle, current_ground) {
+                    game_over = true;
+                    initial_pause = true;
+                }
+
                 for o in obstacles.iter_mut() {
-                    //.filter(|near by obstacles|).collect()
-                    // if let Some(collision_boxes) = player.check_collision(o) {
-                    //     //shielded: when true player will not be affected by collision, only obstacle
-                    //     //collide() - returns true if game ending collision
-                    //     if !player.collide(o, collision_boxes, shielded) && tick % 20 == 0 {
-                    //         game_over = true;
-                    //         initial_pause = true;
-                    //         continue 'gameloop;
-                    //     }
-                    //     //DEBUG:
-                    //     //println!("ypos{} vyo{} ayo{}  ", o.pos.1, o.velocity.1, o.accel.1 );
-
-                    //     continue;
-                    // };
-
-                    if Physics::check_collision(&mut player, o) {}
+                    if Physics::check_collision(&mut player, o) {
+                        player.collide_obstacle(o);
+                    }
                 }
 
                 for c in coins.iter_mut() {
@@ -409,108 +424,6 @@ impl Game for Runner {
                         continue;
                     }
                 }
-
-                //Power handling
-                if power_tick > 0 {
-                    power_tick -= 1;
-                    match power {
-                        Some(PowerType::SpeedBoost) => {
-                            // May not be the proper way to handle this.
-                            // Adds player speed adjust to player's velocity
-                            //might work(won't know without cam)
-                            // player.apply_force((5.0, 0.0));
-                        }
-                        Some(PowerType::ScoreMultiplier) => {
-                            // Doubles tick score while active
-                            // tick_score *= 2;
-                        }
-                        Some(PowerType::BouncyShoes) => {
-                            // Forces jumping while active and jumps 0.3 velocity units higher
-                            // player.jump(current_ground, true, false);
-                        }
-                        Some(PowerType::LowerGravity) => {
-                            // Accel rate is how the y velocity is clamped
-                            // Has player jump 0.2 velocity units higher.
-                            // low_grav = true;
-                        }
-                        Some(PowerType::Shield) => {
-                            // Player override will say to ignore obstacle collisions
-                            // shielded = true;
-                        }
-                        _ => {}
-                    }
-                } else if power_tick == 0 {
-                    power_tick -= 1;
-                    power = None;
-                    player.set_power_up(power);
-                }
-
-                //apply forces on player
-                Physics::apply_terrain_forces(&mut player, angle, current_ground, 0.2, power);
-                Physics::apply_skate_force(&mut player, angle, current_ground);
-
-                //update player attributes
-                player.update_pos(current_ground, angle, game_over);
-                player.update_vel();
-                player.flip();
-
-                if !Physics::check_player_upright(&player, angle, current_ground) {
-                    game_over = true;
-                    initial_pause = true;
-                }
-
-                // for o in obstacles.iter_mut() {
-                //     //NEEDS TO BE GROUND UNDER PLAYERS X POSITION (this is currently wrong)
-                //     let obstacle_ground = Point::new(
-                //         o.x() + TILE_SIZE as i32,
-                //         CAM_H as i32
-                //             - bg[2][(o.x() as usize) / (CAM_W / SIZE as u32) as usize] as i32,
-                //     );
-                //     //works bc all static obstacles (unitl collision, so we dont need to apply forces)
-                //     //will not work for dyanmic obstacles (need collide_terrain to work for dyamic obstacles to be possible)
-                //     if (o.collided()) {
-                //         o.collide_terrain(obstacle_ground, angle); //should keep obstacle from falling off map (if proper ground can be detected)
-                //         Physics::apply_gravity(o, angle, false);
-                //         //Physics::apply_friction(&mut o,angle, 1.0);
-                //     }
-
-                //     //update obstacle attributes
-                //     o.update_vel();
-                //     o.update_pos(Point::new(0, 0), 15.0, false); //these args do nothing
-
-                //     //DEBUG OBSTACLE
-                //     /*
-                //     println!(
-                //         "Obstacle px:{} py:{}  vx:{} ax:{} ay:{} on ground? {} delete? {}",
-                //         o.x(),
-                //         o.y(),
-                //         o.vel_x(),
-                //         o.accel_x(),
-                //         o.accel_y(),
-                //         o.is_onground(),
-                //         o.delete_me,
-                //     );*/
-                // }
-
-                //DEBUG PLAYER
-
-                // println!(
-                //     "angle: {} sin {} cos {} px:{}  vx:{} ax:{} ay:{} on ground? {}",
-                //     angle,
-                //     angle.sin(),
-                //     angle.cos(),
-                //     player.x(),
-                //     player.vel_x(),
-                //     player.accel_x(),
-                //     player.accel_y(),
-                //     player.is_onground(),
-                // );
-
-                // if !player.collide_terrain(current_ground, angle) {
-                //     game_over = true;
-                //     initial_pause = true;
-                //     continue;
-                // }
 
                 core.wincan.set_draw_color(Color::RGBA(3, 120, 206, 255));
                 core.wincan.clear();
@@ -644,28 +557,10 @@ impl Game for Runner {
                                 object_count -= 1;
                             }
                             Some(StaticObject::Power) => {
-                                match Some(rand::random()) {
-                                    Some(PowerType::SpeedBoost) => {
-                                        power = Some(PowerType::SpeedBoost);
-                                    }
-                                    Some(PowerType::ScoreMultiplier) => {
-                                        power = Some(PowerType::ScoreMultiplier);
-                                    }
-                                    Some(PowerType::BouncyShoes) => {
-                                        power = Some(PowerType::BouncyShoes);
-                                    }
-                                    Some(PowerType::LowerGravity) => {
-                                        power = Some(PowerType::LowerGravity);
-                                    }
-                                    Some(PowerType::Shield) => {
-                                        power = Some(PowerType::Shield);
-                                    }
-                                    _ => {}
-                                }
                                 let pow = Power::new(
                                     rect!(0, 0, 0, 0),
                                     texture_creator.load_texture("assets/powerup.png")?,
-                                    power.unwrap(),
+                                    rand::random(), // Randomized power type
                                 );
                                 powers.push(pow);
                                 object_count -= 1;
@@ -676,12 +571,6 @@ impl Game for Runner {
 
                     //Object spawning
                     if object_spawn > 0 && object_spawn < SIZE {
-                        /* println!(
-                            "{:?} | {:?}",
-                            object_spawn * CAM_W as usize / SIZE + CAM_W as usize / SIZE / 2,
-                            CAM_H as i16 - bg[GROUND_INDEX][object_spawn]
-                        );*/
-
                         match object {
                             Some(proceduralgen::StaticObject::Statue) => {
                                 //update physics obstacle position
@@ -776,8 +665,7 @@ impl Game for Runner {
                                             + CAM_W as usize / SIZE / 2,
                                         CAM_H as i16
                                             - bg[GROUND_INDEX][object_spawn]
-                                            - TILE_SIZE as i16
-                                            - 75,
+                                            - TILE_SIZE as i16,
                                         TILE_SIZE,
                                         TILE_SIZE
                                     );
@@ -886,7 +774,7 @@ impl Game for Runner {
 
                 //Power asset drawing
                 if power_tick > 0 {
-                    match power {
+                    match player.power_up() {
                         Some(PowerType::SpeedBoost) => {
                             core.wincan.copy(
                                 &tex_speed,
@@ -1109,7 +997,11 @@ impl Game for Runner {
                     .map_err(|e| e.to_string())?;
 
                 if !game_over {
-                    score += tick_score;
+                    let mut score_multiplier = 1;
+                    if let Some(PowerType::ScoreMultiplier) = player.power_up() {
+                        score_multiplier = 2;
+                    }
+                    score += tick_score * score_multiplier;
                 }
                 core.wincan
                     .copy(&score_texture, None, Some(rect!(10, 10, 100, 50)))?;
@@ -1163,6 +1055,10 @@ impl Game for Runner {
             let time_since_last_measurement = last_measurement_time.elapsed();
             // measure the FPS once every second
             if time_since_last_measurement > Duration::from_secs(1) {
+                // println!(
+                //     "Average FPS: {:.2}",
+                //     (all_frames as f64) / time_since_last_measurement.as_secs_f64()
+                // );
                 all_frames = 0;
                 last_measurement_time = Instant::now();
             }
