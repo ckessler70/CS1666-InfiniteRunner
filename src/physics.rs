@@ -125,7 +125,8 @@ impl Physics {
     // Returns: none
     pub fn apply_bounce<'a>(player: &mut Player, body: &impl Body<'a>) {
         // Spring force constant
-        let k = 1.0;
+        let k = 0.2;
+        println!("here");
 
         // Find how far player has depressed the spring
         let intersection = player.hitbox().intersection(body.hitbox());
@@ -134,6 +135,7 @@ impl Physics {
         if let Some(overlap) = intersection {
             let displacement = overlap.y() as f64;
             // Force is always upwards
+            println!("applying force");
             player.apply_force((0.0, k * displacement));
         }
     }
@@ -304,7 +306,101 @@ impl<'a> Player<'a> {
         }
     }
 
-    pub fn collide_obstacle(&mut self, obstacle: &mut Obstacle) {}
+    pub fn collide_obstacle(&mut self, obstacle: &mut Obstacle) -> bool {
+        let mut shielded = false;
+        if let Some(PowerType::Shield) = self.power_up() {
+            shielded = true;
+        }
+
+        // if the collision box is taller than it is wide, the player hit the side of the object
+        if (self
+            .hitbox()
+            .intersection(obstacle.hitbox())
+            .unwrap()
+            .height()
+            > self
+                .hitbox()
+                .intersection(obstacle.hitbox())
+                .unwrap()
+                .width())
+        {
+            /********** ELASTIC COLLISION CALCULATION **********/
+            // https://en.wikipedia.org/wiki/Elastic_collision#One-dimensional_Newtonian
+            // Assumed object has velocity (0,0)
+            // Assumed player has velocity (vx,vy)
+            let angle = ((self.center().y() - obstacle.center().y()) as f64
+                / (self.center().x() - obstacle.center().x()) as f64)
+                .atan();
+            let p_mass = self.mass();
+            let o_mass = obstacle.mass();
+            let p_vx = self.velocity.0;
+            let p_vy = if self.jumping { self.velocity.1 } else { 0.0 };
+            let p_vx_f = 2.0 * (p_mass - o_mass) * (p_vx) / (p_mass + o_mass);
+            let p_vy_f = 2.0 * (p_mass - o_mass) * (p_vy) / (p_mass + o_mass);
+            let o_vx_f = 2.0 * (2.0 * p_mass) * (p_vx) / (p_mass + o_mass);
+            let o_vy_f = 2.0 * (2.0 * p_mass) * (p_vy) / (p_mass + o_mass);
+
+            println!("INTENDED TRAJECTORIES: ELASTIC COLLISION: ");
+            println!("\tplayer mass: {}", p_mass);
+            println!("\tobject mass: {}", o_mass);
+            println!("\tplayer initial velocity: ({},{})", p_vx, p_vy);
+            println!("\tobject initial velocity: ({},{})", 0, 0);
+            println!("\tangle from player to object in rads: {}", angle);
+            println!("\tplayer final velocity({},{})", p_vx_f, p_vy_f);
+            println!("\tobject final velocity({},{})", o_vx_f, o_vy_f);
+
+            /***************************************************/
+            match obstacle.obstacle_type {
+                ObstacleType::Statue | ObstacleType::Chest => {
+                    if shielded {
+                        true
+                    } else {
+                        // Move obstacle
+                        obstacle.collided = true;
+                        obstacle.hard_set_vel((o_vx_f, o_vy_f));
+
+                        self.hard_set_vel((p_vx_f, p_vy_f));
+                        self.hard_set_pos((
+                            obstacle.x() as f64 - 1.05 * TILE_SIZE,
+                            self.y() as f64,
+                        ));
+                        self.align_hitbox_to_pos();
+                        false
+                    }
+                }
+                ObstacleType::Spring => true,
+                _ => true,
+            }
+        }
+        // if the collision box is wider than it is tall, the player hit the top of the object
+        // don't apply the collision to the top of an object if the player is moving upward, otherwise they will "stick" to the top on the way up
+        else if self.is_jumping() && self.vel_y() < 0.0 {
+            match obstacle.obstacle_type {
+                ObstacleType::Statue | ObstacleType::Chest => {
+                    self.pos.1 = (obstacle.y() as f64 - 0.95 * (TILE_SIZE as f64));
+                    self.align_hitbox_to_pos();
+                    self.velocity.1 = 0.0;
+                    self.jumping = false;
+                    self.apply_force((0.0, self.mass()));
+                    self.omega = 0.0;
+
+                    if self.theta() < OMEGA * 6.0 || self.theta() > 360.0 - OMEGA * 6.0 {
+                        self.theta = 0.0;
+                        Physics::apply_bounce(self, obstacle);
+                        true
+                    } else {
+                        false
+                    }
+                }
+                ObstacleType::Spring => {
+                    Physics::apply_bounce(self, obstacle);
+                    true
+                }
+            }
+        } else {
+            true
+        }
+    }
 
     pub fn collide_coin(&mut self, obstacle: &mut Obstacle) {}
 
@@ -428,7 +524,7 @@ pub struct Obstacle<'a> {
 pub enum ObstacleType {
     Statue,
     Spring,
-    Box,
+    Chest,
 }
 
 impl<'a> Obstacle<'a> {

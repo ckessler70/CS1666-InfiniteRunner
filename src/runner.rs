@@ -371,22 +371,6 @@ impl Game for Runner {
                     }
                 }
 
-                //apply forces on player
-                let current_power = player.power_up();
-                Physics::apply_terrain_forces(
-                    &mut player,
-                    angle,
-                    current_ground,
-                    0.2,
-                    current_power,
-                );
-                Physics::apply_skate_force(&mut player, angle, current_ground);
-
-                //update player attributes
-                player.update_pos(current_ground, angle, game_over);
-                player.update_vel();
-                player.flip();
-
                 if !Physics::check_player_upright(&player, angle, current_ground) {
                     game_over = true;
                     initial_pause = true;
@@ -394,7 +378,10 @@ impl Game for Runner {
 
                 for o in obstacles.iter_mut() {
                     if Physics::check_collision(&mut player, o) {
-                        player.collide_obstacle(o);
+                        if !player.collide_obstacle(o) {
+                            game_over = true;
+                            initial_pause = true;
+                        }
                     }
                 }
 
@@ -413,7 +400,6 @@ impl Game for Runner {
                     }
                 }
 
-                // Roughly the code needed for collecting power objects as it should follow the coin idea closely.
                 for p in powers.iter_mut() {
                     if Physics::check_collision(&mut player, p) {
                         if !p.collected() {
@@ -422,6 +408,37 @@ impl Game for Runner {
                             power_tick = 360;
                         }
                         continue;
+                    }
+                }
+
+                //apply forces on player
+                let current_power = player.power_up();
+                Physics::apply_terrain_forces(
+                    &mut player,
+                    angle,
+                    current_ground,
+                    0.2,
+                    current_power,
+                );
+                Physics::apply_skate_force(&mut player, angle, current_ground);
+
+                //update player attributes
+                player.update_pos(current_ground, angle, game_over);
+                player.update_vel();
+                player.flip();
+
+                // apply forces to obstacles
+                for o in obstacles.iter_mut() {
+                    if o.collided() {
+                        let object_ground = Point::new(
+                            o.x(),
+                            CAM_H as i32
+                                - bg[2][(o.x() as usize) / (CAM_W / SIZE as u32) as usize] as i32,
+                        );
+
+                        Physics::apply_terrain_forces(o, angle, object_ground, 0.0, None);
+                        o.update_pos(object_ground, angle, game_over);
+                        o.update_vel();
                     }
                 }
 
@@ -546,12 +563,12 @@ impl Game for Runner {
                                 obstacles.push(obstacle);
                                 object_count -= 1;
                             }
-                            Some(StaticObject::Box) => {
+                            Some(StaticObject::Chest) => {
                                 let obstacle = Obstacle::new(
                                     rect!(0, 0, 0, 0),
                                     4.0,
                                     texture_creator.load_texture("assets/box.png")?,
-                                    ObstacleType::Box,
+                                    ObstacleType::Chest,
                                 );
                                 obstacles.push(obstacle);
                                 object_count -= 1;
@@ -621,15 +638,15 @@ impl Game for Runner {
                                                 + CAM_W as usize / SIZE / 2,
                                             (CAM_H as i16
                                                 - bg[GROUND_INDEX][object_spawn]
-                                                - (TILE_SIZE / 4) as i16),
+                                                - (TILE_SIZE) as i16),
                                             TILE_SIZE,
-                                            TILE_SIZE / 4
+                                            TILE_SIZE
                                         );
                                         s.pos = (s.hitbox.x() as f64, s.hitbox.y() as f64);
                                     }
                                 }
                             }
-                            Some(proceduralgen::StaticObject::Box) => {
+                            Some(proceduralgen::StaticObject::Chest) => {
                                 //update physics obstacle position
                                 for s in obstacles.iter_mut() {
                                     s.spawned = true;
@@ -850,22 +867,22 @@ impl Game for Runner {
                         false,
                         false,
                     )?;
+                } else {
+                    core.wincan.copy_ex(
+                        player.texture(),
+                        rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
+                        rect!(
+                            player.x(), /* + camera_adj_x*/
+                            player.y(), /* + camera_adj_y*/
+                            TILE_SIZE,
+                            TILE_SIZE
+                        ),
+                        player.theta() * 180.0 / std::f64::consts::PI,
+                        None,
+                        false,
+                        false,
+                    )?;
                 }
-
-                core.wincan.copy_ex(
-                    player.texture(),
-                    rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
-                    rect!(
-                        player.x(), /* + camera_adj_x*/
-                        player.y(), /* + camera_adj_y*/
-                        TILE_SIZE,
-                        TILE_SIZE
-                    ),
-                    player.theta() * 180.0 / std::f64::consts::PI,
-                    None,
-                    false,
-                    false,
-                )?;
                 core.wincan.set_draw_color(Color::BLACK);
 
                 /*
@@ -904,7 +921,7 @@ impl Game for Runner {
                                 core.wincan.copy_ex(
                                     o.texture(),
                                     None,
-                                    rect!(o.pos.0, o.pos.1, TILE_SIZE, TILE_SIZE / 4),
+                                    rect!(o.pos.0, o.pos.1, TILE_SIZE, TILE_SIZE),
                                     o.theta(),
                                     None,
                                     false,
@@ -913,7 +930,7 @@ impl Game for Runner {
                                 core.wincan.set_draw_color(Color::BLUE);
                                 core.wincan.draw_rect(o.hitbox())?;
                             }
-                            ObstacleType::Box => {
+                            ObstacleType::Chest => {
                                 core.wincan.copy_ex(
                                     o.texture(),
                                     None,

@@ -29,7 +29,7 @@ pub enum StaticObject {
     Statue,
     Power,
     Spring,
-    Box,
+    Chest,
 }
 
 #[allow(dead_code)]
@@ -630,7 +630,7 @@ impl Distribution<StaticObject> for Standard {
             0 => StaticObject::Coin,
             1 => StaticObject::Statue,
             2 => StaticObject::Spring,
-            3 => StaticObject::Box,
+            3 => StaticObject::Chest,
             _ => StaticObject::Power,
         }
     }
