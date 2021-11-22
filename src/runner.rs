@@ -94,7 +94,9 @@ impl Game for Runner {
         let tex_bouncy = texture_creator.load_texture("assets/bouncy.png")?;
         let tex_floaty = texture_creator.load_texture("assets/floaty.png")?;
         let tex_shield = texture_creator.load_texture("assets/shield.png")?;
+        //power up bools
         let mut shielded = false;
+        let mut low_grav = false;
         let shielded_player = texture_creator.load_texture("assets/shielded_player.png")?;
 
         let mut bg_buff = 0;
@@ -126,7 +128,6 @@ impl Game for Runner {
         let mut game_paused: bool = false;
         let mut initial_pause: bool = false;
         let mut game_over: bool = false;
-        let mut power_override: bool = false;
 
         // number of frames to delay the end of the game by for demonstrating player collision
         // this should be removed once the camera tracks the player properly
@@ -339,8 +340,9 @@ impl Game for Runner {
                                 Keycode::W | Keycode::Up | Keycode::Space => {
                                     if player.is_jumping() {
                                         player.resume_flipping();
+                                        //player.jump(current_ground, true, false);
                                     } else {
-                                        player.jump(current_ground, true);
+                                        player.jump(current_ground, true, false);
                                     }
                                 }
                                 Keycode::Escape => {
@@ -354,6 +356,7 @@ impl Game for Runner {
                             } => match k {
                                 Keycode::W | Keycode::Up | Keycode::Space => {
                                     player.stop_flipping();
+                                    //player.jump(current_ground, true, true);
                                 }
                                 _ => {}
                             },
@@ -371,7 +374,7 @@ impl Game for Runner {
                         
                         //shielded: when true player will not be affected by collision, only obstacle
                         //collide() - returns true if game ending collision
-                        if !player.collide(o, collision_boxes, shielded) {
+                        if !player.collide(o, collision_boxes, shielded) && tick % 20==0{
                             game_over = true;
                             initial_pause = true;
                             continue 'gameloop;
@@ -420,13 +423,6 @@ impl Game for Runner {
                                 }
                                 _ => {}
                             }
-
-                            // Reset any previously active power values to default
-                            player_accel_rate = -10.0;
-                            player_jump_change = 0.0;
-                            player_speed_adjust = 0.0;
-                            shielded = false;
-
                             p.collect();
                             power_tick = 360;
                         }
@@ -441,7 +437,8 @@ impl Game for Runner {
                         Some(powers::PowerUps::SpeedBoost) => {
                             // May not be the proper way to handle this.
                             // Adds player speed adjust to player's velocity
-                            player_speed_adjust = 5.0;
+                            //might work(won't know without cam)
+                            player.apply_force((5.0,0.0));
                         }
                         Some(powers::PowerUps::ScoreMultiplier) => {
                             // Doubles tick score while active
@@ -449,14 +446,12 @@ impl Game for Runner {
                         }
                         Some(powers::PowerUps::BouncyShoes) => {
                             // Forces jumping while active and jumps 0.3 velocity units higher
-                            player_jump_change = 0.3;
-                            player.jump(current_ground, true);
+                            player.jump(current_ground, true, false);
                         }
                         Some(powers::PowerUps::LowerGravity) => {
                             // Accel rate is how the y velocity is clamped
                             // Has player jump 0.2 velocity units higher.
-                            player_accel_rate = -5.0;
-                            player_jump_change = 0.2;
+                            low_grav = true;
                         }
                         Some(powers::PowerUps::Shield) => {
                             // Player override will say to ignore obstacle collisions
@@ -470,16 +465,11 @@ impl Game for Runner {
                     // Reset values to default if power times out
                     match power {
                         // Stop any power from going
-                        Some(powers::PowerUps::SpeedBoost) => {
-                            player_speed_adjust = 0.0;
-                        }
+                        Some(powers::PowerUps::SpeedBoost) => {}
                         Some(powers::PowerUps::ScoreMultiplier) => {}
-                        Some(powers::PowerUps::BouncyShoes) => {
-                            player_jump_change = 0.0;
-                        }
+                        Some(powers::PowerUps::BouncyShoes) => {}
                         Some(powers::PowerUps::LowerGravity) => {
-                            player_accel_rate = -10.0;
-                            player_jump_change = 0.0;
+                            low_grav = false;
                         }
                         Some(powers::PowerUps::Shield) => {
                             shielded = false;
@@ -490,34 +480,63 @@ impl Game for Runner {
                     power = None;
                 }
 
-                //applies gravity, normal & friction now
-                //friciton is currently way OP (stronger than grav) bc cast to i32 in apply_force
-                //so to ever have an effect, it needs to be set > 1 for now...
-                Physics::apply_gravity(&mut player, angle);
-                Physics::apply_friction(&mut player,angle, 1.0);
+                //apply forces on player
+                Physics::apply_gravity(&mut player, angle, low_grav);
+                Physics::apply_friction(&mut player, angle, 0.2);
+        
+                //update player attributes
                 player.update_pos(current_ground, angle, game_over);
                 player.update_vel();
                 player.flip();
+    
 
                 for o in obstacles.iter_mut() {
-                    //Physics::apply_gravity(&mut o, angle);
-                   // Physics::apply_friction(&mut o,angle, 1.0);
-                    o.update_vel(); //these args do nothing
-                    o.update_pos(Point::new(0, 0), 15.0, false); //the 3 makes the obstacle spin
-                    //keeps obstacle from falling off map, but will not end game if it collides at odd angle
-                    //o.collide_terrain(current_ground, angle);
+                    //NEEDS TO BE GROUND UNDER PLAYERS X POSITION (this is currently wrong)
+                    let obstacle_ground = Point::new(
+                        o.x() + TILE_SIZE as i32,
+                        CAM_H as i32
+                            - bg[2][(o.x() as usize) / (CAM_W / SIZE as u32) as usize] as i32,
+                    );
+                    //works bc all static obstacles (unitl collision, so we dont need to apply forces)
+                    //will not work for dyanmic obstacles (need collide_terrain to work for dyamic obstacles to be possible)
+                    if(o.collided()){
+                        o.collide_terrain(obstacle_ground, angle);  //should keep obstacle from falling off map (if proper ground can be detected)
+                        Physics::apply_gravity(o, angle, false);
+                        //Physics::apply_friction(&mut o,angle, 1.0);
+                    }
+                    
+                    //update obstacle attributes
+                    o.update_vel();
+                    o.update_pos(Point::new(0, 0), 15.0, false); //these args do nothing
+                    
+                    //DEBUG OBSTACLE 
+                    /*
+                    println!(
+                        "Obstacle px:{} py:{}  vx:{} ax:{} ay:{} on ground? {} delete? {}",
+                        o.x(),
+                        o.y(),
+                        o.vel_x(),
+                        o.accel_x(),
+                        o.accel_y(),
+                        o.is_onground(),
+                        o.delete_me,
+                    );*/
                 }
                 
 
-                //kinematics change, scroll speed does not :(
-                //can see best when super curvy map generated
-                /*  println!(
-                    "px:{}  vx:{} ax:{} ay:{}",
+                //DEBUG PLAYER
+                
+                println!(
+                    "angle: {} sin {} cos {} px:{}  vx:{} ax:{} ay:{} on ground? {}",
+                    angle,
+                    angle.sin(),
+                    angle.cos(),
                     player.x(),
                     player.vel_x(),
                     player.accel_x(),
                     player.accel_y(),
-                ); */
+                    player.is_onground(),
+                ); 
 
                 if !player.collide_terrain(current_ground, angle) {
                     game_over = true;
@@ -556,9 +575,9 @@ impl Game for Runner {
                         buff_idx += 1;
 
                         if (ground_buffer[ground_buffer.len() - 1] == (1.0, 1.0)) {
-                            println!("Bouncy!");
+                            //println!("Bouncy!");
                         } else {
-                            println!("Not Bouncy!");
+                            //println!("Not Bouncy!");
                         }
                     }
 
@@ -640,8 +659,18 @@ impl Game for Runner {
                                 let obstacle = Obstacle::new(
                                     rect!(0, 0, 0, 0),
                                     1.0,
-                                    texture_creator.load_texture("assets/temp_spring.jpg")?,
+                                    texture_creator.load_texture("assets/temp_spring.png")?,
                                     ObstacleType::Spring,
+                                );
+                                obstacles.push(obstacle);
+                                object_count -= 1;
+                            }
+                            Some(StaticObject::Box) => {
+                                let obstacle = Obstacle::new(
+                                    rect!(0, 0, 0, 0),
+                                    4.0,
+                                    texture_creator.load_texture("assets/box.png")?,
+                                    ObstacleType::Box,
                                 );
                                 obstacles.push(obstacle);
                                 object_count -= 1;
@@ -674,6 +703,7 @@ impl Game for Runner {
                                     //this is hacky & dumb (will only work if one obstacle spawned at a time)
                                     if !s.collided() && s.mass > 1.0 {
                                         //once it collides we can't draw it like this
+                                        s.spawned = true;
                                         s.hitbox = rect!(
                                             object_spawn * CAM_W as usize / SIZE
                                                 + CAM_W as usize / SIZE / 2,
@@ -707,6 +737,7 @@ impl Game for Runner {
                                 //update physics obstacle position
                                 for s in obstacles.iter_mut() {
                                     //this is hacky & dumb (will only work if one obstacle spawned at a time)
+                                    s.spawned = true;
                                     if !s.collided() && s.mass < 2.0 {
                                         //gaurantees spring for now
                                         //once it collides we can't draw it like this
@@ -718,6 +749,27 @@ impl Game for Runner {
                                                 - (TILE_SIZE / 4) as i16),
                                             TILE_SIZE,
                                             TILE_SIZE / 4
+                                        );
+                                        s.pos = (s.hitbox.x() as f64, s.hitbox.y() as f64);
+                                    }
+                                }
+                            }
+                            Some(proceduralgen::StaticObject::Box) => {
+                                //update physics obstacle position
+                                for s in obstacles.iter_mut() {
+                                    s.spawned = true;
+                                    //this is hacky & dumb (will only work if one obstacle spawned at a time)
+                                    if !s.collided() && s.mass < 6.0 && s.mass > 2.0 {
+                                        //gaurantees spring for now
+                                        //once it collides we can't draw it like this
+                                        s.hitbox = rect!(
+                                            object_spawn * CAM_W as usize / SIZE
+                                                + CAM_W as usize / SIZE / 2,
+                                            (CAM_H as i16
+                                                - bg[GROUND_INDEX][object_spawn]
+                                                - TILE_SIZE as i16),
+                                            TILE_SIZE,
+                                            TILE_SIZE
                                         );
                                         s.pos = (s.hitbox.x() as f64, s.hitbox.y() as f64);
                                     }
@@ -956,7 +1008,7 @@ impl Game for Runner {
                 // Draw obstacles
                 for o in obstacles.iter_mut() {
                     //draw obstacle if on screen, if not delete it from the vector
-                    if (o.x() > 20 && o.y() > 20 && o.y() < CAM_H as i32) {
+                    if (o.spawned && o.x() > 15 && o.y() > 0 && o.y() < CAM_H as i32) {
                         //hacky - will not work if more than one obstacle spawned
                         //println!("XXXXX ypos{} vyo{} ayo{}  ", o.pos.1, o.velocity.1, o.accel.1 );
                         match o.o_type {
@@ -987,22 +1039,33 @@ impl Game for Runner {
                                 core.wincan.set_draw_color(Color::BLUE);
                                 core.wincan.draw_rect(o.hitbox())?;
                             }
+                            ObstacleType::Box => {
+                                core.wincan.copy_ex(
+                                    o.texture(),
+                                    None,
+                                    rect!(o.pos.0, o.pos.1, TILE_SIZE, TILE_SIZE),
+                                    o.theta(),
+                                    None,
+                                    false,
+                                    false,
+                                )?;
+                                core.wincan.set_draw_color(Color::BLUE);
+                                core.wincan.draw_rect(o.hitbox())?;
+                            }
                             _ => {}
                         }
                     }
                     else{
-                        o.delete_me = true;
+                        if(o.spawned) {o.delete_me = true;}
                         //object_count-= 1;
                     }
-                    if(o.collided() && o.x() > CAM_W as i32){   //if it collided & goes off screen right
-                        o.delete_me = true;
-                    }
+                    
                     i+=1;
                 }
 
                 //only keep obstacles that dont want deleted
                 //see above but they "want deleted" bc they are now off screen
-                obstacles.retain(|o| o.delete_me);
+                obstacles.retain(|o| !o.delete_me);
 
                 //Draw coins
                 for c in coins.iter() {

@@ -43,41 +43,32 @@ impl Physics {
     }
     //applies gravity, normal & friction forces
     //depends on whether or not player is on ground
-    pub fn apply_gravity<'a>(body: &mut impl Body<'a>, angle: f64) {
-        //onground --> apply gravity in x & y direction based on angle of the ground
-        //Note: "angle" is positive going downhill & negative going uphill
-        //---- but we always need a negative force in y direction...
+    pub fn apply_gravity<'a>(body: &mut impl Body<'a>, angle: f64, low_grav: bool) {
 
-        if body.is_onground() {
-            // -angle
-            //apply gravity in -x & -y
-            if(angle<0.0){
-                //gravity
-                body.apply_force((body.mass() * angle.sin(), body.mass() * angle.cos()));
-                //normal
-                body.apply_force((-body.mass() * angle.sin(), -body.mass() * angle.cos()));
-            }
-            else{
-                //gravity
+        if body.is_onground() { //body is on ground
+           
+            if(angle<0.0){  // -angle (uphill)
+                //gravity (-x,-y)   (cos is always + )
                 body.apply_force((-body.mass() * angle.sin(), -body.mass() * angle.cos()));
                 //normal
-                body.apply_force((body.mass() * angle.sin(), body.mass() * angle.cos()));
+                //body.apply_force((-body.mass() * angle.sin(), -body.mass() * angle.cos()));
             }
-            
-            
-            //apply grav in -y
-            //body.apply_force((0.0, -body.mass()));
+            else{ //+ angle (downhill)
+                //gravity (+x,-y)
+                body.apply_force((body.mass() * angle.sin(), -body.mass() * angle.cos()));
+                //normal 
+                //body.apply_force((body.mass() * angle.sin(), body.mass() * angle.cos()));
+            }
 
-            //apply normal (force positive)
-            // body.apply_force((0.0, -body.mass() * angle.cos()));
-            //apply normal in -x & +y
-            // The y direction force here should be 0; the normal force in the y direction
-           // body.apply_force((-body.mass() * angle.sin(), -body.mass() * angle.cos()));
-
-        } else {
-            //player in the air
+        } else { //body is in the air
             //apply entirity of gravity force in -y direction (bc player not on ground)
-            body.apply_force((0.0, -body.mass()));
+            if(low_grav){   //player has "wings" powerup
+                //apply 2/3 the usual force 
+                body.apply_force((0.0, -2.0*body.mass()/3.0));
+            }
+            else{           //no power up
+                body.apply_force((0.0, -body.mass()));
+            }
             //no normal, no friction, bc in air
         }
     }
@@ -318,6 +309,7 @@ pub struct Player<'a> {
     jumping: bool,
     flipping: bool,
     onground: bool,
+    second_jump: bool,
 }
 
 impl<'a> Player<'a> {
@@ -335,6 +327,7 @@ impl<'a> Player<'a> {
             jumping: false,
             flipping: false,
             onground: false,
+            second_jump:false,
             //normal: 0,
         }
     }
@@ -375,25 +368,41 @@ impl<'a> Player<'a> {
     }
 
     // Returns true if a jump was initiated
-    pub fn jump(&mut self, ground: Point, bouncy: bool) -> bool {
+    pub fn jump(&mut self, ground: Point, bouncy: bool, cancel: bool) -> bool {
         // Bouncy will not set flipping to true by default if true
         // Change is a way to change height of jump depending on value
+        print!("JUMP");
         if bouncy {
             if self.hitbox.contains_point(ground) {
-                self.velocity.1 = 25.0;
+                
+                self.apply_force((0.0, 100.0));
+
                 self.jumping = true;
                 self.onground = false;
 
                 self.omega = OMEGA;
                 self.flipping = false;
 
-                true
-            } else {
-                false
+                //true
             }
-        } else {
+            else if !self.onground && !self.second_jump && !cancel{
+                self.apply_force((0.0, 20.0));
+                print!("DOUBLE JUMP");
+                self.jumping = true;
+                self.onground = false;
+                self.second_jump = true;
+
+                self.omega = OMEGA;
+                self.flipping = false;
+                //true
+                //false
+            }  
+            true
+        }
+        else {
             if self.hitbox.contains_point(ground) {
-                self.velocity.1 = 25.0;
+                self.apply_force((0.0, 80.0));
+                
                 self.jumping = true;
                 self.onground = false;
 
@@ -401,8 +410,15 @@ impl<'a> Player<'a> {
                 self.flipping = true;
 
                 true
-            } else {
-                false
+            } else { 
+                self.apply_force((0.0, 20.0));
+                
+                self.jumping = true;
+                self.onground = false;
+
+                self.omega = OMEGA;
+                self.flipping = true;
+                true
             }
         }
     }
@@ -443,9 +459,10 @@ impl<'a> Player<'a> {
             self.align_hitbox_to_pos();
             self.jumping = false;
             self.onground = true;
+            self.second_jump = false;
 
             // This is normal force ... is this being applied twice in our code?
-            self.apply_force((0.0, self.mass()));
+            //self.apply_force((0.0, self.mass()));
 
             self.omega = 0.0;
 
@@ -561,7 +578,6 @@ impl<'a> Collider<'a> for Player<'a> {
     }
 
     fn collide(&mut self, obstacle: &mut Obstacle, hitboxes: (Rect, Rect), shielded: bool) -> bool {
-        let mut result = false;
 
         // if the collision box is taller than it is wide, the player hit the side of the object
         if (hitboxes.0.intersection(hitboxes.1).unwrap().height()
@@ -570,7 +586,7 @@ impl<'a> Collider<'a> for Player<'a> {
             println!("collided with side of obstacle");
 
             // no matter what the obstacle's type is, flag it as having collided
-            obstacle.collided = true;
+            
             /********** ELASTIC COLLISION CALCULATION **********/
             // https://en.wikipedia.org/wiki/Elastic_collision#One-dimensional_Newtonian
             // Assumed object has velocity (0,0)
@@ -593,47 +609,66 @@ impl<'a> Collider<'a> for Player<'a> {
             // println!("\tplayer initial velocity: ({},{})", p_vx, p_vy);
             // println!("\tobject initial velocity: ({},{})", 0, 0);
             // println!("\tangle from player to object in rads: {}", angle);
-            //println!("\tplayer final velocity({},{})", p_vx_f, p_vy_f);
+            println!("\tplayer final velocity({},{})", p_vx_f, p_vy_f);
             //println!("\tobject final velocity({},{})", o_vx_f, o_vy_f);
-            obstacle.velocity.0 = o_vx_f;
-            obstacle.velocity.1 = o_vy_f;
+            //obstacle.velocity.0 = o_vx_f;
+            //obstacle.velocity.1 = o_vy_f;
             // if o_vy_f >= 0.0 || !obstacle.is_onground() {
             //     obstacle.velocity.1 = o_vy_f;
             // }
             // Implicitly apply the force of collision to the obstacle by updating its x and y velocity to the values calculated from the collision equation
             // Unsure of what this does, but it seems like it moves the player back one tile upon collision so as not to have intersecting hitboxes
-            self.pos.0 = (obstacle.x() as f64 - 1.05 * TILE_SIZE);
+           // self.pos.0 = (obstacle.x() as f64 - 1.05 * TILE_SIZE);
             // Update the player's displayed position to the new "bumped back" value
-            self.align_hitbox_to_pos();
+           // self.align_hitbox_to_pos();
             // Implicitly apply the force of collision to the player by updating its x and y velocity to the values calculated from the collision equation
-            self.velocity.0 = p_vx_f;
-            self.velocity.1 = p_vy_f;
-            Physics::apply_gravity(obstacle, angle);
+           // self.velocity.0 = p_vx_f;
+           // self.velocity.1 = p_vy_f;
+            //Physics::apply_gravity(obstacle, angle, false);
             /***************************************************/
             match obstacle.o_type {
                 ObstacleType::Statue => {
                     if shielded {
+                        println!("SHIELED STATUE COLLISION");
                         //player has shield
-
-                        //self.align_hitbox_to_pos();
-                        //other.pos.0 = 6.5;
-
-                        self.velocity.0 = p_vx_f;
-                        self.velocity.1 = p_vy_f;
-                        // obstacle.apply_force((-0.4, 1.0));
+                        obstacle.collided = true;
+                        //obstacle.apply_force((self.mass()*self.accel_x()*angle.sin(), self.mass()*self.accel_y()*angle.cos()));
                         obstacle.velocity.0 = o_vx_f;
                         obstacle.velocity.1 = o_vy_f;
                         //println!("ayOb{}", Obstacle.accel_y());
-                        //.0 = o_vx_f;
                         true
                     } else {
                         //player does not have shield
+                        println!("STATUE COLLISION");
                         //obstacle.apply_force((-0.4, 1.0));
-                        false
+                        //set obrac;e
+                        obstacle.collided = true;
+                        obstacle.velocity.0 = o_vx_f;
+                        obstacle.velocity.1 = o_vy_f;
+                        //obstacle.apply_force((self.mass()*self.accel_x(), self.mass()*self.accel_y()));
+                        self.velocity.0 = p_vx_f;
+                        self.velocity.1 = p_vy_f;
+                        //self.apply_force((obstacle.mass()*self.accel_x(), obstacle.mass()*self.accel_y()));
+                        self.align_hitbox_to_pos();
+                        false //UNDO
                     }
                 }
                 ObstacleType::Spring => {
-                    print!("Spring");
+                    self.apply_force((0.0,500.0));    //I say jump even if side of spring is hit (bc way too hard to hit top)
+                    self.jumping = true;
+                    true
+                }
+                ObstacleType::Box => { //no death
+                    obstacle.collided = true;
+                    println!("BOX COLLISION");
+                    obstacle.velocity.0 = o_vx_f;
+                    obstacle.velocity.1 = o_vy_f;
+                    //obstacle.apply_force((self.mass()*self.accel_x(), self.mass()*self.accel_y()));
+                    self.velocity.0 = p_vx_f;
+                    self.velocity.1 = p_vy_f;
+                    //obstacle.apply_force((self.mass()*self.accel_x(), self.mass()*self.accel_y()));
+                    //self.apply_force((obstacle.mass()*self.accel_x(), obstacle.mass()*self.accel_y()));
+                    self.align_hitbox_to_pos();
                     true
                 }
                 _ => true,
@@ -653,29 +688,33 @@ impl<'a> Collider<'a> for Player<'a> {
             // println!("collided with top of obstacle");
             match obstacle.o_type {
                 ObstacleType::Statue => {
-                    self.pos.1 = (obstacle.y() as f64 - 0.95 * (TILE_SIZE as f64));
+                    //self.pos.1 = (obstacle.y() as f64 - 0.95 * (TILE_SIZE as f64));
                     self.align_hitbox_to_pos();
                     self.velocity.1 = 0.0;
                     self.jumping = false;
-                    self.apply_force((0.0, self.mass()));
-                    self.omega = 0.0;
+                    //self.apply_force((0.0, -self.mass()*self.accel_y()));
+                    //self.omega = 0.0;
+                    self.align_hitbox_to_pos();
+                    true //not game ending
                 }
                 ObstacleType::Spring => {
-                    self.set_y_vel_temp(25.0);
+                    self.apply_force((0.0,500.0));    //jump
+                    self.jumping = true;
+                    true
+                }
+                ObstacleType::Box => {  //non lethal collisionw
+                    //self.apply_force((0.0,500.0));    
+                    true
                 }
             }
-            if self.theta() < OMEGA * 6.0 || self.theta() > 360.0 - OMEGA * 6.0 {
-                self.theta = 0.0;
-                // Add Hooke's law bounce here
-                true
-            } else {
-                false
-            }
-        } else {
+
+        }
+        else{
             true
         }
     }
 }
+
 
 impl<'a> Body<'a> for Player<'a> {
     fn mass(&self) -> f64 {
@@ -751,11 +790,13 @@ pub struct Obstacle<'a> {
     flipping: bool,
     collided: bool,
     pub delete_me: bool,
+    pub spawned: bool,
 }
 
 pub enum ObstacleType {
     Statue,
     Spring,
+    Box,
 }
 
 /// #TODO
@@ -783,22 +824,26 @@ impl<'a> Obstacle<'a> {
             flipping: false,
             collided: false,
             delete_me: false,
+            spawned: false,
         }
     }
 
+    //when proper ground being detected, the purpose of this fn will 
+    //be to keep obstacles from falling off the map
     pub fn collide_terrain(&mut self, ground: Point, angle: f64){
         if self.hitbox.contains_point(ground) {
-            
+            println!("ON GROUND");
             self.velocity.1 = 0.0;
+            self.onground = true;
             
             self.pos.1 = (ground.y() as f64) - 0.95 * TILE_SIZE;
             self.align_hitbox_to_pos();
 
-            // This is normal force ... is this being applied twice in our code?
-            self.apply_force((0.0, self.mass()));
         }
-
-
+        else{
+            println!("NOT ON GROUND");
+            self.onground = false;
+        }
     }
 
     pub fn mass(&self) -> f64 {
@@ -962,8 +1007,8 @@ impl<'a> Body<'a> for Obstacle<'a> {
     // Should we take in force as a magnitude and an angle? Makes the friction
     // calculation above simpler
     fn apply_force(&mut self, force: (f64, f64)) {
-        self.accel.0 += (force.0 / self.mass);//.clamp(-2.0,2.0);
-        self.accel.1 += (force.0 / self.mass);//.clamp(-1.0,2.0);
+        self.accel.0 += (force.0 / self.mass).clamp(-2.0,2.0);
+        self.accel.1 += (force.1 / self.mass).clamp(-1.0,2.0);
 
     }
 
