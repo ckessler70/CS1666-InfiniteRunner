@@ -1,3 +1,7 @@
+use inf_runner::PowerType;
+use inf_runner::StaticObject;
+use inf_runner::TerrainType;
+
 use crate::physics::Power;
 use crate::rect;
 
@@ -35,32 +39,6 @@ pub struct TerrainSegment {
                                               * downward on average */
     terrain_type: TerrainType,
     color: Color,
-}
-
-// Contains all types of terrain
-pub enum TerrainType {
-    Grass,
-    Asphalt,
-    Sand,
-    Water,
-}
-
-// Contains all types of objects generated on terrain
-#[derive(Debug)]
-pub enum StaticObject {
-    Coin,
-    Statue,
-    Power,
-    Spring,
-}
-
-// Contains all types of power ups
-pub enum Powers {
-    SpeedBoost,
-    ScoreMultiplier,
-    BouncyShoes,
-    LowerGravity,
-    Shield,
 }
 
 // Terrain Segment Definitions
@@ -993,14 +971,14 @@ pub fn choose_static_object() -> StaticObject {
  *  - Returns a random PowerUp
  */
 // Probably shouldn't be pub when call is moved to procgen.rs
-pub fn choose_power_up() -> Powers {
+pub fn choose_power_up() -> PowerType {
     let mut rng = rand::thread_rng();
     match rng.gen_range(0..=4) {
         // rand 0.8
-        0 => Powers::SpeedBoost,
-        1 => Powers::ScoreMultiplier,
-        2 => Powers::BouncyShoes,
-        3 => Powers::LowerGravity,
-        _ => Powers::Shield,
+        0 => PowerType::SpeedBoost,
+        1 => PowerType::ScoreMultiplier,
+        2 => PowerType::BouncyShoes,
+        3 => PowerType::LowerGravity,
+        _ => PowerType::Shield,
     }
 }

@@ -1,8 +1,10 @@
+use inf_runner::ObstacleType;
 // use crate::rect;
 use sdl2::rect::Point;
 use sdl2::rect::Rect;
 use sdl2::render::Texture;
 
+use crate::proceduralgen;
 use crate::runner::TILE_SIZE as InitTILE_SIZE;
 use std::f64::consts::PI;
 use std::num;
@@ -725,7 +727,7 @@ pub struct Obstacle<'a> {
     pub velocity: (f64, f64),
     pub accel: (f64, f64),
     pub hitbox: Rect,
-    pub o_type: ObstacleType,
+    pub obstacle_type: ObstacleType,
 
     pub mass: f64,
     texture: Texture<'a>,
@@ -739,11 +741,6 @@ pub struct Obstacle<'a> {
     jumping: bool,
     flipping: bool,
     collided: bool,
-}
-
-pub enum ObstacleType {
-    Statue,
-    Spring,
 }
 
 /// #TODO
@@ -1052,7 +1049,7 @@ pub struct Power<'a> {
     pub pos: Rect,
     texture: Texture<'a>,
     pub collected: bool,
-    // pub power_type: Option<proceduralgen::Powers> = None;
+    pub power_type: Option<inf_runner::Powers>,
 }
 
 impl<'a> Power<'a> {
@@ -1061,6 +1058,7 @@ impl<'a> Power<'a> {
             pos,
             texture,
             collected: false,
+            power_type: None,
         }
     }
 
