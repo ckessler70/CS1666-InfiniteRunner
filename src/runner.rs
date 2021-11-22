@@ -1083,7 +1083,7 @@ impl Game for Runner {
                 for ground in all_terrain.iter() {
                     if (screen_x >= ground.x()) & (screen_x <= ground.x() + ground.w()) {
                         let point_ind: usize = (screen_x - ground.x()) as usize;
-                        let coords: (i32, i32) = *ground.curve().get(point_ind).unwrap();
+                        return *ground.curve().get(point_ind).unwrap();
                     }
                 }
                 return Point::new(-1, -1);
