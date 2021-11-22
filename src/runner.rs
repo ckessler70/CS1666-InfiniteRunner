@@ -31,8 +31,6 @@ use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Point;
 use sdl2::rect::Rect;
-// use sdl2::render::Texture;
-use sdl2::render::TextureQuery;
 
 use rand::{
     distributions::{Distribution, Standard},
@@ -83,17 +81,12 @@ impl Game for Runner {
         let tex_bg = texture_creator.load_texture("assets/bg.png")?;
         let tex_sky = texture_creator.load_texture("assets/sky.png")?;
         let tex_grad = texture_creator.load_texture("assets/sunset_gradient.png")?;
-        let tex_statue = texture_creator.load_texture("assets/statue.png")?;
-        let tex_coin = texture_creator.load_texture("assets/coin.gif")?;
 
         let tex_speed = texture_creator.load_texture("assets/speed.png")?;
         let tex_multiplier = texture_creator.load_texture("assets/multiplier.png")?;
         let tex_bouncy = texture_creator.load_texture("assets/bouncy.png")?;
         let tex_floaty = texture_creator.load_texture("assets/floaty.png")?;
         let tex_shield = texture_creator.load_texture("assets/shield.png")?;
-        //power up bools
-        let mut shielded = false;
-        let mut low_grav = false;
         let shielded_player = texture_creator.load_texture("assets/shielded_player.png")?;
 
         let mut bg_buff = 0;
@@ -146,8 +139,6 @@ impl Game for Runner {
         let mut object_count: i32 = 0;
 
         let mut object = None;
-
-        let mut next_power: Option<PowerType> = None;
 
         // bg[0] = Front hills
         // bg[1] = Back hills
@@ -365,62 +356,62 @@ impl Game for Runner {
                 }
 
                 // Apply bouncy shoes, if applicable
+                // Effectively just repeated jumps, independent of player input
                 if let Some(PowerType::BouncyShoes) = player.power_up() {
                     if !player.is_jumping() {
                         player.jump(current_ground);
                     }
                 }
 
+                // If the player doesn't land on ther feet, end game
                 if !Physics::check_player_upright(&player, angle, current_ground) {
                     game_over = true;
                     initial_pause = true;
                 }
 
+                // Check through all collisions with obstacles
+                // End game if crash occurs
                 for o in obstacles.iter_mut() {
                     if Physics::check_collision(&mut player, o) {
-                        if !player.collide_obstacle(o) {
+                        if player.collide_obstacle(o) {
                             game_over = true;
                             initial_pause = true;
                         }
                     }
                 }
 
+                // Check for coin collection
+                // Add to score if collected
                 for c in coins.iter_mut() {
-                    //check collection
                     if Physics::check_collision(&mut player, c) {
-                        if !c.collected() {
-                            //so you only collect each coin once
-                            c.collect(); //deletes the coin once collected (but takes too long)
+                        if player.collide_coin(c) {
                             coin_count += 1;
                             tick_score += c.value(); //increments the score based on the coins value
-                                                     //maybe print next to score: "+ c.value()""
                         }
-
-                        continue;
                     }
                 }
 
+                // Check for powerup pickups
+                // Apply to player and begin countdown if picked up
                 for p in powers.iter_mut() {
                     if Physics::check_collision(&mut player, p) {
-                        if !p.collected() {
-                            player.set_power_up(Some(p.power_type()));
-                            p.collect();
+                        if player.collide_power(p) {
                             power_tick = 360;
                         }
-                        continue;
                     }
                 }
 
-                //apply forces on player
+                // Apply forces on player
                 let current_power = player.power_up();
                 Physics::apply_terrain_forces(
+                    // Gravity, normal, and friction
                     &mut player,
                     angle,
                     current_ground,
                     0.2,
                     current_power,
                 );
-                Physics::apply_skate_force(&mut player, angle, current_ground);
+                Physics::apply_skate_force(&mut player, angle, current_ground); // Propel forward
 
                 //update player attributes
                 player.update_pos(current_ground, angle, game_over);
@@ -429,6 +420,7 @@ impl Game for Runner {
 
                 // apply forces to obstacles
                 for o in obstacles.iter_mut() {
+                    // Only actually apply forces after a collision occurs
                     if o.collided() {
                         let object_ground = Point::new(
                             o.x(),
@@ -436,7 +428,9 @@ impl Game for Runner {
                                 - bg[2][(o.x() as usize) / (CAM_W / SIZE as u32) as usize] as i32,
                         );
 
-                        Physics::apply_terrain_forces(o, angle, object_ground, 0.0, None);
+                        // Very small friction coefficient because there's no
+                        // "skate force" to counteract friction
+                        Physics::apply_terrain_forces(o, angle, object_ground, 0.01, None);
                         o.update_pos(object_ground, angle, game_over);
                         o.update_vel();
                     }
@@ -852,7 +846,7 @@ impl Game for Runner {
 
                 // Draw player
                 // Ideally draw offset could be part of position calculations, and that var could be removed from the second rect
-                if shielded {
+                if let Some(PowerType::Shield) = player.power_up() {
                     core.wincan.copy_ex(
                         &shielded_player,
                         rect!(src_x, 0, TILE_SIZE, TILE_SIZE),
@@ -895,7 +889,6 @@ impl Game for Runner {
                 }
                 */
                 core.wincan.draw_rect(player.hitbox())?;
-                let mut i: usize = 0;
                 // Draw obstacles
                 for o in obstacles.iter_mut() {
                     //draw obstacle if on screen, if not delete it from the vector
@@ -943,7 +936,6 @@ impl Game for Runner {
                                 core.wincan.set_draw_color(Color::BLUE);
                                 core.wincan.draw_rect(o.hitbox())?;
                             }
-                            _ => {}
                         }
                     } else {
                         if (o.spawned) {
@@ -951,8 +943,6 @@ impl Game for Runner {
                         }
                         //object_count-= 1;
                     }
-
-                    i += 1;
                 }
 
                 //only keep obstacles that dont want deleted

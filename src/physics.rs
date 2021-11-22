@@ -3,11 +3,8 @@ use sdl2::rect::Point;
 use sdl2::rect::Rect;
 use sdl2::render::Texture;
 
-use crate::rect;
 use crate::runner::TILE_SIZE as InitTILE_SIZE;
-use std::any::Any;
 use std::f64::consts::PI;
-use std::num;
 
 const LOWER_SPEED: f64 = -5.0;
 const UPPER_SPEED: f64 = 5.0;
@@ -67,7 +64,7 @@ impl Physics {
         // If body is on ground, apply normal
         if body.hitbox().contains_point(ground) {
             // Land on ground
-            if body.vel_y() < 0.0 {
+            if body.vel_y() < 0.0 || (body.x() as f64 + 0.9 * TILE_SIZE) > ground.y() as f64 {
                 body.hard_set_pos((body.x() as f64, ground.y() as f64 - 0.95 * TILE_SIZE));
                 body.hard_set_vel((body.vel_x(), 0.0));
                 body.align_hitbox_to_pos();
@@ -89,14 +86,15 @@ impl Physics {
                 ));
             }
             // Else if body is on ground and STILL, apply STATIC FRICTION
-            else {
-                // (+x, +y) on an uphill
-                // (-x, +y) on a downhill
-                body.apply_force((
-                    -angle.signum() * body.mass() * g * angle.cos(),
-                    angle.signum() * body.mass() * g * angle.sin(),
-                ));
-            }
+            // NOTE: This might be unnecessary
+            // else {
+            //     // (+x, +y) on an uphill
+            //     // (-x, +y) on a downhill
+            //     body.apply_force((
+            //         -angle.signum() * body.mass() * g * angle.cos(),
+            //         angle.signum() * body.mass() * g * angle.sin(),
+            //     ));
+            // }
         }
     }
 
@@ -106,10 +104,10 @@ impl Physics {
     // Returns: None
     pub fn apply_skate_force(player: &mut Player, angle: f64, ground: Point) {
         // Skate force
-        let mut skate_force = 1.0 / 5.0 * player.mass();
+        let mut skate_force = 1.5 / 5.0 * player.mass();
         if let Some(PowerType::SpeedBoost) = player.power_up() {
             // Speed up with powerup
-            skate_force = 2.0 / 5.0 * player.mass();
+            skate_force = 2.5 / 5.0 * player.mass();
         }
 
         if player.hitbox().contains_point(ground) {
@@ -126,7 +124,6 @@ impl Physics {
     pub fn apply_bounce<'a>(player: &mut Player, body: &impl Body<'a>) {
         // Spring force constant
         let k = 0.2;
-        println!("here");
 
         // Find how far player has depressed the spring
         let intersection = player.hitbox().intersection(body.hitbox());
@@ -135,7 +132,6 @@ impl Physics {
         if let Some(overlap) = intersection {
             let displacement = overlap.y() as f64;
             // Force is always upwards
-            println!("applying force");
             player.apply_force((0.0, k * displacement));
         }
     }
@@ -182,7 +178,8 @@ pub trait Entity<'a> {
     }
 
     fn hitbox(&self) -> Rect;
-    fn align_hitbox_to_pos(&mut self);
+    fn align_hitbox_to_pos(&mut self); // After the pos is set with f64s, this method moves hitbox
+                                       // to proper SDL coordinates using i32s
 }
 
 pub trait Body<'a>: Entity<'a> {
@@ -192,12 +189,12 @@ pub trait Body<'a>: Entity<'a> {
         self.mass() * radius * radius
     }
     fn update_pos(&mut self, ground: Point, angle: f64, game_over: bool);
-    fn hard_set_pos(&mut self, pos: (f64, f64));
+    fn hard_set_pos(&mut self, pos: (f64, f64)); // Official method to hardcode position
 
     fn vel_x(&self) -> f64;
     fn vel_y(&self) -> f64;
     fn update_vel(&mut self);
-    fn hard_set_vel(&mut self, vel: (f64, f64));
+    fn hard_set_vel(&mut self, vel: (f64, f64)); // Official method to hardcode velocity
 
     fn accel_x(&self) -> f64;
     fn accel_y(&self) -> f64;
@@ -267,10 +264,12 @@ impl<'a> Player<'a> {
         self.flipping
     }
 
+    // Returns specific power-up player has, or None if player hasn't collected a power-up
     pub fn power_up(&self) -> Option<PowerType> {
         self.power_up
     }
 
+    // Setter for power-up
     pub fn set_power_up(&mut self, power_up: Option<PowerType>) {
         self.power_up = power_up;
     }
@@ -290,8 +289,10 @@ impl<'a> Player<'a> {
     // Returns true if a jump was initiated
     pub fn jump(&mut self, ground: Point) -> bool {
         if self.hitbox().contains_point(ground) {
+            // Starting from the position of the ground
             self.hard_set_pos((self.pos.0, ground.y() as f64 - TILE_SIZE));
             self.align_hitbox_to_pos();
+            // Apply upward force
             self.apply_force((0.0, 100.0));
             self.jumping = true;
             true
@@ -306,9 +307,13 @@ impl<'a> Player<'a> {
         }
     }
 
+    // Handles collisions with player and any type of obstacle
+    // Params: obstacle to collide with
+    // Returns: true if real game-ending collision occurs, false otherwise
     pub fn collide_obstacle(&mut self, obstacle: &mut Obstacle) -> bool {
         let mut shielded = false;
         if let Some(PowerType::Shield) = self.power_up() {
+            // Put on shield if applicable
             shielded = true;
         }
 
@@ -324,59 +329,62 @@ impl<'a> Player<'a> {
                 .unwrap()
                 .width())
         {
-            /********** ELASTIC COLLISION CALCULATION **********/
-            // https://en.wikipedia.org/wiki/Elastic_collision#One-dimensional_Newtonian
-            // Assumed object has velocity (0,0)
-            // Assumed player has velocity (vx,vy)
-            let angle = ((self.center().y() - obstacle.center().y()) as f64
-                / (self.center().x() - obstacle.center().x()) as f64)
-                .atan();
-            let p_mass = self.mass();
-            let o_mass = obstacle.mass();
-            let p_vx = self.velocity.0;
-            let p_vy = if self.jumping { self.velocity.1 } else { 0.0 };
-            let p_vx_f = 2.0 * (p_mass - o_mass) * (p_vx) / (p_mass + o_mass);
-            let p_vy_f = 2.0 * (p_mass - o_mass) * (p_vy) / (p_mass + o_mass);
-            let o_vx_f = 2.0 * (2.0 * p_mass) * (p_vx) / (p_mass + o_mass);
-            let o_vy_f = 2.0 * (2.0 * p_mass) * (p_vy) / (p_mass + o_mass);
-
-            println!("INTENDED TRAJECTORIES: ELASTIC COLLISION: ");
-            println!("\tplayer mass: {}", p_mass);
-            println!("\tobject mass: {}", o_mass);
-            println!("\tplayer initial velocity: ({},{})", p_vx, p_vy);
-            println!("\tobject initial velocity: ({},{})", 0, 0);
-            println!("\tangle from player to object in rads: {}", angle);
-            println!("\tplayer final velocity({},{})", p_vx_f, p_vy_f);
-            println!("\tobject final velocity({},{})", o_vx_f, o_vy_f);
-
-            /***************************************************/
+            // Response to collision dependent on type of obstacle
             match obstacle.obstacle_type {
+                // For statue and chest, elastic collision
                 ObstacleType::Statue | ObstacleType::Chest => {
-                    if shielded {
-                        true
+                    if shielded || obstacle.collided() {
+                        // If shielded or collision already happened, pretend nothing happened
+                        false
                     } else {
+                        /********** ELASTIC COLLISION CALCULATION **********/
+                        // https://en.wikipedia.org/wiki/Elastic_collision#One-dimensional_Newtonian
+                        // Assumed object has velocity (0,0)
+                        // Assumed player has velocity (vx,vy)
+                        let angle = ((self.center().y() - obstacle.center().y()) as f64
+                            / (self.center().x() - obstacle.center().x()) as f64)
+                            .atan();
+                        let p_mass = self.mass();
+                        let o_mass = obstacle.mass();
+                        let p_vx = self.velocity.0;
+                        let p_vy = if self.jumping { self.velocity.1 } else { 0.0 };
+                        let p_vx_f = 2.0 * (p_mass - o_mass) * (p_vx) / (p_mass + o_mass);
+                        let p_vy_f = 2.0 * (p_mass - o_mass) * (p_vy) / (p_mass + o_mass);
+                        let o_vx_f = 2.0 * (2.0 * p_mass) * (p_vx) / (p_mass + o_mass);
+                        let o_vy_f = 2.0 * (2.0 * p_mass) * (p_vy) / (p_mass + o_mass);
+
+                        // CALCULATE PLAYER AND OBJECT NEW OMEGAS HERE
+                        // Torque = r*F * sin(angle)
+                        // alpha = Torque/body.rotational_inertia()
+                        // For ease of calculation, just set omega = alpha
+
+                        /***************************************************/
+
                         // Move obstacle
                         obstacle.collided = true;
                         obstacle.hard_set_vel((o_vx_f, o_vy_f));
 
+                        // Move player
                         self.hard_set_vel((p_vx_f, p_vy_f));
                         self.hard_set_pos((
                             obstacle.x() as f64 - 1.05 * TILE_SIZE,
                             self.y() as f64,
                         ));
                         self.align_hitbox_to_pos();
-                        false
+                        true
                     }
                 }
-                ObstacleType::Spring => true,
-                _ => true,
+                // For spring, do nothing upon SIDE collision
+                ObstacleType::Spring => false,
             }
         }
         // if the collision box is wider than it is tall, the player hit the top of the object
         // don't apply the collision to the top of an object if the player is moving upward, otherwise they will "stick" to the top on the way up
-        else if self.is_jumping() && self.vel_y() < 0.0 {
+        else if self.vel_y() < 0.0 {
             match obstacle.obstacle_type {
-                ObstacleType::Statue | ObstacleType::Chest => {
+                // On top collision with chest, treat the chest as if it's normal ground
+                ObstacleType::Chest => {
+                    // obstacle.collided = true;
                     self.pos.1 = (obstacle.y() as f64 - 0.95 * (TILE_SIZE as f64));
                     self.align_hitbox_to_pos();
                     self.velocity.1 = 0.0;
@@ -386,25 +394,52 @@ impl<'a> Player<'a> {
 
                     if self.theta() < OMEGA * 6.0 || self.theta() > 360.0 - OMEGA * 6.0 {
                         self.theta = 0.0;
-                        Physics::apply_bounce(self, obstacle);
-                        true
-                    } else {
                         false
+                    } else {
+                        true
                     }
                 }
-                ObstacleType::Spring => {
+                // For irregularly shaped statue, player gets hurt and game over
+                ObstacleType::Statue => {
+                    // bounce for fun
                     Physics::apply_bounce(self, obstacle);
                     true
                 }
+                // For spring, bounce off with Hooke's law force
+                ObstacleType::Spring => {
+                    Physics::apply_bounce(self, obstacle);
+                    false
+                }
             }
         } else {
-            true
+            false
         }
     }
 
-    pub fn collide_coin(&mut self, obstacle: &mut Obstacle) {}
+    // Collects a coin
+    // Params: coin to collect
+    // Returns: true if coin has been collected, false otherwise (e.g. if it's been collected already)
+    pub fn collide_coin(&mut self, coin: &mut Coin) -> bool {
+        if !coin.collected() {
+            coin.collect();
+            true
+        } else {
+            false
+        }
+    }
 
-    pub fn collide_power(&mut self, obstacle: &mut Obstacle) {}
+    // Receives new power-up
+    // Params: power to use
+    // Returns:
+    pub fn collide_power(&mut self, power: &mut Power) -> bool {
+        if !power.collected() {
+            self.set_power_up(Some(power.power_type()));
+            power.collect();
+            true
+        } else {
+            false
+        }
+    }
 }
 
 impl<'a> Entity<'a> for Player<'a> {
@@ -429,12 +464,14 @@ impl<'a> Body<'a> for Player<'a> {
 
     fn update_pos(&mut self, ground: Point, angle: f64, game_over: bool) {
         // TEMPORARY: Player's x position is fixed until camera freezes on game ending
+        // Will change when camera follows player
         if game_over {
             self.pos.0 += self.vel_x();
         }
         self.pos.1 -= self.vel_y();
 
-        if self.hitbox.contains_point(ground) {
+        // Match the angle of the ground if on ground
+        if self.hitbox.contains_point(ground) && !game_over {
             self.theta = angle;
             if self.jumping {
                 self.jumping = false;
@@ -583,7 +620,7 @@ impl<'a> Body<'a> for Obstacle<'a> {
     }
 
     fn update_pos(&mut self, ground: Point, angle: f64, game_over: bool) {
-        if self.hitbox.contains_point(ground) {
+        if self.hitbox.contains_point(ground) && !game_over {
             self.theta = angle;
         }
 
