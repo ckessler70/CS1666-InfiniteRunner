@@ -368,6 +368,10 @@ impl Game for Runner {
                 }
 
                 /* ~~~~~~ Handle Player Collecting an Object ~~~~~~ */
+                /* ~~~~~~ Is it actually Handle Player Collisions? ~~~~~~ */
+
+                // Add back obstacle collisions?
+
                 // Remove coins if player collects them
                 let mut to_remove_ind: i32 = -1;
                 let mut counter = 0;
@@ -396,7 +400,6 @@ impl Game for Runner {
                     if Physics::check_power(&mut player, power) {
                         if !power.collected() {
                             to_remove_ind = counter;
-
                             match power.power_type {
                                 Some(PowerType::SpeedBoost) => {
                                     active_power = Some(PowerType::SpeedBoost);
@@ -522,10 +525,6 @@ impl Game for Runner {
                     initial_pause = true;
                     continue;
                 }
-
-                // What do these draw lines do and where are they actually supposed to be
-                core.wincan.set_draw_color(Color::RGBA(3, 120, 206, 255));
-                core.wincan.clear();
 
                 // Generate new terrain / objects if player hasn't died
                 if !game_over {
@@ -745,47 +744,47 @@ impl Game for Runner {
 
                     /* ~~~~~~ Remove stuff which is now offscreen ~~~~~~ */
                     // Terrain
-                    let mut ind: usize = 0;
+                    let mut ind: i32 = -1;
                     for ground in all_terrain.iter() {
                         if ground.x() + ground.w() <= 0 {
                             ind += 1;
                         }
                     }
                     for i in 0..ind {
-                        all_terrain.remove(i);
+                        all_terrain.remove(i as usize);
                     }
 
                     //  Obstacles
-                    ind = 0;
+                    ind = -1;
                     for obs in all_obstacles.iter() {
                         if obs.x() + TILE_SIZE as i32 <= 0 {
                             ind += 1;
                         }
                     }
                     for i in 0..ind {
-                        all_obstacles.remove(i);
+                        all_obstacles.remove(i as usize);
                     }
 
                     // Coins
-                    ind = 0;
+                    ind = -1;
                     for coin in all_coins.iter() {
                         if coin.x() + TILE_SIZE as i32 <= 0 {
                             ind += 1;
                         }
                     }
                     for i in 0..ind {
-                        all_coins.remove(i);
+                        all_coins.remove(i as usize);
                     }
 
                     // Power ups
-                    ind = 0;
+                    ind = -1;
                     for power in all_powers.iter_mut() {
                         if power.x() + TILE_SIZE as i32 <= 0 {
                             ind += 1;
                         }
                     }
                     for i in 0..ind {
-                        all_powers.remove(i);
+                        all_powers.remove(i as usize);
                     }
 
                     /* ~~~~~~ Animation Updates ~~~~~~ */
@@ -819,17 +818,13 @@ impl Game for Runner {
                     coin_anim %= 60;
 
                     /* ~~~~~~ Draw All Elements ~~~~~~ */
+                    // Wipe screen every frame
+                    core.wincan.set_draw_color(Color::RGBA(3, 120, 206, 255));
+                    core.wincan.clear();
+
+                    // Bottom layer of background, black skybox
                     core.wincan.set_draw_color(Color::RGBA(0, 0, 0, 255));
                     core.wincan.fill_rect(rect!(0, 470, CAM_W, CAM_H))?;
-
-                    // Background
-                    core.wincan
-                        .copy(&tex_bg, None, rect!(bg_buff, -150, CAM_W, CAM_H))?;
-                    core.wincan.copy(
-                        &tex_bg,
-                        None,
-                        rect!(bg_buff + (CAM_W as i32), -150, CAM_W, CAM_H),
-                    )?;
 
                     // Sky
                     core.wincan
@@ -843,6 +838,15 @@ impl Game for Runner {
                     // Sunset gradient - doesn't need to scroll left
                     core.wincan
                         .copy(&tex_grad, None, rect!(0, -128, CAM_W, CAM_H))?;
+
+                    // Background
+                    core.wincan
+                        .copy(&tex_bg, None, rect!(bg_buff, -150, CAM_W, CAM_H))?;
+                    core.wincan.copy(
+                        &tex_bg,
+                        None,
+                        rect!(bg_buff + (CAM_W as i32), -150, CAM_W, CAM_H),
+                    )?;
 
                     // Background perlin noise curves
                     for i in 0..background_curves[IND_BACKGROUND_MID].len() - 1 {
@@ -868,52 +872,54 @@ impl Game for Runner {
                     }
 
                     // Active Power HUD Display
-                    match active_power {
-                        Some(PowerType::SpeedBoost) => {
-                            core.wincan.copy(
-                                &tex_speed,
-                                None,
-                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                            )?;
+                    if active_power.is_some() {
+                        match active_power {
+                            Some(PowerType::SpeedBoost) => {
+                                core.wincan.copy(
+                                    &tex_speed,
+                                    None,
+                                    rect!(10, 100, TILE_SIZE, TILE_SIZE),
+                                )?;
+                            }
+                            Some(PowerType::ScoreMultiplier) => {
+                                core.wincan.copy(
+                                    &tex_multiplier,
+                                    None,
+                                    rect!(10, 100, TILE_SIZE, TILE_SIZE),
+                                )?;
+                            }
+                            Some(PowerType::BouncyShoes) => {
+                                core.wincan.copy(
+                                    &tex_bouncy,
+                                    None,
+                                    rect!(10, 100, TILE_SIZE, TILE_SIZE),
+                                )?;
+                            }
+                            Some(PowerType::LowerGravity) => {
+                                core.wincan.copy(
+                                    &tex_floaty,
+                                    None,
+                                    rect!(10, 100, TILE_SIZE, TILE_SIZE),
+                                )?;
+                            }
+                            Some(PowerType::Shield) => {
+                                core.wincan.copy(
+                                    &tex_shield,
+                                    None,
+                                    rect!(10, 100, TILE_SIZE, TILE_SIZE),
+                                )?;
+                            }
+                            _ => {}
                         }
-                        Some(PowerType::ScoreMultiplier) => {
-                            core.wincan.copy(
-                                &tex_multiplier,
-                                None,
-                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                            )?;
-                        }
-                        Some(PowerType::BouncyShoes) => {
-                            core.wincan.copy(
-                                &tex_bouncy,
-                                None,
-                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                            )?;
-                        }
-                        Some(PowerType::LowerGravity) => {
-                            core.wincan.copy(
-                                &tex_floaty,
-                                None,
-                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                            )?;
-                        }
-                        Some(PowerType::Shield) => {
-                            core.wincan.copy(
-                                &tex_shield,
-                                None,
-                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                            )?;
-                        }
-                        _ => {}
-                    }
 
-                    // Power duration bar
-                    let m = power_timer as f64 / 360.0;
-                    let r = 256.0 * (1.0 - m);
-                    let g = 256.0 * (m);
-                    let w = TILE_SIZE as f64 * m;
-                    core.wincan.set_draw_color(Color::RGB(r as u8, g as u8, 0));
-                    core.wincan.fill_rect(rect!(10, 210, w as u8, 10))?;
+                        // Power duration bar
+                        let m = power_timer as f64 / 360.0;
+                        let r = 256.0 * (1.0 - m);
+                        let g = 256.0 * (m);
+                        let w = TILE_SIZE as f64 * m;
+                        core.wincan.set_draw_color(Color::RGB(r as u8, g as u8, 0));
+                        core.wincan.fill_rect(rect!(10, 210, w as u8, 10))?;
+                    }
 
                     // Terrain
                     for ground in all_terrain.iter() {
@@ -1018,6 +1024,17 @@ impl Game for Runner {
                         .blended(Color::RGBA(255, 0, 0, 100))
                         .map_err(|e| e.to_string())?;
 
+                    // Display num coins collected
+                    let other_surface = font
+                        .render(&format!("{:03}", coin_count))
+                        .blended(Color::RGBA(100, 0, 200, 100))
+                        .map_err(|e| e.to_string())?;
+                    let coin_count_texture = texture_creator
+                        .create_texture_from_surface(&other_surface)
+                        .map_err(|e| e.to_string())?;
+                    core.wincan
+                        .copy(&coin_count_texture, None, Some(rect!(160, 10, 80, 50)))?;
+
                     // Display total_score
                     let score_texture = texture_creator
                         .create_texture_from_surface(&tex_score)
@@ -1047,18 +1064,6 @@ impl Game for Runner {
                     }
 
                     core.wincan.present();
-
-                    // Display num coins collected
-                    let other_surface = font
-                        .render(&format!("{:03}", coin_count))
-                        .blended(Color::RGBA(100, 0, 200, 100))
-                        .map_err(|e| e.to_string())?;
-                    let coin_count_texture = texture_creator
-                        .create_texture_from_surface(&other_surface)
-                        .map_err(|e| e.to_string())?;
-                    core.wincan
-                        .copy(&coin_count_texture, None, Some(rect!(160, 10, 80, 50)))?;
-                    core.wincan.present();
                 }
 
                 /* ~~~~~~ FPS Calculation ~~~~~~ */
@@ -1076,6 +1081,7 @@ impl Game for Runner {
                 let time_since_last_measurement = last_measurement_time.elapsed();
                 // Measures the FPS once per second
                 if time_since_last_measurement > Duration::from_secs(1) {
+                    //println!("{} FPS", all_frames);
                     all_frames = 0;
                     last_measurement_time = Instant::now();
                 }

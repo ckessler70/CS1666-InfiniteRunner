@@ -73,9 +73,9 @@ impl TerrainSegment {
 
     // Shifts terrain left so player can "move forward"
     pub fn travel_update(&mut self, travel_adj: i32) {
-        self.pos.set_x(self.pos.x() + travel_adj);
+        self.pos.set_x(self.pos.x() - travel_adj);
         for (x, y) in self.curve.iter_mut() {
-            *x += travel_adj;
+            *x -= travel_adj;
         }
     }
 
@@ -617,7 +617,10 @@ pub fn gen_cubic_bezier_curve_points(
     for t in 0..CAM_W as usize {
         let point = t as f64;
         //points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / 32.0);
-        points[t] = cubic_bezier_curve_point(p0, p1, p2, p3, point / CAM_W as f64);
+        points.insert(
+            t,
+            cubic_bezier_curve_point(p0, p1, p2, p3, point / CAM_W as f64),
+        );
     }
     return points;
 }
@@ -638,7 +641,10 @@ pub fn gen_quadratic_bezier_curve_points(
     for t in 0..CAM_W as usize {
         let point = t as f64;
         //points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / 32.0);
-        points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / CAM_W as f64);
+        points.insert(
+            t,
+            quadratic_bezier_curve_point(p0, p1, p2, point / CAM_W as f64),
+        );
     }
     return points;
 }
