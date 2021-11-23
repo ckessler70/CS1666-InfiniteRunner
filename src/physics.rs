@@ -3,6 +3,8 @@ use sdl2::rect::Point;
 use sdl2::rect::Rect;
 use sdl2::render::Texture;
 
+use std::time::{Duration, SystemTime};
+
 use crate::runner::TILE_SIZE as InitTILE_SIZE;
 use std::f64::consts::PI;
 
@@ -230,6 +232,8 @@ pub struct Player<'a> {
     texture: Texture<'a>,
     power_up: Option<PowerType>,
 
+    jump_time: SystemTime,
+    lock_jump_time: bool,
     jumping: bool,
     flipping: bool,
     second_jump: bool,
@@ -250,6 +254,8 @@ impl<'a> Player<'a> {
             mass,
             power_up: None,
 
+            jump_time: SystemTime::now(),
+            lock_jump_time: false,
             jumping: true,
             flipping: false,
             second_jump: false,
@@ -258,6 +264,10 @@ impl<'a> Player<'a> {
 
     pub fn is_jumping(&self) -> bool {
         self.jumping
+    }
+
+    pub fn jumpmoment_lock(&self) -> bool {
+        self.lock_jump_time
     }
 
     pub fn is_flipping(&self) -> bool {
@@ -286,14 +296,31 @@ impl<'a> Player<'a> {
         self.omega = OMEGA;
     }
 
+    pub fn set_jumpmoment(&mut self, time: SystemTime) {
+        self.jump_time = time;
+        self.lock_jump_time = true;
+    }
+
+    pub fn jump_moment(&mut self) -> SystemTime{
+        self.jump_time
+    }
+
     // Returns true if a jump was initiated
-    pub fn jump(&mut self, ground: Point) -> bool {
+    pub fn jump(&mut self, ground: Point, duration: Duration) -> bool {
         if self.hitbox().contains_point(ground) {
             // Starting from the position of the ground
             self.hard_set_pos((self.pos.0, ground.y() as f64 - TILE_SIZE));
             self.align_hitbox_to_pos();
             // Apply upward force
-            self.apply_force((0.0, 100.0));
+            let duration_millis: u128 = duration.as_millis();
+            if duration_millis <= Duration::new(0,100000000).as_millis() {
+                self.apply_force((0.0, 60.0));
+            }else if duration_millis <= Duration::new(0,200000000).as_millis() {
+                self.apply_force((0.0, 80.0));
+            }else {
+                self.apply_force((0.0, 100.0));
+            }
+            //self.apply_force((0.0, 100.0));
             self.jumping = true;
             true
         } else {
@@ -389,6 +416,7 @@ impl<'a> Player<'a> {
                     self.align_hitbox_to_pos();
                     self.velocity.1 = 0.0;
                     self.jumping = false;
+                    self.lock_jump_time = false;
                     self.apply_force((0.0, self.mass()));
                     self.omega = 0.0;
 
@@ -475,6 +503,7 @@ impl<'a> Body<'a> for Player<'a> {
             self.theta = angle;
             if self.jumping {
                 self.jumping = false;
+                self.lock_jump_time = false;
             }
         }
 
