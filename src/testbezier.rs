@@ -49,7 +49,7 @@ const BUFF_LENGTH: usize = CAM_W as usize / 4;
 
 const TITLE: &str = "Testing Bezier";
 
-const TIMEOUT: u64 = 50000;
+const TIMEOUT: u64 = 5000;
 
 pub struct TestBezier;
 
@@ -145,11 +145,11 @@ impl Game for TestBezier {
         core.wincan
             .fill_rect(Rect::new(p2.0 as i32, p2.1 as i32, 30, 30))?;
 
-        let group_of_points: [(f64, f64); BUFF_LENGTH + 1] =
+        let group_of_points: [(i32, i32); CAM_W + 1] =
             proceduralgen::gen_quadratic_bezier_curve_points(p0, p1, p2);
 
         core.wincan.set_draw_color(g);
-        for t in 0..BUFF_LENGTH {
+        for t in 0..CAM_W {
             core.wincan.fill_rect(Rect::new(
                 group_of_points[t].0 as i32,
                 group_of_points[t].1 as i32,
@@ -172,12 +172,12 @@ impl Game for TestBezier {
         core.wincan
             .fill_rect(Rect::new(p2.0 as i32, p2.1 as i32, 30, 30))?;
 
-        let group_of_points: [(f64, f64); BUFF_LENGTH + 1] =
+        let group_of_points: [(i32, i32); CAM_W + 1] =
             proceduralgen::gen_quadratic_bezier_curve_points(p0, p1, p2);
 
         core.wincan.set_draw_color(g);
 
-        for t in 0..BUFF_LENGTH {
+        for t in 0..CAM_W {
             core.wincan.fill_rect(Rect::new(
                 group_of_points[t].0 as i32,
                 group_of_points[t].1 as i32,
@@ -205,11 +205,11 @@ impl Game for TestBezier {
         core.wincan
             .fill_rect(Rect::new(prev_p3.0 as i32, prev_p3.1 as i32, 30, 30))?;
 
-        let group_of_points: [(f64, f64); BUFF_LENGTH + 1] =
+        let group_of_points: [(i32, i32); CAM_W + 1] =
             proceduralgen::gen_cubic_bezier_curve_points(prev_p0, prev_p1, prev_p2, prev_p3);
 
         core.wincan.set_draw_color(g);
-        for t in 0..BUFF_LENGTH {
+        for t in 0..CAM_W {
             core.wincan.fill_rect(Rect::new(
                 group_of_points[t].0 as i32,
                 group_of_points[t].1 as i32,
@@ -237,16 +237,16 @@ impl Game for TestBezier {
             .fill_rect(Rect::new(p3.0 as i32, p3.1 as i32, 15, 15))?;
 
         /*
-        let group_of_points: [(f64, f64); BUFF_LENGTH + 1] =
+        let group_of_points: [(i32, i32); CAM_W + 1] =
             proceduralgen::gen_cubic_bezier_curve_points(p0, p1, p2, p3);
             */
 
         let temp = group_of_points;
-        let group_of_points: [(f64, f64); BUFF_LENGTH + 1] =
+        let group_of_points: [(i32, i32); CAM_W + 1] =
             proceduralgen::extend_cubic_bezier_curve(prev_p3, prev_p2, p2, p3);
 
         core.wincan.set_draw_color(b);
-        for t in 0..BUFF_LENGTH {
+        for t in 0..CAM_W {
             core.wincan.fill_rect(Rect::new(
                 group_of_points[t].0 as i32,
                 group_of_points[t].1 as i32,
@@ -307,11 +307,11 @@ impl Game for TestBezier {
             width_index = rand_width;
 
             if (first_curve) {
-                let group_of_points: [(f64, f64); BUFF_LENGTH + 1] =
+                let group_of_points: Vec<(i32, i32)> =
                     proceduralgen::gen_cubic_bezier_curve_points(p0, p1, p2, p3);
 
                 //DRAW
-                for t in 0..BUFF_LENGTH {
+                for t in 0..CAM_W as usize {
                     core.wincan.fill_rect(Rect::new(
                         group_of_points[t].0 as i32,
                         group_of_points[t].1 as i32,
@@ -320,11 +320,11 @@ impl Game for TestBezier {
                     ))?;
                 }
             } else {
-                let group_of_points: [(f64, f64); BUFF_LENGTH + 1] =
+                let group_of_points: Vec<(i32, i32)> =
                     proceduralgen::extend_cubic_bezier_curve(prev_p3, prev_p2, p2, p3);
 
                 //DRAW
-                for t in 0..BUFF_LENGTH {
+                for t in 0..CAM_W as usize {
                     core.wincan.fill_rect(Rect::new(
                         group_of_points[t].0 as i32,
                         group_of_points[t].1 as i32,
@@ -368,7 +368,7 @@ impl Game for TestBezier {
             p0: (f64, f64),
             p1: (f64, f64),
             p2: (f64, f64),
-        ) -> [(f64, f64); 32]
+        ) -> [(i32, i32); 32]
         */
 
         /*
