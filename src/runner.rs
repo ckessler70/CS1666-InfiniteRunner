@@ -576,29 +576,29 @@ impl Game for Runner {
                     /* ~~~~~~ Object Generation ~~~~~~ */
                     // Decrease min_spawn_gap to increase spawn rates based on total_score
                     // These numbers could be terrible, we should mess around with it
-                    if total_score > 100000 {
-                        min_spawn_gap = 300; // Cap
+                    min_spawn_gap = if total_score > 100000 {
+                        300 // Cap
                     } else if total_score > 90000 {
-                        min_spawn_gap = 320;
+                        320
                     } else if total_score > 80000 {
-                        min_spawn_gap = 340;
+                        340
                     } else if total_score > 70000 {
-                        min_spawn_gap = 360;
+                        360
                     } else if total_score > 60000 {
-                        min_spawn_gap = 380;
+                        380
                     } else if total_score > 50000 {
-                        min_spawn_gap = 400;
+                        400
                     } else if total_score > 40000 {
-                        min_spawn_gap = 420;
+                        420
                     } else if total_score > 30000 {
-                        min_spawn_gap = 440;
+                        440
                     } else if total_score > 30000 {
-                        min_spawn_gap = 460;
+                        460
                     } else if total_score > 10000 {
-                        min_spawn_gap = 480;
+                        480
                     } else {
-                        min_spawn_gap = 500; // Default
-                    }
+                        500 // Default
+                    };
 
                     // Choose new object to generate
                     let mut new_object: Option<StaticObject> = None;
@@ -705,22 +705,24 @@ impl Game for Runner {
                      * removal of offscreen objects from their vectors,
                      * animation updates, the drawing section, and FPS calculation only.
                      */
-                    let camera_adj_x: i32 = 0;
-                    let camera_adj_y: i32 = 0;
 
                     // Adjust camera horizontally if updated player x pos is out of bounds
-                    if player.x() < PLAYER_LEFT_BOUND {
-                        let camera_adj_x = PLAYER_LEFT_BOUND - player.x();
+                    let camera_adj_x = if player.x() < PLAYER_LEFT_BOUND {
+                        PLAYER_LEFT_BOUND - player.x()
                     } else if (curr_ground_point.x() + TILE_SIZE as i32) > PLAYER_RIGHT_BOUND {
-                        let camera_adj_x = PLAYER_RIGHT_BOUND - player.x();
-                    }
+                        PLAYER_RIGHT_BOUND - player.x()
+                    } else {
+                        0
+                    };
 
                     // Adjust camera vertically based on y/height of the ground
-                    if curr_ground_point.y() < PLAYER_UPPER_BOUND {
-                        let camera_adj_y = PLAYER_UPPER_BOUND - curr_ground_point.y();
+                    let camera_adj_y = if curr_ground_point.y() < PLAYER_UPPER_BOUND {
+                        PLAYER_UPPER_BOUND - curr_ground_point.y()
                     } else if (curr_ground_point.y() + TILE_SIZE as i32) > PLAYER_LOWER_BOUND {
-                        let camera_adj_y = PLAYER_LOWER_BOUND - curr_ground_point.y();
-                    }
+                        PLAYER_LOWER_BOUND - curr_ground_point.y()
+                    } else {
+                        0
+                    };
 
                     // Add adjustment to terrain
                     for ground in all_terrain.iter_mut() {
@@ -937,12 +939,15 @@ impl Game for Runner {
                     }
 
                     // Set player texture
-                    let mut tex_player = player.texture(); // Default
-                    if shielded {
-                        tex_player = &tex_shielded;
-                    } /* else if ... {
-                          Other player textures
-                      } */
+                    let mut tex_player = if shielded {
+                        &tex_shielded
+                    }
+                    /* else if ... {
+                        Other player textures
+                    } */
+                    else {
+                        player.texture() // Default
+                    };
 
                     // Player
                     core.wincan.copy_ex(
