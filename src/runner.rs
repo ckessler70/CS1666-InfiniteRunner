@@ -138,6 +138,15 @@ impl Game for Runner {
             )
             .map_err(|e| e.to_string())?;
 
+        let game_over_texture = texture_creator
+            .create_texture_from_surface(
+                &font
+                    .render("GAME OVER")
+                    .blended(Color::RGBA(255, 0, 0, 255))
+                    .map_err(|e| e.to_string())?,
+            )
+            .map_err(|e| e.to_string())?;
+
         // Create player at default position
         let mut player = Player::new(
             rect!(
@@ -1024,6 +1033,13 @@ impl Game for Runner {
                         .blended(Color::RGBA(255, 0, 0, 100))
                         .map_err(|e| e.to_string())?;
 
+                    // Display total_score
+                    let score_texture = texture_creator
+                        .create_texture_from_surface(&tex_score)
+                        .map_err(|e| e.to_string())?;
+                    core.wincan
+                        .copy(&score_texture, None, Some(rect!(10, 10, 100, 50)))?;
+
                     // Display num coins collected
                     let other_surface = font
                         .render(&format!("{:03}", coin_count))
@@ -1035,24 +1051,9 @@ impl Game for Runner {
                     core.wincan
                         .copy(&coin_count_texture, None, Some(rect!(160, 10, 80, 50)))?;
 
-                    // Display total_score
-                    let score_texture = texture_creator
-                        .create_texture_from_surface(&tex_score)
-                        .map_err(|e| e.to_string())?;
-                    core.wincan
-                        .copy(&score_texture, None, Some(rect!(10, 10, 100, 50)))?;
-
                     if game_over {
                         // decrement the amount of frames until the game ends in order to
                         // demonstrate the collision
-                        let game_over_texture = texture_creator
-                            .create_texture_from_surface(
-                                &font
-                                    .render("GAME OVER")
-                                    .blended(Color::RGBA(255, 0, 0, 255))
-                                    .map_err(|e| e.to_string())?,
-                            )
-                            .map_err(|e| e.to_string())?;
 
                         // Cleaned up calculation of texture position
                         // Check previous versions if you want those calculations
