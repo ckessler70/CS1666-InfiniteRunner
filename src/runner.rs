@@ -246,7 +246,7 @@ impl Game for Runner {
             init_curve_1,
             0.0,
             TerrainType::Grass,
-            Color::BLUE,
+            Color::GREEN,
         );
         let mut init_curve_2: Vec<(i32, i32)> = vec![(CAM_W as i32, 0)];
         for i in (CAM_W + 1)..(CAM_W * 2) {
@@ -257,7 +257,7 @@ impl Game for Runner {
             init_curve_2,
             0.0,
             TerrainType::Grass,
-            Color::MAGENTA,
+            Color::GREEN,
         );
         all_terrain.push(init_terrain_1);
         all_terrain.push(init_terrain_2);
@@ -730,28 +730,20 @@ impl Game for Runner {
                     // All of this code is placeholder
                     let last_seg = all_terrain.get(all_terrain.len() - 1).unwrap();
                     if last_seg.x() < CAM_W as i32 {
-                        println!("Making new terrain!");
-                        println!("all_terrain length = {}", all_terrain.len());
                         let last_x = last_seg.curve().get(last_seg.curve().len() - 1).unwrap().0;
                         let last_y = last_seg.curve().get(last_seg.curve().len() - 1).unwrap().1;
                         let mut new_curve: Vec<(i32, i32)> = vec![(last_x + 1, last_y)];
-                        for i in (last_x + 1)..(last_x + CAM_W as i32 + 1) {
-                            new_curve.push((i as i32, CAM_H as i32 * 2 / 3));
+                        for i in (last_x + 2)..(last_x + CAM_W as i32 + 1) {
+                            new_curve.push((i as i32, last_y));
                         }
                         let new_terrain = TerrainSegment::new(
-                            rect!(
-                                new_curve.get(new_curve.len() - 1).unwrap().0,
-                                CAM_H as i32 * 2 / 3,
-                                CAM_W,
-                                CAM_H as i32 * 2 / 3
-                            ),
+                            rect!(last_x + 1, last_y, CAM_W, CAM_H),
                             new_curve,
                             0.0,
                             TerrainType::Grass,
-                            Color::BLUE,
+                            Color::GREEN,
                         );
                         all_terrain.push(new_terrain);
-                        println!("all_terrain length = {}", all_terrain.len());
                     }
 
                     /* ~~~~~~ Begin Camera Section ~~~~~~ */
@@ -823,7 +815,6 @@ impl Game for Runner {
                         }
                     }
                     for i in remove_inds.iter() {
-                        println!("Removed terrain at index {}", *i);
                         all_terrain.remove(*i as usize);
                     }
                     remove_inds.clear();
