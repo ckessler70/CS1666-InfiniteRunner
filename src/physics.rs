@@ -477,10 +477,12 @@ impl<'a> Entity<'a> for Player<'a> {
             self.theta = angle;
         }
 
+        /*
         // TEMPORARY: Player's x position is fixed until camera freezes on game ending
         if game_over {
             self.pos.0 += self.vel_x();
         }
+        */
         self.pos.1 -= self.vel_y();
         self.align_hitbox_to_pos();
     }
