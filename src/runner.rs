@@ -362,21 +362,10 @@ impl Game for Runner {
                     }
                 }
 
-                for ground in all_terrain.iter() {
-                    if (PLAYER_X >= ground.x()) & (PLAYER_X <= ground.x() + ground.w()) {
-                        let point_ind: usize = (PLAYER_X - ground.x()) as usize;
-                        println!(
-                            "player_x={}, ground_x={}",
-                            player.x(),
-                            ground.curve().get(point_ind).unwrap().0
-                        );
-                        break;
-                    }
-                }
-
-                let curr_ground_point: Point = get_ground_coord(&all_terrain, player.x());
+                //  Get ground point at player and TILE_SIZE ahead of player
+                let curr_ground_point: Point = get_ground_coord_at_player(&all_terrain);
                 let next_ground_point: Point =
-                    get_ground_coord(&all_terrain, player.x() + TILE_SIZE as i32);
+                    get_ground_coord(&all_terrain, PLAYER_X + TILE_SIZE as i32);
                 let angle = ((next_ground_point.y() as f64 - curr_ground_point.y() as f64)
                     / (TILE_SIZE as f64))
                     .atan();
@@ -741,6 +730,8 @@ impl Game for Runner {
                     // All of this code is placeholder
                     let last_seg = all_terrain.get(all_terrain.len() - 1).unwrap();
                     if last_seg.x() < CAM_W as i32 {
+                        println!("Making new terrain!");
+                        println!("all_terrain length = {}", all_terrain.len());
                         let last_x = last_seg.curve().get(last_seg.curve().len() - 1).unwrap().0;
                         let last_y = last_seg.curve().get(last_seg.curve().len() - 1).unwrap().1;
                         let mut new_curve: Vec<(i32, i32)> = vec![(last_x + 1, last_y)];
@@ -760,6 +751,7 @@ impl Game for Runner {
                             Color::BLUE,
                         );
                         all_terrain.push(new_terrain);
+                        println!("all_terrain length = {}", all_terrain.len());
                     }
 
                     /* ~~~~~~ Begin Camera Section ~~~~~~ */
@@ -820,48 +812,58 @@ impl Game for Runner {
                     /* ~~~~~~ End Camera Section ~~~~~~ */
 
                     /* ~~~~~~ Remove stuff which is now offscreen ~~~~~~ */
-                    // Terrain
+                    let mut remove_inds: Vec<i32> = Vec::new();
                     let mut ind: i32 = -1;
+
+                    // Terrain
                     for ground in all_terrain.iter() {
+                        ind += 1;
                         if ground.x() + ground.w() <= 0 {
-                            ind += 1;
+                            remove_inds.push(ind);
                         }
                     }
-                    for i in 0..ind {
-                        all_terrain.remove(i as usize);
+                    for i in remove_inds.iter() {
+                        println!("Removed terrain at index {}", *i);
+                        all_terrain.remove(*i as usize);
                     }
+                    remove_inds.clear();
 
                     //  Obstacles
                     ind = -1;
                     for obs in all_obstacles.iter() {
+                        ind += 1;
                         if obs.x() + TILE_SIZE as i32 <= 0 {
-                            ind += 1;
+                            remove_inds.push(ind);
                         }
                     }
-                    for i in 0..ind {
-                        all_obstacles.remove(i as usize);
+                    for i in remove_inds.iter() {
+                        all_obstacles.remove(*i as usize);
                     }
+                    remove_inds.clear();
 
                     // Coins
                     ind = -1;
                     for coin in all_coins.iter() {
+                        ind += 1;
                         if coin.x() + TILE_SIZE as i32 <= 0 {
-                            ind += 1;
+                            remove_inds.push(ind);
                         }
                     }
-                    for i in 0..ind {
-                        all_coins.remove(i as usize);
+                    for i in remove_inds.iter() {
+                        all_coins.remove(*i as usize);
                     }
+                    remove_inds.clear();
 
                     // Power ups
                     ind = -1;
                     for power in all_powers.iter_mut() {
+                        ind += 1;
                         if power.x() + TILE_SIZE as i32 <= 0 {
-                            ind += 1;
+                            remove_inds.push(ind);
                         }
                     }
-                    for i in 0..ind {
-                        all_powers.remove(i as usize);
+                    for i in remove_inds.iter() {
+                        all_powers.remove(*i as usize);
                     }
 
                     /* ~~~~~~ Animation Updates ~~~~~~ */
@@ -1164,19 +1166,29 @@ impl Game for Runner {
             }
 
             /* ~~~~~~ Helper Functions ~~~~~ */
+            // Given the current terrain, returns the (x, y) of the ground at that PLAYER_X
+            fn get_ground_coord_at_player(all_terrain: &Vec<TerrainSegment>) -> Point {
+                // Loop backwards
+                for ground in all_terrain.iter().rev() {
+                    // The first segment starting at or behind
+                    // the player, which they must be above
+                    if ground.x() <= PLAYER_X {
+                        let point_ind: usize = (PLAYER_X - ground.x()) as usize;
+                        return Point::new(
+                            ground.curve().get(point_ind).unwrap().0,
+                            ground.curve().get(point_ind).unwrap().1,
+                        );
+                    }
+                }
+                return Point::new(-1, -1);
+            }
+
             // Given the current terrain and an x coordinate of the screen,
             // returns the (x, y) of the ground at that x
             fn get_ground_coord(all_terrain: &Vec<TerrainSegment>, screen_x: i32) -> Point {
                 for ground in all_terrain.iter() {
                     if (screen_x >= ground.x()) & (screen_x <= ground.x() + ground.w()) {
-                        println!("ground={:?}", ground.color());
                         let point_ind: usize = (screen_x - ground.x()) as usize;
-                        /*
-                        match ground.curve().get(point_ind) {
-                            Some(i32) => {}
-                            None => {}
-                        }
-                        */
                         return Point::new(
                             ground.curve().get(point_ind).unwrap().0,
                             ground.curve().get(point_ind).unwrap().1,

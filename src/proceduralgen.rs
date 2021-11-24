@@ -128,6 +128,12 @@ impl TerrainSegment {
     }
 }
 
+impl PartialEq for TerrainSegment {
+    fn eq(&self, other: &Self) -> bool {
+        self.pos == other.pos
+    }
+}
+
 /*  I don't understand a lot of what's going on in this impl,
  *  but it needs cleaning
  *
