@@ -633,11 +633,11 @@ impl Game for Runner {
                     let mut new_object: Option<StaticObject> = None;
                     let curr_num_objects = all_obstacles.len() + all_coins.len() + all_powers.len();
                     let spawn_trigger = rng.gen_range(0..MAX_NUM_OBJECTS);
+
                     if spawn_timer > 0 {
                         spawn_timer -= 1;
                     } else if spawn_trigger >= curr_num_objects as i32 {
                         new_object = Some(proceduralgen::choose_static_object());
-                        // curr_num_objects += 1;
                         spawn_timer = min_spawn_gap;
                     } else if spawn_trigger < curr_num_objects as i32 {
                         // Min spawn gap can be replaced with basically any value for this random
@@ -650,8 +650,14 @@ impl Game for Runner {
                     // but it should be using (CAM_W, curr_ground_point.y())
                     match new_object {
                         Some(StaticObject::Statue) => {
+                            let spawn_coord: Point = get_ground_coord(&all_terrain, CAM_W as i32);
                             let obstacle = Obstacle::new(
-                                rect!(CAM_W, 0, 0, 0),
+                                rect!(
+                                    spawn_coord.x,
+                                    spawn_coord.y - TILE_SIZE as i32,
+                                    TILE_SIZE,
+                                    TILE_SIZE
+                                ),
                                 50.0,
                                 texture_creator.load_texture("assets/statue.png")?,
                                 ObstacleType::Statue,
@@ -660,8 +666,14 @@ impl Game for Runner {
                             // new_object = None;
                         }
                         Some(StaticObject::Coin) => {
+                            let spawn_coord: Point = get_ground_coord(&all_terrain, CAM_W as i32);
                             let coin = Coin::new(
-                                rect!(CAM_W, 0, 0, 0),
+                                rect!(
+                                    spawn_coord.x,
+                                    spawn_coord.y - TILE_SIZE as i32,
+                                    TILE_SIZE,
+                                    TILE_SIZE
+                                ),
                                 texture_creator.load_texture("assets/coin.png")?,
                                 1000,
                             );
@@ -669,8 +681,14 @@ impl Game for Runner {
                             // new_object = None;
                         }
                         Some(StaticObject::Spring) => {
+                            let spawn_coord: Point = get_ground_coord(&all_terrain, CAM_W as i32);
                             let obstacle = Obstacle::new(
-                                rect!(CAM_W, 0, 0, 0),
+                                rect!(
+                                    spawn_coord.x,
+                                    spawn_coord.y - TILE_SIZE as i32,
+                                    TILE_SIZE,
+                                    TILE_SIZE
+                                ),
                                 1.0,
                                 texture_creator.load_texture("assets/temp_spring.jpg")?,
                                 ObstacleType::Spring,
@@ -679,8 +697,14 @@ impl Game for Runner {
                             // new_object = None;
                         }
                         Some(StaticObject::Power) => {
+                            let spawn_coord: Point = get_ground_coord(&all_terrain, CAM_W as i32);
                             let pow = Power::new(
-                                rect!(CAM_W, 0, 0, 0),
+                                rect!(
+                                    spawn_coord.x,
+                                    spawn_coord.y - TILE_SIZE as i32,
+                                    TILE_SIZE,
+                                    TILE_SIZE
+                                ),
                                 texture_creator.load_texture("assets/powerup.png")?,
                                 Some(proceduralgen::choose_power_up()),
                             );
@@ -694,6 +718,8 @@ impl Game for Runner {
                     // Poorly placed rn, should be after postion / hitbox / collision update
                     // but before drawing
                     if !game_over {
+                        // Update score for survival
+                        curr_step_score += 1; // Hardcoded score increase per frame
                         match active_power {
                             Some(PowerType::ScoreMultiplier) => {
                                 curr_step_score *= 2; // Hardcoded power bonus
@@ -716,13 +742,13 @@ impl Game for Runner {
                         it should be almost exactly the same
 
                     for obs in all_obstacles.iter() {
-                        obs.travel_update(iteration_distance);
+                        obs.travel_update(travel_update as i32);
                     }
                     for coin in all_coins.iter() {
-                        coin.travel_update(iteration_distance);
+                        coin.travel_update(travel_update as i32);
                     }
                     for powerUp in all_powers.iter() {
-                        powerUp.travel_update(iteration_distance);
+                        powerUp.travel_update(travel_update as i32);
                     }
                     */
 
@@ -786,20 +812,20 @@ impl Game for Runner {
 
                     // Add adjustment to obstacles
                     for obs in all_obstacles.iter() {
-                        obs.travel_update(iteration_distance);
+                        obs.camera_adj(0, camera_adj_y);
                     }
 
                     // Add adjustment to coins
                     for coin in all_coins.iter() {
-                        coin.travel_update(iteration_distance);
+                        coin.camera_adj(0, camera_adj_y);
                     }
                     // Add adjustment to power ups
                     for powerUp in all_powers.iter() {
-                        powerUp.travel_update(iteration_distance);
+                        powerUp.camera_adj(0, camera_adj_y);
                     }
 
                     // Add adjustment to player
-                    player.camera_adj(camera_adj_x, camera_adj_y);
+                    player.camera_adj(0, camera_adj_y);
                     */
                     /* ~~~~~~ End Camera Section ~~~~~~ */
 
