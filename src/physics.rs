@@ -82,9 +82,11 @@ impl Physics {
                 // Friction: µmg, on an incline, perpendicular to normal
                 // (-x, -y) on an uphill
                 // (-x, +y) on an downhill
+                // make negative if object is moving backwards
+                let direction_adjust = body.vel_x().signum();
                 body.apply_force((
-                    -coeff * body.mass() * g * angle.cos(),
-                    coeff * body.mass() * g * angle.sin(),
+                    -coeff * body.mass() * g * angle.cos() * direction_adjust,
+                    coeff * body.mass() * g * angle.sin() * direction_adjust,
                 ));
             }
             // Else if body is on ground and STILL, apply STATIC FRICTION
@@ -106,10 +108,10 @@ impl Physics {
     // Returns: None
     pub fn apply_skate_force(player: &mut Player, angle: f64, ground: Point) {
         // Skate force
-        let mut skate_force = 1.5 / 5.0 * player.mass();
+        let mut skate_force = 1.0 / 8.0 * player.mass();
         if let Some(PowerType::SpeedBoost) = player.power_up() {
             // Speed up with powerup
-            skate_force = 2.5 / 5.0 * player.mass();
+            skate_force *= 2.0;
         }
 
         if player.hitbox().contains_point(ground) {
@@ -195,7 +197,7 @@ pub trait Body<'a>: Entity<'a> {
 
     fn vel_x(&self) -> f64;
     fn vel_y(&self) -> f64;
-    fn update_vel(&mut self);
+    fn update_vel(&mut self, game_over: bool);
     fn hard_set_vel(&mut self, vel: (f64, f64)); // Official method to hardcode velocity
 
     fn accel_x(&self) -> f64;
@@ -301,7 +303,7 @@ impl<'a> Player<'a> {
         self.lock_jump_time = true;
     }
 
-    pub fn jump_moment(&mut self) -> SystemTime{
+    pub fn jump_moment(&mut self) -> SystemTime {
         self.jump_time
     }
 
@@ -313,11 +315,11 @@ impl<'a> Player<'a> {
             self.align_hitbox_to_pos();
             // Apply upward force
             let duration_millis: u128 = duration.as_millis();
-            if duration_millis <= Duration::new(0,100000000).as_millis() {
+            if duration_millis <= Duration::new(0, 100000000).as_millis() {
                 self.apply_force((0.0, 60.0));
-            }else if duration_millis <= Duration::new(0,200000000).as_millis() {
+            } else if duration_millis <= Duration::new(0, 200000000).as_millis() {
                 self.apply_force((0.0, 80.0));
-            }else {
+            } else {
                 self.apply_force((0.0, 100.0));
             }
             //self.apply_force((0.0, 100.0));
@@ -523,8 +525,13 @@ impl<'a> Body<'a> for Player<'a> {
         self.velocity.1
     }
 
-    fn update_vel(&mut self) {
-        self.velocity.0 = (self.velocity.0 + self.accel.0).clamp(LOWER_SPEED, UPPER_SPEED);
+    fn update_vel(&mut self, game_over: bool) {
+        if game_over {
+            self.velocity.0 = (self.velocity.0 + self.accel.0).clamp(LOWER_SPEED, UPPER_SPEED);
+        } else {
+            self.velocity.0 = (self.velocity.0 + self.accel.0).clamp(1.0, UPPER_SPEED);
+        }
+
         self.velocity.1 =
             (self.velocity.1 + self.accel.1).clamp(2.0 * LOWER_SPEED, 5.0 * UPPER_SPEED);
     }
@@ -671,7 +678,7 @@ impl<'a> Body<'a> for Obstacle<'a> {
         self.velocity.1
     }
 
-    fn update_vel(&mut self) {
+    fn update_vel(&mut self, game_over: bool) {
         self.velocity.0 = (self.velocity.0 + self.accel.0).clamp(-20.0, 20.0);
         self.velocity.1 = (self.velocity.1 + self.accel.1).clamp(-20.0, 20.0);
     }

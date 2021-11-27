@@ -325,7 +325,7 @@ impl Game for Runner {
                                         player.resume_flipping();
                                     } else {
                                         //player.jump(current_ground);
-                                        if(!player.jumpmoment_lock()) {
+                                        if (!player.jumpmoment_lock()) {
                                             keypress_moment = SystemTime::now();
                                             player.set_jumpmoment(keypress_moment);
                                         }
@@ -344,7 +344,10 @@ impl Game for Runner {
                             } => match k {
                                 Keycode::W | Keycode::Up | Keycode::Space => {
                                     let mut jump_moment: SystemTime = player.jump_moment();
-                                    player.jump(current_ground, SystemTime::now().duration_since(jump_moment).unwrap());
+                                    player.jump(
+                                        current_ground,
+                                        SystemTime::now().duration_since(jump_moment).unwrap(),
+                                    );
                                     player.stop_flipping();
                                 }
                                 _ => {}
@@ -417,14 +420,14 @@ impl Game for Runner {
                     &mut player,
                     angle,
                     current_ground,
-                    0.2,
+                    0.1,
                     current_power,
                 );
                 Physics::apply_skate_force(&mut player, angle, current_ground); // Propel forward
 
                 //update player attributes
                 player.update_pos(current_ground, angle, game_over);
-                player.update_vel();
+                player.update_vel(game_over);
                 player.flip();
 
                 // apply forces to obstacles
@@ -441,7 +444,7 @@ impl Game for Runner {
                         // "skate force" to counteract friction
                         Physics::apply_terrain_forces(o, angle, object_ground, 0.01, None);
                         o.update_pos(object_ground, angle, game_over);
-                        o.update_vel();
+                        o.update_vel(false);
                     }
                 }
 
@@ -560,7 +563,7 @@ impl Game for Runner {
                                 let obstacle = Obstacle::new(
                                     rect!(0, 0, 0, 0),
                                     1.0,
-                                    texture_creator.load_texture("assets/temp_spring.png")?,
+                                    texture_creator.load_texture("assets/balloon.png")?,
                                     ObstacleType::Spring,
                                 );
                                 obstacles.push(obstacle);
