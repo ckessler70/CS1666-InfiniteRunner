@@ -480,8 +480,7 @@ impl Game for Runner {
                     all_powers.remove(to_remove_ind as usize);
                 }
 
-                // CHANGE THIS TO = player.vel_x() ONCE BUG IS FIGURED OUT
-                let travel_update = 0;
+                let travel_update = player.vel_x();
 
                 // Apply forces on player
                 let current_power = player.power_up();
@@ -682,21 +681,20 @@ impl Game for Runner {
                     for ground in all_terrain.iter_mut() {
                         ground.travel_update(travel_update as i32);
                     }
-                    /*  travel_update needs to be implemented in physics.rs
-                        for obstacles, coins and power ups.
-                        See terrain segment implementation in proceduralgen.rs,
-                        it should be almost exactly the same
+                    // travel_update needs to be implemented in physics.rs
+                    //   for obstacles, coins and power ups.
+                    //   See terrain segment implementation in proceduralgen.rs,
+                    //   it should be almost exactly the same
 
-                    for obs in all_obstacles.iter() {
+                    for obs in all_obstacles.iter_mut() {
                         obs.travel_update(travel_update as i32);
                     }
-                    for coin in all_coins.iter() {
+                    for coin in all_coins.iter_mut() {
                         coin.travel_update(travel_update as i32);
                     }
-                    for powerUp in all_powers.iter() {
+                    for powerUp in all_powers.iter_mut() {
                         powerUp.travel_update(travel_update as i32);
                     }
-                    */
 
                     // Generate new ground when the last segment becomes visible
                     // All of this code is placeholder
@@ -751,28 +749,28 @@ impl Game for Runner {
                         ground.camera_adj(0, camera_adj_y);
                     }
 
-                    /*  camera_adj needs to be implemented in physics.rs
-                        for obstacles, coins and power ups, and the player.
-                        See terrain segment implementation in proceduralgen.rs,
-                        it should be almost exactly the same.
+                    // camera_adj needs to be implemented in physics.rs
+                    //   for obstacles, coins and power ups, and the player.
+                    //   See terrain segment implementation in proceduralgen.rs,
+                    //   it should be almost exactly the same.
 
                     // Add adjustment to obstacles
-                    for obs in all_obstacles.iter() {
+                    for obs in all_obstacles.iter_mut() {
                         obs.camera_adj(0, camera_adj_y);
                     }
 
                     // Add adjustment to coins
-                    for coin in all_coins.iter() {
+                    for coin in all_coins.iter_mut() {
                         coin.camera_adj(0, camera_adj_y);
                     }
                     // Add adjustment to power ups
-                    for powerUp in all_powers.iter() {
+                    for powerUp in all_powers.iter_mut() {
                         powerUp.camera_adj(0, camera_adj_y);
                     }
 
                     // Add adjustment to player
                     player.camera_adj(0, camera_adj_y);
-                    */
+
                     /* ~~~~~~ End Camera Section ~~~~~~ */
 
                     /* ~~~~~~ Remove stuff which is now offscreen ~~~~~~ */

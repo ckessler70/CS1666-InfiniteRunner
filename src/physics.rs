@@ -185,6 +185,9 @@ pub trait Entity<'a> {
     fn hitbox(&self) -> Rect;
     fn align_hitbox_to_pos(&mut self); // After the pos is set with f64s, this method moves hitbox
                                        // to proper SDL coordinates using i32s
+
+    // Adjusts terrain postion in runner.rs based on camera_adj_x & camera_adj_y
+    fn camera_adj(&mut self, x_adj: i32, y_adj: i32);
 }
 
 pub trait Body<'a>: Entity<'a> {
@@ -486,6 +489,14 @@ impl<'a> Entity<'a> for Player<'a> {
         self.hitbox.set_x(self.pos.0 as i32);
         self.hitbox.set_y(self.pos.1 as i32);
     }
+
+    // Adjusts terrain postion in runner.rs based on camera_adj_x & camera_adj_y
+    fn camera_adj(&mut self, x_adj: i32, y_adj: i32) {
+        self.pos.0 += (x_adj as f64);
+        self.pos.1 += (y_adj as f64);
+
+        self.align_hitbox_to_pos();
+    }
 }
 
 impl<'a> Body<'a> for Player<'a> {
@@ -633,6 +644,11 @@ impl<'a> Obstacle<'a> {
     pub fn collided(&self) -> bool {
         self.collided
     }
+
+    // Shifts objects left with the terrain in runner.rs
+    pub fn travel_update(&mut self, travel_adj: i32) {
+        self.pos.0 += (travel_adj as f64);
+    }
 }
 
 impl<'a> Entity<'a> for Obstacle<'a> {
@@ -647,6 +663,14 @@ impl<'a> Entity<'a> for Obstacle<'a> {
     fn align_hitbox_to_pos(&mut self) {
         self.hitbox.set_x(self.pos.0 as i32);
         self.hitbox.set_y(self.pos.1 as i32);
+    }
+
+    // Adjusts terrain postion in runner.rs based on camera_adj_x & camera_adj_y
+    fn camera_adj(&mut self, x_adj: i32, y_adj: i32) {
+        self.pos.0 += (x_adj as f64);
+        self.pos.1 += (y_adj as f64);
+
+        self.align_hitbox_to_pos();
     }
 }
 
@@ -744,6 +768,11 @@ impl<'a> Coin<'a> {
     pub fn value(&self) -> i32 {
         self.value
     }
+
+    // Shifts objects left with the terrain in runner.rs
+    pub fn travel_update(&mut self, travel_adj: i32) {
+        self.pos.0 += travel_adj;
+    }
 }
 
 impl<'a> Entity<'a> for Coin<'a> {
@@ -758,6 +787,14 @@ impl<'a> Entity<'a> for Coin<'a> {
     fn align_hitbox_to_pos(&mut self) {
         self.hitbox.set_x(self.pos.0);
         self.hitbox.set_y(self.pos.1);
+    }
+
+    // Adjusts terrain postion in runner.rs based on camera_adj_x & camera_adj_y
+    fn camera_adj(&mut self, x_adj: i32, y_adj: i32) {
+        self.pos.0 += x_adj;
+        self.pos.1 += y_adj;
+
+        self.align_hitbox_to_pos();
     }
 }
 
@@ -802,6 +839,11 @@ impl<'a> Power<'a> {
     pub fn power_type(&self) -> PowerType {
         self.power_type
     }
+
+    // Shifts objects left with the terrain in runner.rs
+    pub fn travel_update(&mut self, travel_adj: i32) {
+        self.pos.0 += travel_adj;
+    }
 }
 
 impl<'a> Entity<'a> for Power<'a> {
@@ -816,6 +858,14 @@ impl<'a> Entity<'a> for Power<'a> {
     fn align_hitbox_to_pos(&mut self) {
         self.hitbox.set_x(self.pos.0 as i32);
         self.hitbox.set_y(self.pos.1 as i32);
+    }
+
+    // Adjusts terrain postion in runner.rs based on camera_adj_x & camera_adj_y
+    fn camera_adj(&mut self, x_adj: i32, y_adj: i32) {
+        self.pos.0 += x_adj;
+        self.pos.1 += y_adj;
+
+        self.align_hitbox_to_pos();
     }
 }
 
