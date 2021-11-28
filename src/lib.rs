@@ -21,6 +21,37 @@ pub enum GameStatus {
     PerlinSim,
 }
 
+// Contains all types of terrain
+pub enum TerrainType {
+    Grass,
+    Asphalt,
+    Sand,
+    Water,
+}
+
+// Contains all types of objects generated on terrain
+pub enum StaticObject {
+    Coin,
+    Statue,
+    Power,
+    Spring,
+}
+
+// Contains all types of power ups
+pub enum PowerType {
+    SpeedBoost,
+    ScoreMultiplier,
+    BouncyShoes,
+    LowerGravity,
+    Shield,
+}
+
+// Contains all types of obstacles
+pub enum ObstacleType {
+    Statue,
+    Spring,
+}
+
 #[allow(dead_code)]
 pub struct GameState {
     pub status: Option<GameStatus>,

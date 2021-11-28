@@ -1,4 +1,5 @@
-// use crate::rect;
+use inf_runner::ObstacleType;
+use inf_runner::PowerType;
 use sdl2::rect::Point;
 use sdl2::rect::Rect;
 use sdl2::render::Texture;
@@ -225,7 +226,7 @@ pub struct Player<'a> {
     pub pos: (f64, f64),
     velocity: (f64, f64),
     accel: (f64, f64),
-    pub hitbox: Rect,
+    hitbox: Rect,
 
     theta: f64, // angle of rotation, in radians
     omega: f64, // angular speed
@@ -493,11 +494,17 @@ impl<'a> Body<'a> for Player<'a> {
     }
 
     fn update_pos(&mut self, ground: Point, angle: f64, game_over: bool) {
+        if self.hitbox.contains_point(ground) {
+            self.theta = angle;
+        }
+
+        /*
         // TEMPORARY: Player's x position is fixed until camera freezes on game ending
         // Will change when camera follows player
         if game_over {
             self.pos.0 += self.vel_x();
         }
+        */
         self.pos.1 -= self.vel_y();
 
         // Match the angle of the ground if on ground
@@ -579,7 +586,7 @@ pub struct Obstacle<'a> {
     pub pos: (f64, f64),
     velocity: (f64, f64),
     accel: (f64, f64),
-    pub hitbox: Rect,
+    hitbox: Rect,
 
     mass: f64,
     texture: Texture<'a>,
@@ -591,13 +598,6 @@ pub struct Obstacle<'a> {
     pub collided: bool,
     pub spawned: bool,
     pub delete_me: bool,
-}
-
-#[derive(Copy, Clone)]
-pub enum ObstacleType {
-    Statue,
-    Spring,
-    Chest,
 }
 
 impl<'a> Obstacle<'a> {
@@ -724,7 +724,7 @@ impl<'a> Body<'a> for Obstacle<'a> {
 
 pub struct Coin<'a> {
     pub pos: (i32, i32),
-    pub hitbox: Rect,
+    hitbox: Rect,
     texture: Texture<'a>,
     value: i32,
     collected: bool,
@@ -782,19 +782,10 @@ impl<'a> Collectible<'a> for Coin<'a> {
 
 pub struct Power<'a> {
     pub pos: (i32, i32),
-    pub hitbox: Rect,
+    hitbox: Rect,
     texture: Texture<'a>,
     power_type: PowerType,
     collected: bool,
-}
-
-#[derive(Copy, Clone)]
-pub enum PowerType {
-    SpeedBoost,
-    ScoreMultiplier,
-    BouncyShoes,
-    LowerGravity,
-    Shield,
 }
 
 impl<'a> Power<'a> {
@@ -803,8 +794,8 @@ impl<'a> Power<'a> {
             pos: (hitbox.x(), hitbox.y()),
             hitbox,
             texture,
-            power_type,
             collected: false,
+            power_type,
         }
     }
 
