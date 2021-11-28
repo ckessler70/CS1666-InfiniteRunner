@@ -155,7 +155,6 @@ impl Game for Runner {
             texture_creator.load_texture("assets/player.png")?,
         );
 
-        let mut active_power: Option<PowerType> = None;
         let mut power_timer: i32 = 0; // Current powerup expires when it reaches 0
         let mut coin_count: i32 = 0; // Total num coins collected
 
@@ -173,6 +172,8 @@ impl Game for Runner {
 
         // Score of an entire run
         let mut total_score: i32 = 0;
+
+        let mut test_stepper = 0;
 
         let mut game_paused: bool = false;
         let mut initial_pause: bool = false;
@@ -198,11 +199,6 @@ impl Game for Runner {
         // let mut object_spawn: usize = 0;
         // let mut object_count: i32 = 0;
         let mut spawn_timer: i32 = 500; // Can spawn a new object when it reaches 0
-
-        // Physics vars
-        let mut player_accel_rate: f64 = -10.0;
-        let mut player_jump_change: f64 = 0.0;
-        let mut player_speed_adjust: f64 = 0.0;
 
         // Background & sine wave vars
         let mut bg_buff = 0;
@@ -360,8 +356,11 @@ impl Game for Runner {
 
                 //  Get ground point at player and TILE_SIZE ahead of player
                 let curr_ground_point: Point = get_ground_coord_at_player(&all_terrain);
+                println!("getting next ground {}", test_stepper);
                 let next_ground_point: Point =
                     get_ground_coord(&all_terrain, PLAYER_X + TILE_SIZE as i32);
+                println!("got next ground");
+                test_stepper += 1;
                 let angle = ((next_ground_point.y() as f64 - curr_ground_point.y() as f64)
                     / (TILE_SIZE as f64))
                     .atan();
@@ -378,7 +377,7 @@ impl Game for Runner {
                                 if player.is_jumping() {
                                     player.resume_flipping();
                                 } else {
-                                    if (!player.jumpmoment_lock()) {
+                                    if !player.jumpmoment_lock() {
                                         keypress_moment = SystemTime::now();
                                         player.set_jumpmoment(keypress_moment);
                                     }
@@ -480,8 +479,6 @@ impl Game for Runner {
                     all_powers.remove(to_remove_ind as usize);
                 }
 
-                let travel_update = player.vel_x();
-
                 // Apply forces on player
                 let current_power = player.power_up();
                 Physics::apply_terrain_forces(
@@ -499,11 +496,15 @@ impl Game for Runner {
                 player.update_vel(game_over);
                 player.flip();
 
+                let travel_update = player.vel_x();
+
                 // apply forces to obstacles
                 for o in all_obstacles.iter_mut() {
                     // Only actually apply forces after a collision occurs
                     if o.collided() {
+                        println!("getting object ground");
                         let object_ground = get_ground_coord(&all_terrain, o.x());
+                        println!("got object ground");
                         // Very small friction coefficient because there's no
                         // "skate force" to counteract friction
                         Physics::apply_terrain_forces(o, angle, object_ground, 0.01, None);
@@ -599,7 +600,10 @@ impl Game for Runner {
                     // but it should be using (CAM_W, curr_ground_point.y())
                     match new_object {
                         Some(StaticObject::Statue) => {
-                            let spawn_coord: Point = get_ground_coord(&all_terrain, CAM_W as i32);
+                            println!("spawning a statue");
+                            let spawn_coord: Point =
+                                get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
+                            println!("spawn coordinates made");
                             let obstacle = Obstacle::new(
                                 rect!(
                                     spawn_coord.x,
@@ -612,10 +616,14 @@ impl Game for Runner {
                                 ObstacleType::Statue,
                             );
                             all_obstacles.push(obstacle);
+                            println!("spawned");
                             // new_object = None;
                         }
                         Some(StaticObject::Coin) => {
-                            let spawn_coord: Point = get_ground_coord(&all_terrain, CAM_W as i32);
+                            println!("spawning a coin");
+                            let spawn_coord: Point =
+                                get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
+                            println!("spawn coordinates made");
                             let coin = Coin::new(
                                 rect!(
                                     spawn_coord.x,
@@ -627,10 +635,14 @@ impl Game for Runner {
                                 1000,
                             );
                             all_coins.push(coin);
+                            println!("spawned");
                             // new_object = None;
                         }
                         Some(StaticObject::Spring) => {
-                            let spawn_coord: Point = get_ground_coord(&all_terrain, CAM_W as i32);
+                            println!("spawning a spring");
+                            let spawn_coord: Point =
+                                get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
+                            println!("spawn coordinates made");
                             let obstacle = Obstacle::new(
                                 rect!(
                                     spawn_coord.x,
@@ -643,10 +655,14 @@ impl Game for Runner {
                                 ObstacleType::Spring,
                             );
                             all_obstacles.push(obstacle);
+                            println!("spawned");
                             // new_object = None;
                         }
                         Some(StaticObject::Power) => {
-                            let spawn_coord: Point = get_ground_coord(&all_terrain, CAM_W as i32);
+                            println!("spawning a power");
+                            let spawn_coord: Point =
+                                get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
+                            println!("spawn coordinates made");
                             let pow = Power::new(
                                 rect!(
                                     spawn_coord.x,
@@ -658,6 +674,7 @@ impl Game for Runner {
                                 proceduralgen::choose_power_up(),
                             );
                             all_powers.push(pow);
+                            println!("spawned");
                             // new_object = None;
                         }
                         _ => {}
@@ -912,8 +929,8 @@ impl Game for Runner {
                     }
 
                     // Active Power HUD Display
-                    if active_power.is_some() {
-                        match active_power {
+                    if player.power_up().is_some() {
+                        match player.power_up() {
                             Some(PowerType::SpeedBoost) => {
                                 core.wincan.copy(
                                     &tex_speed,
@@ -1160,6 +1177,9 @@ impl Game for Runner {
                 for ground in all_terrain.iter() {
                     if (screen_x >= ground.x()) & (screen_x <= ground.x() + ground.w()) {
                         let point_ind: usize = (screen_x - ground.x()) as usize;
+                        println!("screen_x {}", screen_x);
+                        println!("ground.x() {}", ground.x());
+                        println!("point_ind {}", point_ind);
                         return Point::new(
                             ground.curve().get(point_ind).unwrap().0,
                             ground.curve().get(point_ind).unwrap().1,

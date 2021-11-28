@@ -79,14 +79,14 @@ impl TerrainSegment {
 
     // Shifts terrain left so player can "move forward"
     pub fn travel_update(&mut self, travel_adj: i32) {
-        self.pos.set_x(self.pos.x() + travel_adj);
+        self.pos.set_x(self.pos.x() - travel_adj);
         /*
         for (x, y) in self.curve.iter_mut() {
             *x += travel_adj;
         }
         */
         for tuple in self.curve.iter_mut() {
-            tuple.0 += travel_adj;
+            tuple.0 -= travel_adj;
         }
     }
 

@@ -647,7 +647,7 @@ impl<'a> Obstacle<'a> {
 
     // Shifts objects left with the terrain in runner.rs
     pub fn travel_update(&mut self, travel_adj: i32) {
-        self.pos.0 += (travel_adj as f64);
+        self.pos.0 -= (travel_adj as f64);
     }
 }
 
@@ -771,7 +771,7 @@ impl<'a> Coin<'a> {
 
     // Shifts objects left with the terrain in runner.rs
     pub fn travel_update(&mut self, travel_adj: i32) {
-        self.pos.0 += travel_adj;
+        self.pos.0 -= travel_adj;
     }
 }
 
@@ -842,7 +842,7 @@ impl<'a> Power<'a> {
 
     // Shifts objects left with the terrain in runner.rs
     pub fn travel_update(&mut self, travel_adj: i32) {
-        self.pos.0 += travel_adj;
+        self.pos.0 -= travel_adj;
     }
 }
 
