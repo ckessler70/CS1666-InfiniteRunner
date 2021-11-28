@@ -661,7 +661,7 @@ impl Game for Runner {
                                     TILE_SIZE
                                 ),
                                 1.0,
-                                texture_creator.load_texture("assets/ballon.png")?,
+                                texture_creator.load_texture("assets/balloon.png")?,
                                 ObstacleType::Spring,
                             );
                             all_obstacles.push(obstacle);
