@@ -480,6 +480,7 @@ impl Game for Runner {
                     all_powers.remove(to_remove_ind as usize);
                 }
 
+                // CHANGE THIS TO = player.vel_x() ONCE BUG IS FIGURED OUT
                 let travel_update = 0;
 
                 // Apply forces on player

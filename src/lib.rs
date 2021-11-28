@@ -38,6 +38,7 @@ pub enum StaticObject {
 }
 
 // Contains all types of power ups
+#[derive(Copy, Clone)]
 pub enum PowerType {
     SpeedBoost,
     ScoreMultiplier,
@@ -47,9 +48,11 @@ pub enum PowerType {
 }
 
 // Contains all types of obstacles
+#[derive(Copy, Clone)]
 pub enum ObstacleType {
     Statue,
     Spring,
+    Chest,
 }
 
 #[allow(dead_code)]
