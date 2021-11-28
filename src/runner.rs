@@ -229,7 +229,7 @@ impl Game for Runner {
 
         // Initialize the starting terrain segments
         // Rectangles
-        let mut init_curve_1: Vec<(i32, i32)> = vec![(0, 0)];
+        let mut init_curve_1: Vec<(i32, i32)> = vec![(0, CAM_H as i32 * 2 / 3)];
         for i in 1..CAM_W {
             init_curve_1.push((i as i32, CAM_H as i32 * 2 / 3));
         }
@@ -240,7 +240,7 @@ impl Game for Runner {
             TerrainType::Grass,
             Color::GREEN,
         );
-        let mut init_curve_2: Vec<(i32, i32)> = vec![(CAM_W as i32, 0)];
+        let mut init_curve_2: Vec<(i32, i32)> = vec![(CAM_W as i32, CAM_H as i32 * 2 / 3)];
         for i in (CAM_W + 1)..(CAM_W * 2) {
             init_curve_2.push((i as i32, CAM_H as i32 * 2 / 3));
         }
@@ -249,7 +249,7 @@ impl Game for Runner {
             init_curve_2,
             0.0,
             TerrainType::Grass,
-            Color::GREEN,
+            Color::BLUE,
         );
         all_terrain.push(init_terrain_1);
         all_terrain.push(init_terrain_2);
@@ -356,10 +356,18 @@ impl Game for Runner {
 
                 //  Get ground point at player and TILE_SIZE ahead of player
                 let curr_ground_point: Point = get_ground_coord_at_player(&all_terrain);
-                println!("getting next ground {}", test_stepper);
+                // println!("getting next ground {}", test_stepper);
+                println!(
+                    "curr_ground_point = {},{}",
+                    curr_ground_point.x, curr_ground_point.y
+                );
                 let next_ground_point: Point =
                     get_ground_coord(&all_terrain, PLAYER_X + TILE_SIZE as i32);
-                println!("got next ground");
+                // println!("got next ground");
+                println!(
+                    "next_ground_point = {},{}",
+                    next_ground_point.x, next_ground_point.y
+                );
                 test_stepper += 1;
                 let angle = ((next_ground_point.y() as f64 - curr_ground_point.y() as f64)
                     / (TILE_SIZE as f64))
@@ -451,7 +459,9 @@ impl Game for Runner {
                         if player.collide_coin(c) {
                             to_remove_ind = counter;
                             coin_count += 1;
-                            curr_step_score += c.value(); //increments the score based on the coins value
+                            curr_step_score += c.value(); //increments the
+                                                          // score based on the
+                                                          // coins value
                         }
                         continue;
                     }
@@ -724,7 +734,7 @@ impl Game for Runner {
                             new_curve.push((i as i32, last_y));
                         }
                         let new_terrain = TerrainSegment::new(
-                            rect!(last_x + 1, last_y, CAM_W, CAM_H),
+                            rect!(last_x + 1, last_y, CAM_W, CAM_H * 2 / 3),
                             new_curve,
                             0.0,
                             TerrainType::Grass,
@@ -1174,12 +1184,15 @@ impl Game for Runner {
             // Given the current terrain and an x coordinate of the screen,
             // returns the (x, y) of the ground at that x
             fn get_ground_coord(all_terrain: &Vec<TerrainSegment>, screen_x: i32) -> Point {
-                for ground in all_terrain.iter() {
-                    if (screen_x >= ground.x()) & (screen_x <= ground.x() + ground.w()) {
+                // Loop backwards
+                for ground in all_terrain.iter().rev() {
+                    // The first segment starting at or behind
+                    // the given x, which it must be above
+                    if ground.x() <= screen_x {
                         let point_ind: usize = (screen_x - ground.x()) as usize;
-                        println!("screen_x {}", screen_x);
-                        println!("ground.x() {}", ground.x());
-                        println!("point_ind {}", point_ind);
+                        // println!("screen_x {}", screen_x);
+                        // println!("ground.x() {}", ground.x());
+                        // println!("point_ind {}", point_ind);
                         return Point::new(
                             ground.curve().get(point_ind).unwrap().0,
                             ground.curve().get(point_ind).unwrap().1,
@@ -1188,6 +1201,25 @@ impl Game for Runner {
                 }
                 return Point::new(-1, -1);
             }
+            /*
+            // Given the current terrain and an x coordinate of the screen,
+            // returns the (x, y) of the ground at that x
+            fn get_ground_coord(all_terrain: &Vec<TerrainSegment>, screen_x: i32) -> Point {
+                for ground in all_terrain.iter() {
+                    if (screen_x >= ground.x()) & (screen_x < ground.x() + ground.w()) {
+                        let point_ind: usize = (screen_x - ground.x()) as usize;
+                        // println!("screen_x {}", screen_x);
+                        // println!("ground.x() {}", ground.x());
+                        // println!("point_ind {}", point_ind);
+                        return Point::new(
+                            ground.curve().get(point_ind).unwrap().0,
+                            ground.curve().get(point_ind).unwrap().1,
+                        );
+                    }
+                }
+                return Point::new(-1, -1);
+            }
+            */
         } // End gameloop
         Ok(GameState {
             status: Some(next_status),
