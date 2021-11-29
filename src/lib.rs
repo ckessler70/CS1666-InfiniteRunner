@@ -18,7 +18,6 @@ pub enum GameStatus {
     Game,
     Credits,
     BezierSim,
-    PerlinSim,
 }
 
 // Contains all types of terrain
