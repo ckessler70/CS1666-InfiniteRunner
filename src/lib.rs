@@ -30,10 +30,11 @@ pub enum TerrainType {
 
 // Contains all types of objects generated on terrain
 pub enum StaticObject {
-    Coin,
-    Statue,
-    Power,
-    Spring,
+    Coin,   // Collectable
+    Power,  // Collectable
+    Statue, // Obstacle
+    Spring, // Obstacle
+    Chest,  // Obstacle
 }
 
 // Contains all types of power ups

@@ -960,10 +960,11 @@ fn choose_terrain_type(upper: i32) -> TerrainType {
  */
 pub fn choose_static_object() -> StaticObject {
     let mut rng = rand::thread_rng();
-    match rng.gen_range(0..=3) {
-        0 => StaticObject::Coin,
-        1 => StaticObject::Statue,
-        2 => StaticObject::Spring,
+    match rng.gen_range(0..=4) {
+        0 => StaticObject::Statue,
+        1 => StaticObject::Spring,
+        2 => StaticObject::Chest,
+        3 => StaticObject::Coin,
         _ => StaticObject::Power,
     }
 }

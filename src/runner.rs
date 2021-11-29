@@ -576,21 +576,6 @@ impl Game for Runner {
                             );
                             all_obstacles.push(obstacle);
                         }
-                        Some(StaticObject::Coin) => {
-                            let spawn_coord: Point =
-                                get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
-                            let coin = Coin::new(
-                                rect!(
-                                    spawn_coord.x,
-                                    spawn_coord.y - TILE_SIZE as i32,
-                                    TILE_SIZE,
-                                    TILE_SIZE
-                                ),
-                                texture_creator.load_texture("assets/coin.png")?,
-                                1000, // value
-                            );
-                            all_coins.push(coin);
-                        }
                         Some(StaticObject::Spring) => {
                             let spawn_coord: Point =
                                 get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
@@ -606,6 +591,37 @@ impl Game for Runner {
                                 ObstacleType::Spring,
                             );
                             all_obstacles.push(obstacle);
+                        }
+                        Some(StaticObject::Chest) => {
+                            let spawn_coord: Point =
+                                get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
+                            let obstacle = Obstacle::new(
+                                rect!(
+                                    spawn_coord.x,
+                                    spawn_coord.y - TILE_SIZE as i32,
+                                    TILE_SIZE,
+                                    TILE_SIZE
+                                ),
+                                1.0,
+                                texture_creator.load_texture("assets/box.png")?,
+                                ObstacleType::Chest,
+                            );
+                            all_obstacles.push(obstacle);
+                        }
+                        Some(StaticObject::Coin) => {
+                            let spawn_coord: Point =
+                                get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
+                            let coin = Coin::new(
+                                rect!(
+                                    spawn_coord.x,
+                                    spawn_coord.y - TILE_SIZE as i32,
+                                    TILE_SIZE,
+                                    TILE_SIZE
+                                ),
+                                texture_creator.load_texture("assets/coin.png")?,
+                                1000, // value
+                            );
+                            all_coins.push(coin);
                         }
                         Some(StaticObject::Power) => {
                             let spawn_coord: Point =
