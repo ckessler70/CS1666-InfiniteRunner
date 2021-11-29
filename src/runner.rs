@@ -269,7 +269,7 @@ impl Game for Runner {
                         Event::KeyDown {
                             keycode: Some(k), ..
                         } => match k {
-                            Keycode::Escape | Keycode::Space => {
+                            Keycode::Escape => {
                                 game_paused = false;
                             }
                             Keycode::R => {
@@ -281,6 +281,14 @@ impl Game for Runner {
                                 break 'gameloop;
                             }
                             _ => {}
+                        },
+                        Event::KeyUp {
+                            keycode: Some(k), ..
+                        } => match k {
+                             Keycode::Space => {
+                                game_paused = false;
+                            }
+                            _=>{}
                         },
                         _ => {}
                     }
