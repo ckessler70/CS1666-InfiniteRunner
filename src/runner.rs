@@ -452,12 +452,14 @@ impl Game for Runner {
 
                 // Apply forces on player
                 let current_power = player.power_up();
+                //HELP: not sure where to set curr_terrain_type to align it with the ground under the player
+                let curr_terrain_type = get_ground_type(&all_terrain, PLAYER_X); //for physics
                 Physics::apply_terrain_forces(
                     // Gravity, normal, and friction
                     &mut player,
                     angle,
                     curr_ground_point,
-                    0.1, // Friction coefficient
+                    curr_terrain_type,
                     current_power,
                 );
                 Physics::apply_skate_force(&mut player, angle, curr_ground_point); // Propel forward
@@ -473,9 +475,10 @@ impl Game for Runner {
                     // Only actually apply forces after a collision occurs
                     if o.collided() {
                         let object_ground = get_ground_coord(&all_terrain, o.x());
+                        let object_terrain_type = get_ground_type(&all_terrain, o.x());
                         // Very small friction coefficient because there's no
                         // "skate force" to counteract friction
-                        Physics::apply_terrain_forces(o, angle, object_ground, 0.01, None);
+                        Physics::apply_terrain_forces(o, angle, object_ground, object_terrain_type, None);
                         o.update_vel(false);
                         o.update_pos(object_ground, angle, game_over);
                     }
@@ -679,8 +682,8 @@ impl Game for Runner {
                 for coin in all_coins.iter_mut() {
                     coin.travel_update(travel_update as i32);
                 }
-                for powerUp in all_powers.iter_mut() {
-                    powerUp.travel_update(travel_update as i32);
+                for power_up in all_powers.iter_mut() {
+                    power_up.travel_update(travel_update as i32);
                 }
 
                 // Generate new ground when the last segment becomes visible
@@ -736,8 +739,8 @@ impl Game for Runner {
                 }
 
                 // Add adjustment to power ups
-                for powerUp in all_powers.iter_mut() {
-                    powerUp.camera_adj(0, camera_adj_y);
+                for power_up in all_powers.iter_mut() {
+                    power_up.camera_adj(0, camera_adj_y);
                 }
 
                 // Add adjustment to player
@@ -1110,6 +1113,20 @@ impl Game for Runner {
                     }
                 }
                 return Point::new(-1, -1);
+            }
+            // Given the current terrain and an x coordinate of the screen,
+            // returns the (x, y) of the ground at that x
+            fn get_ground_type(all_terrain: &Vec<TerrainSegment>, screen_x: i32) -> &TerrainType {
+                // Loop backwards
+                for ground in all_terrain.iter().rev() {
+                    // The first segment starting at or behind
+                    // the given x, which it must be above
+                    if ground.x() <= screen_x {
+                        let point_ind: usize = (screen_x - ground.x()) as usize;
+                        return ground.get_type();
+                    }
+                }
+                return &TerrainType::Grass; //default to grass
             }
             /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
         } // End gameloop

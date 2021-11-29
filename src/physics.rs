@@ -1,5 +1,6 @@
 use inf_runner::ObstacleType;
 use inf_runner::PowerType;
+use inf_runner::TerrainType;
 use sdl2::rect::Point;
 use sdl2::rect::Rect;
 use sdl2::render::Texture;
@@ -43,14 +44,32 @@ impl Physics {
         body: &mut impl Body<'a>,
         angle: f64,
         ground: Point,
-        coeff: f64,
+        terrain_type: &TerrainType,
         power_up: Option<PowerType>,
     ) {
-        // Acceleration of gravity
+        // Set Gravity & Friction Strength From TerrainType
+        let mut fric_coeff: f64 = 0.0;
         let mut g: f64 = 1.0;
+        //these are currenty untested & arbitrary
+        match terrain_type{
+            TerrainType::Asphalt =>{
+                fric_coeff = 0.05;
+            }
+            TerrainType::Grass => {
+                fric_coeff = 0.1;
+            }
+            TerrainType::Sand => {
+                fric_coeff = 0.15;
+                g = 1.5;
+            }
+            TerrainType::Water => {
+                fric_coeff = 0.2;
+            }
+        }
+        
+        // Lower gravity if power is low gravity
         if let Some(PowerType::LowerGravity) = power_up {
-            // Lower gravity if power is low gravity
-            g = 2.0 / 3.0;
+            g = g * 2.0 / 3.0;
         }
 
         // Gravity: mg
@@ -86,8 +105,8 @@ impl Physics {
                 // make negative if object is moving backwards
                 let direction_adjust = body.vel_x().signum();
                 body.apply_force((
-                    -coeff * body.mass() * g * angle.cos() * direction_adjust,
-                    coeff * body.mass() * g * angle.sin() * direction_adjust,
+                    -fric_coeff * body.mass() * g * angle.cos() * direction_adjust,
+                    fric_coeff * body.mass() * g * angle.sin() * direction_adjust,
                 ));
             }
             // Else if body is on ground and STILL, apply STATIC FRICTION
