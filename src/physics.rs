@@ -48,7 +48,7 @@ impl Physics {
         power_up: Option<PowerType>,
     ) {
         // Set Gravity & Friction Strength From TerrainType
-        let mut fric_coeff: f64 = 0.0;
+        let fric_coeff: f64;
         let mut g: f64 = 1.0;
         //these are currenty untested & arbitrary
         match terrain_type{

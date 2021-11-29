@@ -452,8 +452,8 @@ impl Game for Runner {
 
                 // Apply forces on player
                 let current_power = player.power_up();
-                //HELP: not sure where to set curr_terrain_type to align it with the ground under the player
                 let curr_terrain_type = get_ground_type(&all_terrain, PLAYER_X); //for physics
+                
                 Physics::apply_terrain_forces(
                     // Gravity, normal, and friction
                     &mut player,
