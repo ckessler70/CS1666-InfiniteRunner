@@ -70,7 +70,7 @@ impl Game for Credits {
 
         let caleb_hs = Headshot::new(
             rect!((CAM_W / 2 - 400 / 2), 0, 400, 400),
-            texture_creator.load_texture("assets/caleb_hs.jpg")?,
+            texture_creator.load_texture("assets/headshots/caleb_hs.jpg")?,
         );
 
         let surface = font
@@ -83,7 +83,7 @@ impl Game for Credits {
 
         let dane_hs = Headshot::new(
             rect!((CAM_W / 2 - 400 / 2), 0, 400, 400),
-            texture_creator.load_texture("assets/dane_hs.jpg")?,
+            texture_creator.load_texture("assets/headshots/dane_hs.jpg")?,
         );
 
         let surface = font
@@ -96,7 +96,7 @@ impl Game for Credits {
 
         let andrew_hs = Headshot::new(
             rect!((CAM_W / 2 - 400 / 2), 0, 400, 400),
-            texture_creator.load_texture("assets/andrew_hs.png")?,
+            texture_creator.load_texture("assets/headshots/andrew_hs.png")?,
         );
 
         let surface = font
@@ -109,7 +109,7 @@ impl Game for Credits {
 
         let benjamin_hs = Headshot::new(
             rect!((CAM_W / 2 - 400 / 2), 0, 400, 400),
-            texture_creator.load_texture("assets/benjamin_hs.jpg")?,
+            texture_creator.load_texture("assets/headshots/benjamin_hs.jpg")?,
         );
 
         let surface = font
@@ -122,7 +122,7 @@ impl Game for Credits {
 
         let dominic_hs = Headshot::new(
             rect!((CAM_W / 2 - 400 / 2), 0, 400, 400),
-            texture_creator.load_texture("assets/dominic_hs.jpg")?,
+            texture_creator.load_texture("assets/headshots/dominic_hs.jpg")?,
         );
 
         let surface = font
@@ -135,7 +135,7 @@ impl Game for Credits {
 
         let mateen_hs = Headshot::new(
             rect!((CAM_W / 2 - 400 / 2), 0, 400, 400),
-            texture_creator.load_texture("assets/mateen_hs.jpg")?,
+            texture_creator.load_texture("assets/headshots/mateen_hs.jpg")?,
         );
 
         let surface = font
@@ -148,7 +148,7 @@ impl Game for Credits {
 
         let elliot_hs = Headshot::new(
             rect!((CAM_W / 2 - 400 / 2), 0, 400, 400),
-            texture_creator.load_texture("assets/elliot_hs.jpg")?,
+            texture_creator.load_texture("assets/headshots/elliot_hs.jpg")?,
         );
 
         let surface = font
@@ -161,7 +161,7 @@ impl Game for Credits {
 
         let michael_hs = Headshot::new(
             rect!((CAM_W / 2 - 400 / 2), 0, 400, 400),
-            texture_creator.load_texture("assets/michael_hs.jpg")?,
+            texture_creator.load_texture("assets/headshots/michael_hs.jpg")?,
         );
 
         let team = [

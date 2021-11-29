@@ -254,7 +254,7 @@ pub struct Player<'a> {
     omega: f64, // angular speed
 
     mass: f64,
-    texture: Texture<'a>,
+    texture: &'a Texture<'a>,
     power_up: Option<PowerType>,
 
     jump_time: SystemTime,
@@ -265,7 +265,7 @@ pub struct Player<'a> {
 }
 
 impl<'a> Player<'a> {
-    pub fn new(hitbox: Rect, mass: f64, texture: Texture<'a>) -> Player {
+    pub fn new(hitbox: Rect, mass: f64, texture: &'a Texture<'a>) -> Player<'a> {
         Player {
             pos: (hitbox.x() as f64, hitbox.y() as f64),
             velocity: (0.0, 0.0),
@@ -497,7 +497,7 @@ impl<'a> Player<'a> {
 
 impl<'a> Entity<'a> for Player<'a> {
     fn texture(&self) -> &Texture<'a> {
-        &self.texture
+        self.texture
     }
 
     fn hitbox(&self) -> Rect {

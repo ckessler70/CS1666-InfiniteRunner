@@ -79,20 +79,24 @@ impl Game for Runner {
         let tex_bg = texture_creator.load_texture("assets/bg.png")?;
         let tex_sky = texture_creator.load_texture("assets/sky.png")?;
         let tex_grad = texture_creator.load_texture("assets/sunset_gradient.png")?;
-        let tex_statue = texture_creator.load_texture("assets/statue.png")?;
-        let tex_ballon = texture_creator.load_texture("assets/balloon.png")?;
-        let tex_chest = texture_creator.load_texture("assets/box.png")?;
-        let tex_coin = texture_creator.load_texture("assets/coin.png")?;
-        let tex_powerup = texture_creator.load_texture("assets/powerup.png")?;
-        let tex_speed = texture_creator.load_texture("assets/speed.png")?;
-        let tex_multiplier = texture_creator.load_texture("assets/multiplier.png")?;
-        let tex_bouncy = texture_creator.load_texture("assets/bouncy.png")?;
-        let tex_floaty = texture_creator.load_texture("assets/floaty.png")?;
-        let tex_shield = texture_creator.load_texture("assets/shield.png")?;
-        let tex_shielded = texture_creator.load_texture("assets/shielded_player.png")?;
-        let tex_winged = texture_creator.load_texture("assets/winged_player.png")?;
-        let tex_springed = texture_creator.load_texture("assets/bouncy_player.png")?;
-        let tex_fast = texture_creator.load_texture("assets/speed_player.png")?;
+
+        let tex_statue = texture_creator.load_texture("assets/obstacles/statue.png")?;
+        let tex_ballon = texture_creator.load_texture("assets/obstacles/balloon.png")?;
+        let tex_chest = texture_creator.load_texture("assets/obstacles/box.png")?;
+        let tex_coin = texture_creator.load_texture("assets/obstacles/coin.png")?;
+        let tex_powerup = texture_creator.load_texture("assets/obstacles/powerup.png")?;
+
+        let tex_speed = texture_creator.load_texture("assets/powers/speed.png")?;
+        let tex_multiplier = texture_creator.load_texture("assets/powers/multiplier.png")?;
+        let tex_bouncy = texture_creator.load_texture("assets/powers/bouncy.png")?;
+        let tex_floaty = texture_creator.load_texture("assets/powers/floaty.png")?;
+        let tex_shield = texture_creator.load_texture("assets/powers/shield.png")?;
+
+        let tex_player = texture_creator.load_texture("assets/player/player.png")?;
+        let tex_shielded = texture_creator.load_texture("assets/player/shielded_player.png")?;
+        let tex_winged = texture_creator.load_texture("assets/player/winged_player.png")?;
+        let tex_springed = texture_creator.load_texture("assets/player/bouncy_player.png")?;
+        let tex_fast = texture_creator.load_texture("assets/player/speed_player.png")?;
 
         let tex_resume = texture_creator
             .create_texture_from_surface(
@@ -148,7 +152,7 @@ impl Game for Runner {
                 TILE_SIZE
             ),
             3.0, // mass of player
-            texture_creator.load_texture("assets/player.png")?,
+            &tex_player,
         );
 
         let mut power_timer: i32 = 0; // Current powerup expires when it reaches 0
