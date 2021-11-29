@@ -51,8 +51,8 @@ impl Physics {
         let fric_coeff: f64;
         let mut g: f64 = 1.0;
         //these are currenty untested & arbitrary
-        match terrain_type{
-            TerrainType::Asphalt =>{
+        match terrain_type {
+            TerrainType::Asphalt => {
                 fric_coeff = 0.05;
             }
             TerrainType::Grass => {
@@ -66,7 +66,7 @@ impl Physics {
                 fric_coeff = 0.2;
             }
         }
-        
+
         // Lower gravity if power is low gravity
         if let Some(PowerType::LowerGravity) = power_up {
             g = g * 2.0 / 3.0;
@@ -619,7 +619,7 @@ pub struct Obstacle<'a> {
     hitbox: Rect,
 
     mass: f64,
-    texture: Texture<'a>,
+    texture: &'a Texture<'a>,
     obstacle_type: ObstacleType,
 
     theta: f64,
@@ -634,9 +634,9 @@ impl<'a> Obstacle<'a> {
     pub fn new(
         hitbox: Rect,
         mass: f64,
-        texture: Texture<'a>,
+        texture: &'a Texture<'a>,
         obstacle_type: ObstacleType,
-    ) -> Obstacle {
+    ) -> Obstacle<'a> {
         Obstacle {
             pos: (hitbox.x() as f64, hitbox.y() as f64),
             velocity: (0.0, 0.0),
@@ -672,7 +672,7 @@ impl<'a> Obstacle<'a> {
 
 impl<'a> Entity<'a> for Obstacle<'a> {
     fn texture(&self) -> &Texture<'a> {
-        &self.texture
+        self.texture
     }
 
     fn hitbox(&self) -> Rect {
@@ -768,13 +768,13 @@ impl<'a> Body<'a> for Obstacle<'a> {
 pub struct Coin<'a> {
     pub pos: (i32, i32),
     hitbox: Rect,
-    texture: Texture<'a>,
+    texture: &'a Texture<'a>,
     value: i32,
     collected: bool,
 }
 
 impl<'a> Coin<'a> {
-    pub fn new(hitbox: Rect, texture: Texture<'a>, value: i32) -> Coin {
+    pub fn new(hitbox: Rect, texture: &'a Texture<'a>, value: i32) -> Coin<'a> {
         Coin {
             pos: (hitbox.x(), hitbox.y()),
             texture,
@@ -796,7 +796,7 @@ impl<'a> Coin<'a> {
 
 impl<'a> Entity<'a> for Coin<'a> {
     fn texture(&self) -> &Texture<'a> {
-        &self.texture
+        self.texture
     }
 
     fn hitbox(&self) -> Rect {
@@ -839,13 +839,13 @@ impl<'a> Collectible<'a> for Coin<'a> {
 pub struct Power<'a> {
     pub pos: (i32, i32),
     hitbox: Rect,
-    texture: Texture<'a>,
+    texture: &'a Texture<'a>,
     power_type: PowerType,
     collected: bool,
 }
 
 impl<'a> Power<'a> {
-    pub fn new(hitbox: Rect, texture: Texture<'a>, power_type: PowerType) -> Power {
+    pub fn new(hitbox: Rect, texture: &'a Texture<'a>, power_type: PowerType) -> Power<'a> {
         Power {
             pos: (hitbox.x(), hitbox.y()),
             hitbox,
@@ -867,7 +867,7 @@ impl<'a> Power<'a> {
 
 impl<'a> Entity<'a> for Power<'a> {
     fn texture(&self) -> &Texture<'a> {
-        &self.texture
+        self.texture
     }
 
     fn hitbox(&self) -> Rect {

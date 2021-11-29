@@ -80,7 +80,10 @@ impl Game for Runner {
         let tex_sky = texture_creator.load_texture("assets/sky.png")?;
         let tex_grad = texture_creator.load_texture("assets/sunset_gradient.png")?;
         let tex_statue = texture_creator.load_texture("assets/statue.png")?;
+        let tex_ballon = texture_creator.load_texture("assets/balloon.png")?;
+        let tex_chest = texture_creator.load_texture("assets/box.png")?;
         let tex_coin = texture_creator.load_texture("assets/coin.png")?;
+        let tex_powerup = texture_creator.load_texture("assets/powerup.png")?;
         let tex_speed = texture_creator.load_texture("assets/speed.png")?;
         let tex_multiplier = texture_creator.load_texture("assets/multiplier.png")?;
         let tex_bouncy = texture_creator.load_texture("assets/bouncy.png")?;
@@ -285,10 +288,10 @@ impl Game for Runner {
                         Event::KeyUp {
                             keycode: Some(k), ..
                         } => match k {
-                             Keycode::Space => {
+                            Keycode::Space => {
                                 game_paused = false;
                             }
-                            _=>{}
+                            _ => {}
                         },
                         _ => {}
                     }
@@ -453,7 +456,7 @@ impl Game for Runner {
                 // Apply forces on player
                 let current_power = player.power_up();
                 let curr_terrain_type = get_ground_type(&all_terrain, PLAYER_X); //for physics
-                
+
                 Physics::apply_terrain_forces(
                     // Gravity, normal, and friction
                     &mut player,
@@ -478,7 +481,13 @@ impl Game for Runner {
                         let object_terrain_type = get_ground_type(&all_terrain, o.x());
                         // Very small friction coefficient because there's no
                         // "skate force" to counteract friction
-                        Physics::apply_terrain_forces(o, angle, object_ground, object_terrain_type, None);
+                        Physics::apply_terrain_forces(
+                            o,
+                            angle,
+                            object_ground,
+                            object_terrain_type,
+                            None,
+                        );
                         o.update_vel(false);
                         o.update_pos(object_ground, angle, game_over);
                     }
@@ -582,7 +591,7 @@ impl Game for Runner {
                                     TILE_SIZE
                                 ),
                                 50.0, // mass
-                                texture_creator.load_texture("assets/statue.png")?,
+                                &tex_statue,
                                 ObstacleType::Statue,
                             );
                             all_obstacles.push(obstacle);
@@ -598,7 +607,7 @@ impl Game for Runner {
                                     TILE_SIZE
                                 ),
                                 1.0,
-                                texture_creator.load_texture("assets/balloon.png")?,
+                                &tex_ballon,
                                 ObstacleType::Spring,
                             );
                             all_obstacles.push(obstacle);
@@ -614,7 +623,7 @@ impl Game for Runner {
                                     TILE_SIZE
                                 ),
                                 1.0,
-                                texture_creator.load_texture("assets/box.png")?,
+                                &tex_chest,
                                 ObstacleType::Chest,
                             );
                             all_obstacles.push(obstacle);
@@ -629,7 +638,7 @@ impl Game for Runner {
                                     TILE_SIZE,
                                     TILE_SIZE
                                 ),
-                                texture_creator.load_texture("assets/coin.png")?,
+                                &tex_coin,
                                 1000, // value
                             );
                             all_coins.push(coin);
@@ -644,7 +653,7 @@ impl Game for Runner {
                                     TILE_SIZE,
                                     TILE_SIZE
                                 ),
-                                texture_creator.load_texture("assets/powerup.png")?,
+                                &tex_powerup,
                                 proceduralgen::choose_power_up(),
                             );
                             all_powers.push(pow);
