@@ -626,423 +626,418 @@ impl Game for Runner {
                         // ... Add any new types of objects here ...
                         _ => {}
                     }
-
-                    // Update total_score
-                    // Poorly placed rn, should be after postion / hitbox / collision update
-                    // but before drawing
-                    if !game_over {
-                        curr_step_score += 1; // Hardcoded score increase per frame
-                        if let Some(PowerType::ScoreMultiplier) = player.power_up() {
-                            curr_step_score *= 2; // Hardcoded power bonus
-                        }
-                        total_score += curr_step_score;
-                    }
-
-                    /* Update ground / object positions to move player forward
-                     * by the distance they should move this single iteration of the game loop
-                     */
-                    let travel_update = player.vel_x();
-                    for ground in all_terrain.iter_mut() {
-                        ground.travel_update(travel_update as i32);
-                    }
-
-                    for obs in all_obstacles.iter_mut() {
-                        obs.travel_update(travel_update as i32);
-                    }
-                    for coin in all_coins.iter_mut() {
-                        coin.travel_update(travel_update as i32);
-                    }
-                    for powerUp in all_powers.iter_mut() {
-                        powerUp.travel_update(travel_update as i32);
-                    }
-
-                    // Generate new ground when the last segment becomes visible
-                    // All of this code is placeholder
-                    let last_seg = all_terrain.get(all_terrain.len() - 1).unwrap();
-                    if last_seg.x() < CAM_W as i32 {
-                        let last_x = last_seg.curve().get(last_seg.curve().len() - 1).unwrap().0;
-                        let last_y = last_seg.curve().get(last_seg.curve().len() - 1).unwrap().1;
-                        let mut new_curve: Vec<(i32, i32)> = vec![(last_x + 1, last_y)];
-                        for i in (last_x + 2)..(last_x + CAM_W as i32 + 1) {
-                            new_curve.push((i as i32, last_y));
-                        }
-                        let new_terrain = TerrainSegment::new(
-                            rect!(last_x + 1, last_y, CAM_W, CAM_H * 2 / 3),
-                            new_curve,
-                            0.0,
-                            TerrainType::Grass,
-                            Color::GREEN,
-                        );
-                        all_terrain.push(new_terrain);
-                    }
-
-                    /* ~~~~~~ Begin Camera Section ~~~~~~ */
-                    /* This should be the very last section of calcultions,
-                     * as the camera position relies upon updated math for
-                     * EVERYTHING ELSE. Below the camera section we have
-                     * removal of offscreen objects from their vectors,
-                     * animation updates, the drawing section, and FPS calculation only.
-                     */
-
-                    // Adjust camera vertically based on y/height of the ground
-                    let camera_adj_y = if curr_ground_point.y() < TERRAIN_UPPER_BOUND {
-                        TERRAIN_UPPER_BOUND - curr_ground_point.y()
-                    } else if (curr_ground_point.y() + TILE_SIZE as i32) > TERRAIN_LOWER_BOUND {
-                        TERRAIN_LOWER_BOUND - curr_ground_point.y()
-                    } else {
-                        0
-                    };
-
-                    // Add adjustment to terrain
-                    for ground in all_terrain.iter_mut() {
-                        ground.camera_adj(0, camera_adj_y);
-                    }
-
-                    // Add adjustment to obstacles
-                    for obs in all_obstacles.iter_mut() {
-                        obs.camera_adj(0, camera_adj_y);
-                    }
-
-                    // Add adjustment to coins
-                    for coin in all_coins.iter_mut() {
-                        coin.camera_adj(0, camera_adj_y);
-                    }
-
-                    // Add adjustment to power ups
-                    for powerUp in all_powers.iter_mut() {
-                        powerUp.camera_adj(0, camera_adj_y);
-                    }
-
-                    // Add adjustment to player
-                    player.camera_adj(0, camera_adj_y);
-
-                    /* ~~~~~~ End Camera Section ~~~~~~ */
-
-                    /* ~~~~~~ Remove stuff which is now offscreen ~~~~~~ */
-                    let mut remove_inds: Vec<i32> = Vec::new();
-                    let mut ind: i32 = -1;
-
-                    // Terrain
-                    for ground in all_terrain.iter() {
-                        ind += 1;
-                        if ground.x() + ground.w() <= 0 {
-                            remove_inds.push(ind);
-                        }
-                    }
-                    for i in remove_inds.iter() {
-                        all_terrain.remove(*i as usize);
-                    }
-                    remove_inds.clear();
-
-                    //  Obstacles
-                    ind = -1;
-                    for obs in all_obstacles.iter() {
-                        ind += 1;
-                        if obs.x() + TILE_SIZE as i32 <= 0 {
-                            remove_inds.push(ind);
-                        }
-                    }
-                    for i in remove_inds.iter() {
-                        all_obstacles.remove(*i as usize);
-                    }
-                    remove_inds.clear();
-
-                    // Coins
-                    ind = -1;
-                    for coin in all_coins.iter() {
-                        ind += 1;
-                        if coin.x() + TILE_SIZE as i32 <= 0 {
-                            remove_inds.push(ind);
-                        }
-                    }
-                    for i in remove_inds.iter() {
-                        all_coins.remove(*i as usize);
-                    }
-                    remove_inds.clear();
-
-                    // Power ups
-                    ind = -1;
-                    for power in all_powers.iter_mut() {
-                        ind += 1;
-                        if power.x() + TILE_SIZE as i32 <= 0 {
-                            remove_inds.push(ind);
-                        }
-                    }
-                    for i in remove_inds.iter() {
-                        all_powers.remove(*i as usize);
-                    }
-
-                    /* ~~~~~~ Animation Updates ~~~~~~ */
-                    bg_tick += 1;
-
-                    // Shift background images & sine waves?
-                    if bg_tick % 10 == 0 {
-                        bg_buff -= 1;
-                    }
-
-                    // Reset sine wave tick (to prevent large values?)
-                    if bg_tick % 3 == 0 && bg_tick % 5 == 0 {
-                        bg_tick = 0;
-                    }
-
-                    // Reset background image buffer upon leftmost bg image moving completely
-                    // offscreen
-                    if -bg_buff == CAM_W as i32 {
-                        bg_buff = 0;
-                    }
-
-                    // Next frame for coin animation
-                    coin_anim += 1;
-                    coin_anim %= 60;
-
-                    /* ~~~~~~ Draw All Elements ~~~~~~ */
-                    // Wipe screen every frame
-                    core.wincan.set_draw_color(Color::RGBA(3, 120, 206, 255));
-                    core.wincan.clear();
-
-                    // Bottom layer of background, black skybox
-                    core.wincan.set_draw_color(Color::RGBA(0, 0, 0, 255));
-                    core.wincan.fill_rect(rect!(0, 470, CAM_W, CAM_H))?;
-
-                    // Sky
-                    core.wincan
-                        .copy(&tex_sky, None, rect!(bg_buff, 0, CAM_W, CAM_H / 3))?;
-                    core.wincan.copy(
-                        &tex_sky,
-                        None,
-                        rect!(CAM_W as i32 + bg_buff, 0, CAM_W, CAM_H / 3),
-                    )?;
-
-                    // Sunset gradient - doesn't need to scroll left
-                    core.wincan
-                        .copy(&tex_grad, None, rect!(0, -128, CAM_W, CAM_H))?;
-
-                    // Background
-                    core.wincan
-                        .copy(&tex_bg, None, rect!(bg_buff, -150, CAM_W, CAM_H))?;
-                    core.wincan.copy(
-                        &tex_bg,
-                        None,
-                        rect!(bg_buff + (CAM_W as i32), -150, CAM_W, CAM_H),
-                    )?;
-
-                    // Background perlin noise curves
-                    for i in 0..background_curves[IND_BACKGROUND_MID].len() - 1 {
-                        // Furthest back perlin noise curves
-                        core.wincan.set_draw_color(Color::RGBA(128, 51, 6, 255));
-                        core.wincan.fill_rect(rect!(
-                            i * CAM_W as usize / BG_CURVES_SIZE
-                                + CAM_W as usize / BG_CURVES_SIZE / 2,
-                            CAM_H as i16 - background_curves[IND_BACKGROUND_BACK][i],
-                            CAM_W as usize / BG_CURVES_SIZE,
-                            CAM_H as i16
-                        ))?;
-
-                        // Midground perlin noise curves
-                        core.wincan.set_draw_color(Color::RGBA(96, 161, 152, 255));
-                        core.wincan.fill_rect(rect!(
-                            i * CAM_W as usize / BG_CURVES_SIZE
-                                + CAM_W as usize / BG_CURVES_SIZE / 2,
-                            CAM_H as i16 - background_curves[IND_BACKGROUND_MID][i],
-                            CAM_W as usize / BG_CURVES_SIZE,
-                            CAM_H as i16
-                        ))?;
-                    }
-
-                    // Active Power HUD Display
-                    if player.power_up().is_some() {
-                        match player.power_up() {
-                            Some(PowerType::SpeedBoost) => {
-                                core.wincan.copy(
-                                    &tex_speed,
-                                    None,
-                                    rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                                )?;
-                            }
-                            Some(PowerType::ScoreMultiplier) => {
-                                core.wincan.copy(
-                                    &tex_multiplier,
-                                    None,
-                                    rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                                )?;
-                            }
-                            Some(PowerType::BouncyShoes) => {
-                                core.wincan.copy(
-                                    &tex_bouncy,
-                                    None,
-                                    rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                                )?;
-                            }
-                            Some(PowerType::LowerGravity) => {
-                                core.wincan.copy(
-                                    &tex_floaty,
-                                    None,
-                                    rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                                )?;
-                            }
-                            Some(PowerType::Shield) => {
-                                core.wincan.copy(
-                                    &tex_shield,
-                                    None,
-                                    rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                                )?;
-                            }
-                            _ => {}
-                        }
-
-                        // Power duration bar
-                        let m = power_timer as f64 / 360.0;
-                        let r = 256.0 * (1.0 - m);
-                        let g = 256.0 * (m);
-                        let w = TILE_SIZE as f64 * m;
-                        core.wincan.set_draw_color(Color::RGB(r as u8, g as u8, 0));
-                        core.wincan.fill_rect(rect!(10, 210, w as u8, 10))?;
-                    }
-
-                    // Terrain
-                    for ground in all_terrain.iter() {
-                        core.wincan.set_draw_color(ground.color());
-                        core.wincan.fill_rect(ground.pos())?;
-                    }
-
-                    // Set player texture
-                    let tex_player = match player.power_up() {
-                        Some(PowerType::Shield) => &tex_shielded,
-                        // ... Add more types of powered player textures here ...
-                        _ => player.texture(),
-                    };
-
-                    // Assert player.x() == PLAYER_X here
-
-                    // Player
-                    core.wincan.copy_ex(
-                        tex_player,
-                        rect!(0, 0, TILE_SIZE, TILE_SIZE),
-                        rect!(player.x(), player.y(), TILE_SIZE, TILE_SIZE),
-                        player.theta() * 180.0 / std::f64::consts::PI,
-                        None,
-                        false,
-                        false,
-                    )?;
-
-                    core.wincan.set_draw_color(Color::BLACK);
-
-                    // Player's hitbox
-                    core.wincan.draw_rect(player.hitbox())?;
-
-                    // Obstacles
-                    for obs in all_obstacles.iter() {
-                        // Collapse this match to just one ... all this code is repeated
-                        match obs.obstacle_type() {
-                            ObstacleType::Statue => {
-                                core.wincan.copy_ex(
-                                    obs.texture(),
-                                    None,
-                                    rect!(obs.x(), obs.y(), TILE_SIZE, TILE_SIZE),
-                                    obs.theta(),
-                                    None,
-                                    false,
-                                    false,
-                                )?;
-                                core.wincan.set_draw_color(Color::RED);
-                                core.wincan.draw_rect(obs.hitbox())?;
-                                break;
-                            }
-                            ObstacleType::Spring => {
-                                core.wincan.copy_ex(
-                                    obs.texture(),
-                                    None,
-                                    rect!(obs.x(), obs.y(), TILE_SIZE, TILE_SIZE),
-                                    obs.theta(),
-                                    None,
-                                    false,
-                                    false,
-                                )?;
-                                core.wincan.set_draw_color(Color::BLUE);
-                                core.wincan.draw_rect(obs.hitbox())?;
-                            }
-                            ObstacleType::Chest => {
-                                core.wincan.copy_ex(
-                                    obs.texture(),
-                                    None,
-                                    rect!(obs.x(), obs.y(), TILE_SIZE, TILE_SIZE),
-                                    obs.theta(),
-                                    None,
-                                    false,
-                                    false,
-                                )?;
-                                core.wincan.set_draw_color(Color::BLUE);
-                                core.wincan.draw_rect(obs.hitbox())?;
-                            }
-                        }
-                    }
-
-                    // Coins
-                    for coin in all_coins.iter() {
-                        core.wincan.copy_ex(
-                            coin.texture(),
-                            rect!(coin_anim * TILE_SIZE as i32, 0, TILE_SIZE, TILE_SIZE),
-                            rect!(coin.x(), coin.y(), TILE_SIZE, TILE_SIZE),
-                            0.0,
-                            None,
-                            false,
-                            false,
-                        )?;
-                        core.wincan.set_draw_color(Color::GREEN);
-                        core.wincan.draw_rect(coin.hitbox())?;
-                    }
-
-                    // Powerups (on the ground, not active or collected)
-                    for power in all_powers.iter() {
-                        core.wincan.copy_ex(
-                            power.texture(),
-                            rect!(0, 0, TILE_SIZE, TILE_SIZE),
-                            rect!(power.x(), power.y(), TILE_SIZE, TILE_SIZE),
-                            0.0,
-                            None,
-                            false,
-                            false,
-                        )?;
-                        core.wincan.set_draw_color(Color::YELLOW);
-                        core.wincan.draw_rect(power.hitbox())?;
-                    }
-
-                    // Setup for the text of the total_score to be displayed
-                    let tex_score = font
-                        .render(&format!("{:08}", total_score))
-                        .blended(Color::RGBA(255, 0, 0, 100))
-                        .map_err(|e| e.to_string())?;
-
-                    // Display total_score
-                    let score_texture = texture_creator
-                        .create_texture_from_surface(&tex_score)
-                        .map_err(|e| e.to_string())?;
-                    core.wincan
-                        .copy(&score_texture, None, Some(rect!(10, 10, 100, 50)))?;
-
-                    // Display num coins collected
-                    let coin_surface = font
-                        .render(&format!("{:03}", coin_count))
-                        .blended(Color::RGBA(100, 0, 200, 100))
-                        .map_err(|e| e.to_string())?;
-                    let coin_count_texture = texture_creator
-                        .create_texture_from_surface(&coin_surface)
-                        .map_err(|e| e.to_string())?;
-                    core.wincan
-                        .copy(&coin_count_texture, None, Some(rect!(160, 10, 80, 50)))?;
-
-                    if game_over {
-                        // Cleaned up calculation of texture position
-                        // Check previous versions if you want those calculations
-                        core.wincan.copy(
-                            &game_over_texture,
-                            None,
-                            Some(rect!(239, 285, 801, 149)),
-                        )?;
-                    }
-
-                    core.wincan.present();
                 }
+
+                // Update total_score
+                // Poorly placed rn, should be after postion / hitbox / collision update
+                // but before drawing
+                if !game_over {
+                    curr_step_score += 1; // Hardcoded score increase per frame
+                    if let Some(PowerType::ScoreMultiplier) = player.power_up() {
+                        curr_step_score *= 2; // Hardcoded power bonus
+                    }
+                    total_score += curr_step_score;
+                }
+
+                /* Update ground / object positions to move player forward
+                 * by the distance they should move this single iteration of the game loop
+                 */
+                let travel_update = player.vel_x();
+                for ground in all_terrain.iter_mut() {
+                    ground.travel_update(travel_update as i32);
+                }
+
+                for obs in all_obstacles.iter_mut() {
+                    obs.travel_update(travel_update as i32);
+                }
+                for coin in all_coins.iter_mut() {
+                    coin.travel_update(travel_update as i32);
+                }
+                for powerUp in all_powers.iter_mut() {
+                    powerUp.travel_update(travel_update as i32);
+                }
+
+                // Generate new ground when the last segment becomes visible
+                // All of this code is placeholder
+                let last_seg = all_terrain.get(all_terrain.len() - 1).unwrap();
+                if last_seg.x() < CAM_W as i32 {
+                    let last_x = last_seg.curve().get(last_seg.curve().len() - 1).unwrap().0;
+                    let last_y = last_seg.curve().get(last_seg.curve().len() - 1).unwrap().1;
+                    let mut new_curve: Vec<(i32, i32)> = vec![(last_x + 1, last_y)];
+                    for i in (last_x + 2)..(last_x + CAM_W as i32 + 1) {
+                        new_curve.push((i as i32, last_y));
+                    }
+                    let new_terrain = TerrainSegment::new(
+                        rect!(last_x + 1, last_y, CAM_W, CAM_H * 2 / 3),
+                        new_curve,
+                        0.0,
+                        TerrainType::Grass,
+                        Color::GREEN,
+                    );
+                    all_terrain.push(new_terrain);
+                }
+
+                /* ~~~~~~ Begin Camera Section ~~~~~~ */
+                /* This should be the very last section of calcultions,
+                 * as the camera position relies upon updated math for
+                 * EVERYTHING ELSE. Below the camera section we have
+                 * removal of offscreen objects from their vectors,
+                 * animation updates, the drawing section, and FPS calculation only.
+                 */
+
+                // Adjust camera vertically based on y/height of the ground
+                let camera_adj_y = if curr_ground_point.y() < TERRAIN_UPPER_BOUND {
+                    TERRAIN_UPPER_BOUND - curr_ground_point.y()
+                } else if (curr_ground_point.y() + TILE_SIZE as i32) > TERRAIN_LOWER_BOUND {
+                    TERRAIN_LOWER_BOUND - curr_ground_point.y()
+                } else {
+                    0
+                };
+
+                // Add adjustment to terrain
+                for ground in all_terrain.iter_mut() {
+                    ground.camera_adj(0, camera_adj_y);
+                }
+
+                // Add adjustment to obstacles
+                for obs in all_obstacles.iter_mut() {
+                    obs.camera_adj(0, camera_adj_y);
+                }
+
+                // Add adjustment to coins
+                for coin in all_coins.iter_mut() {
+                    coin.camera_adj(0, camera_adj_y);
+                }
+
+                // Add adjustment to power ups
+                for powerUp in all_powers.iter_mut() {
+                    powerUp.camera_adj(0, camera_adj_y);
+                }
+
+                // Add adjustment to player
+                player.camera_adj(0, camera_adj_y);
+
+                /* ~~~~~~ End Camera Section ~~~~~~ */
+
+                /* ~~~~~~ Remove stuff which is now offscreen ~~~~~~ */
+                let mut remove_inds: Vec<i32> = Vec::new();
+                let mut ind: i32 = -1;
+
+                // Terrain
+                for ground in all_terrain.iter() {
+                    ind += 1;
+                    if ground.x() + ground.w() <= 0 {
+                        remove_inds.push(ind);
+                    }
+                }
+                for i in remove_inds.iter() {
+                    all_terrain.remove(*i as usize);
+                }
+                remove_inds.clear();
+
+                //  Obstacles
+                ind = -1;
+                for obs in all_obstacles.iter() {
+                    ind += 1;
+                    if obs.x() + TILE_SIZE as i32 <= 0 {
+                        remove_inds.push(ind);
+                    }
+                }
+                for i in remove_inds.iter() {
+                    all_obstacles.remove(*i as usize);
+                }
+                remove_inds.clear();
+
+                // Coins
+                ind = -1;
+                for coin in all_coins.iter() {
+                    ind += 1;
+                    if coin.x() + TILE_SIZE as i32 <= 0 {
+                        remove_inds.push(ind);
+                    }
+                }
+                for i in remove_inds.iter() {
+                    all_coins.remove(*i as usize);
+                }
+                remove_inds.clear();
+
+                // Power ups
+                ind = -1;
+                for power in all_powers.iter_mut() {
+                    ind += 1;
+                    if power.x() + TILE_SIZE as i32 <= 0 {
+                        remove_inds.push(ind);
+                    }
+                }
+                for i in remove_inds.iter() {
+                    all_powers.remove(*i as usize);
+                }
+
+                /* ~~~~~~ Animation Updates ~~~~~~ */
+                bg_tick += 1;
+
+                // Shift background images & sine waves?
+                if bg_tick % 10 == 0 {
+                    bg_buff -= 1;
+                }
+
+                // Reset sine wave tick (to prevent large values?)
+                if bg_tick % 3 == 0 && bg_tick % 5 == 0 {
+                    bg_tick = 0;
+                }
+
+                // Reset background image buffer upon leftmost bg image moving completely
+                // offscreen
+                if -bg_buff == CAM_W as i32 {
+                    bg_buff = 0;
+                }
+
+                // Next frame for coin animation
+                coin_anim += 1;
+                coin_anim %= 60;
+
+                /* ~~~~~~ Draw All Elements ~~~~~~ */
+                // Wipe screen every frame
+                core.wincan.set_draw_color(Color::RGBA(3, 120, 206, 255));
+                core.wincan.clear();
+
+                // Bottom layer of background, black skybox
+                core.wincan.set_draw_color(Color::RGBA(0, 0, 0, 255));
+                core.wincan.fill_rect(rect!(0, 470, CAM_W, CAM_H))?;
+
+                // Sky
+                core.wincan
+                    .copy(&tex_sky, None, rect!(bg_buff, 0, CAM_W, CAM_H / 3))?;
+                core.wincan.copy(
+                    &tex_sky,
+                    None,
+                    rect!(CAM_W as i32 + bg_buff, 0, CAM_W, CAM_H / 3),
+                )?;
+
+                // Sunset gradient - doesn't need to scroll left
+                core.wincan
+                    .copy(&tex_grad, None, rect!(0, -128, CAM_W, CAM_H))?;
+
+                // Background
+                core.wincan
+                    .copy(&tex_bg, None, rect!(bg_buff, -150, CAM_W, CAM_H))?;
+                core.wincan.copy(
+                    &tex_bg,
+                    None,
+                    rect!(bg_buff + (CAM_W as i32), -150, CAM_W, CAM_H),
+                )?;
+
+                // Background perlin noise curves
+                for i in 0..background_curves[IND_BACKGROUND_MID].len() - 1 {
+                    // Furthest back perlin noise curves
+                    core.wincan.set_draw_color(Color::RGBA(128, 51, 6, 255));
+                    core.wincan.fill_rect(rect!(
+                        i * CAM_W as usize / BG_CURVES_SIZE + CAM_W as usize / BG_CURVES_SIZE / 2,
+                        CAM_H as i16 - background_curves[IND_BACKGROUND_BACK][i],
+                        CAM_W as usize / BG_CURVES_SIZE,
+                        CAM_H as i16
+                    ))?;
+
+                    // Midground perlin noise curves
+                    core.wincan.set_draw_color(Color::RGBA(96, 161, 152, 255));
+                    core.wincan.fill_rect(rect!(
+                        i * CAM_W as usize / BG_CURVES_SIZE + CAM_W as usize / BG_CURVES_SIZE / 2,
+                        CAM_H as i16 - background_curves[IND_BACKGROUND_MID][i],
+                        CAM_W as usize / BG_CURVES_SIZE,
+                        CAM_H as i16
+                    ))?;
+                }
+
+                // Active Power HUD Display
+                if player.power_up().is_some() {
+                    match player.power_up() {
+                        Some(PowerType::SpeedBoost) => {
+                            core.wincan.copy(
+                                &tex_speed,
+                                None,
+                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
+                            )?;
+                        }
+                        Some(PowerType::ScoreMultiplier) => {
+                            core.wincan.copy(
+                                &tex_multiplier,
+                                None,
+                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
+                            )?;
+                        }
+                        Some(PowerType::BouncyShoes) => {
+                            core.wincan.copy(
+                                &tex_bouncy,
+                                None,
+                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
+                            )?;
+                        }
+                        Some(PowerType::LowerGravity) => {
+                            core.wincan.copy(
+                                &tex_floaty,
+                                None,
+                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
+                            )?;
+                        }
+                        Some(PowerType::Shield) => {
+                            core.wincan.copy(
+                                &tex_shield,
+                                None,
+                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
+                            )?;
+                        }
+                        _ => {}
+                    }
+
+                    // Power duration bar
+                    let m = power_timer as f64 / 360.0;
+                    let r = 256.0 * (1.0 - m);
+                    let g = 256.0 * (m);
+                    let w = TILE_SIZE as f64 * m;
+                    core.wincan.set_draw_color(Color::RGB(r as u8, g as u8, 0));
+                    core.wincan.fill_rect(rect!(10, 210, w as u8, 10))?;
+                }
+
+                // Terrain
+                for ground in all_terrain.iter() {
+                    core.wincan.set_draw_color(ground.color());
+                    core.wincan.fill_rect(ground.pos())?;
+                }
+
+                // Set player texture
+                let tex_player = match player.power_up() {
+                    Some(PowerType::Shield) => &tex_shielded,
+                    // ... Add more types of powered player textures here ...
+                    _ => player.texture(),
+                };
+
+                // Assert player.x() == PLAYER_X here
+
+                // Player
+                core.wincan.copy_ex(
+                    tex_player,
+                    rect!(0, 0, TILE_SIZE, TILE_SIZE),
+                    rect!(player.x(), player.y(), TILE_SIZE, TILE_SIZE),
+                    player.theta() * 180.0 / std::f64::consts::PI,
+                    None,
+                    false,
+                    false,
+                )?;
+
+                core.wincan.set_draw_color(Color::BLACK);
+
+                // Player's hitbox
+                core.wincan.draw_rect(player.hitbox())?;
+
+                // Obstacles
+                for obs in all_obstacles.iter() {
+                    // Collapse this match to just one ... all this code is repeated
+                    match obs.obstacle_type() {
+                        ObstacleType::Statue => {
+                            core.wincan.copy_ex(
+                                obs.texture(),
+                                None,
+                                rect!(obs.x(), obs.y(), TILE_SIZE, TILE_SIZE),
+                                obs.theta(),
+                                None,
+                                false,
+                                false,
+                            )?;
+                            core.wincan.set_draw_color(Color::RED);
+                            core.wincan.draw_rect(obs.hitbox())?;
+                            break;
+                        }
+                        ObstacleType::Spring => {
+                            core.wincan.copy_ex(
+                                obs.texture(),
+                                None,
+                                rect!(obs.x(), obs.y(), TILE_SIZE, TILE_SIZE),
+                                obs.theta(),
+                                None,
+                                false,
+                                false,
+                            )?;
+                            core.wincan.set_draw_color(Color::BLUE);
+                            core.wincan.draw_rect(obs.hitbox())?;
+                        }
+                        ObstacleType::Chest => {
+                            core.wincan.copy_ex(
+                                obs.texture(),
+                                None,
+                                rect!(obs.x(), obs.y(), TILE_SIZE, TILE_SIZE),
+                                obs.theta(),
+                                None,
+                                false,
+                                false,
+                            )?;
+                            core.wincan.set_draw_color(Color::BLUE);
+                            core.wincan.draw_rect(obs.hitbox())?;
+                        }
+                    }
+                }
+
+                // Coins
+                for coin in all_coins.iter() {
+                    core.wincan.copy_ex(
+                        coin.texture(),
+                        rect!(coin_anim * TILE_SIZE as i32, 0, TILE_SIZE, TILE_SIZE),
+                        rect!(coin.x(), coin.y(), TILE_SIZE, TILE_SIZE),
+                        0.0,
+                        None,
+                        false,
+                        false,
+                    )?;
+                    core.wincan.set_draw_color(Color::GREEN);
+                    core.wincan.draw_rect(coin.hitbox())?;
+                }
+
+                // Powerups (on the ground, not active or collected)
+                for power in all_powers.iter() {
+                    core.wincan.copy_ex(
+                        power.texture(),
+                        rect!(0, 0, TILE_SIZE, TILE_SIZE),
+                        rect!(power.x(), power.y(), TILE_SIZE, TILE_SIZE),
+                        0.0,
+                        None,
+                        false,
+                        false,
+                    )?;
+                    core.wincan.set_draw_color(Color::YELLOW);
+                    core.wincan.draw_rect(power.hitbox())?;
+                }
+
+                // Setup for the text of the total_score to be displayed
+                let tex_score = font
+                    .render(&format!("{:08}", total_score))
+                    .blended(Color::RGBA(255, 0, 0, 100))
+                    .map_err(|e| e.to_string())?;
+
+                // Display total_score
+                let score_texture = texture_creator
+                    .create_texture_from_surface(&tex_score)
+                    .map_err(|e| e.to_string())?;
+                core.wincan
+                    .copy(&score_texture, None, Some(rect!(10, 10, 100, 50)))?;
+
+                // Display num coins collected
+                let coin_surface = font
+                    .render(&format!("{:03}", coin_count))
+                    .blended(Color::RGBA(100, 0, 200, 100))
+                    .map_err(|e| e.to_string())?;
+                let coin_count_texture = texture_creator
+                    .create_texture_from_surface(&coin_surface)
+                    .map_err(|e| e.to_string())?;
+                core.wincan
+                    .copy(&coin_count_texture, None, Some(rect!(160, 10, 80, 50)))?;
+
+                if game_over {
+                    // Cleaned up calculation of texture position
+                    // Check previous versions if you want those calculations
+                    core.wincan
+                        .copy(&game_over_texture, None, Some(rect!(239, 285, 801, 149)))?;
+                }
+
+                core.wincan.present();
 
                 /* ~~~~~~ FPS Calculation ~~~~~~ */
                 // Time taken to display the last frame
