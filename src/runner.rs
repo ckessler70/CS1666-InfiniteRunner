@@ -317,7 +317,7 @@ impl Game for Runner {
                 }
 
                 //  Get ground point at player and TILE_SIZE ahead of player
-                let curr_ground_point: Point = get_ground_coord_at_player(&all_terrain);
+                let curr_ground_point: Point = get_ground_coord(&all_terrain, PLAYER_X);
                 let next_ground_point: Point =
                     get_ground_coord(&all_terrain, PLAYER_X + TILE_SIZE as i32);
                 let angle = ((next_ground_point.y() as f64 - curr_ground_point.y() as f64)
@@ -1081,23 +1081,6 @@ impl Game for Runner {
             }
 
             /* ~~~~~~ Helper Functions ~~~~~ */
-            // Given the current terrain, returns the (x, y) of the ground at that PLAYER_X
-            fn get_ground_coord_at_player(all_terrain: &Vec<TerrainSegment>) -> Point {
-                // Loop backwards
-                for ground in all_terrain.iter().rev() {
-                    // The first segment starting at or behind
-                    // the player, which they must be above
-                    if ground.x() <= PLAYER_X {
-                        let point_ind: usize = (PLAYER_X - ground.x()) as usize;
-                        return Point::new(
-                            ground.curve().get(point_ind).unwrap().0,
-                            ground.curve().get(point_ind).unwrap().1,
-                        );
-                    }
-                }
-                return Point::new(-1, -1);
-            }
-
             // Given the current terrain and an x coordinate of the screen,
             // returns the (x, y) of the ground at that x
             fn get_ground_coord(all_terrain: &Vec<TerrainSegment>, screen_x: i32) -> Point {
