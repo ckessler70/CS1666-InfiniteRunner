@@ -65,17 +65,28 @@ impl TerrainSegment {
     pub fn camera_adj(&mut self, x_adj: i32, y_adj: i32) {
         self.pos.set_x(self.pos.x() + x_adj);
         self.pos.set_y(self.pos.y() + y_adj);
+        /*
         for (x, y) in self.curve.iter_mut() {
             *x += x_adj;
             *y += y_adj;
+        }
+        */
+        for tuple in self.curve.iter_mut() {
+            tuple.0 += x_adj;
+            tuple.1 += y_adj;
         }
     }
 
     // Shifts terrain left so player can "move forward"
     pub fn travel_update(&mut self, travel_adj: i32) {
         self.pos.set_x(self.pos.x() - travel_adj);
+        /*
         for (x, y) in self.curve.iter_mut() {
-            *x -= travel_adj;
+            *x += travel_adj;
+        }
+        */
+        for tuple in self.curve.iter_mut() {
+            tuple.0 -= travel_adj;
         }
     }
 
@@ -114,6 +125,12 @@ impl TerrainSegment {
 
     pub fn curve(&self) -> &Vec<(i32, i32)> {
         &(self.curve)
+    }
+}
+
+impl PartialEq for TerrainSegment {
+    fn eq(&self, other: &Self) -> bool {
+        self.pos == other.pos
     }
 }
 
@@ -255,12 +272,14 @@ impl ProceduralGen {
         // Due to weird rust semantics, need to make a var to hold curve length
         let curve_len = curve.len();
 
+        /*
         // Bouncy or not bouncy
-        // May be obsolete with TerrainType
+        // Is obsolete with TerrainType
         match rng.gen_range(0..=1) {
             1 => curve[curve_len - 1] = (1, 1),
             _ => curve[curve_len - 1] = (0, 0),
         }
+        */
 
         let rect = rect!(0, 0, 10, 10); // ?
         let angle_from_last = 0.0; // ?
