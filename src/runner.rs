@@ -726,7 +726,7 @@ impl Game for Runner {
                 // Terrain
                 for ground in all_terrain.iter() {
                     ind += 1;
-                    if ground.x() + ground.w() <= 0 {
+                    if ground.x() + ground.w() <= -1 * TILE_SIZE as i32 {
                         remove_inds.push(ind);
                     }
                 }
@@ -739,7 +739,7 @@ impl Game for Runner {
                 ind = -1;
                 for obs in all_obstacles.iter() {
                     ind += 1;
-                    if obs.x() + TILE_SIZE as i32 <= 0 {
+                    if obs.x() + TILE_SIZE as i32 <= -1 * TILE_SIZE as i32 {
                         remove_inds.push(ind);
                     }
                 }
@@ -752,7 +752,7 @@ impl Game for Runner {
                 ind = -1;
                 for coin in all_coins.iter() {
                     ind += 1;
-                    if coin.x() + TILE_SIZE as i32 <= 0 {
+                    if coin.x() + TILE_SIZE as i32 <= -1 * TILE_SIZE as i32 {
                         remove_inds.push(ind);
                     }
                 }
@@ -765,7 +765,7 @@ impl Game for Runner {
                 ind = -1;
                 for power in all_powers.iter_mut() {
                     ind += 1;
-                    if power.x() + TILE_SIZE as i32 <= 0 {
+                    if power.x() + TILE_SIZE as i32 <= -1 * TILE_SIZE as i32 {
                         remove_inds.push(ind);
                     }
                 }
