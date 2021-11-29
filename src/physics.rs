@@ -238,6 +238,7 @@ pub struct Player<'a> {
     lock_jump_time: bool,
     jumping: bool,
     flipping: bool,
+    was_flipping: bool,
     second_jump: bool,
 }
 
@@ -260,6 +261,7 @@ impl<'a> Player<'a> {
             lock_jump_time: false,
             jumping: true,
             flipping: false,
+            was_flipping: false,
             second_jump: false,
         }
     }
@@ -276,6 +278,10 @@ impl<'a> Player<'a> {
         self.flipping
     }
 
+    pub fn was_flipping(&self) -> bool {
+        self.was_flipping
+    }
+
     // Returns specific power-up player has, or None if player hasn't collected a power-up
     pub fn power_up(&self) -> Option<PowerType> {
         self.power_up
@@ -289,12 +295,13 @@ impl<'a> Player<'a> {
     // Brings player's rotational velocity to a stop
     pub fn stop_flipping(&mut self) {
         self.flipping = false;
-        self.omega = 0.0;
+        //self.omega = 0.0;
     }
 
     // Gives player rotational velocity
     pub fn resume_flipping(&mut self) {
         self.flipping = true;
+        self.was_flipping = true;
         self.omega = OMEGA;
     }
 
@@ -332,6 +339,16 @@ impl<'a> Player<'a> {
 
     pub fn flip(&mut self) {
         if self.is_flipping() {
+            self.rotate();
+        }
+        else if self.was_flipping() {
+            //allows for momentum when player stops flipping
+            if (self.omega - 0.003) != 0.0{
+                self.omega = self.omega - 0.003;
+            }
+            else {
+                self.omega = 0.0;
+            }
             self.rotate();
         }
     }
@@ -506,6 +523,7 @@ impl<'a> Body<'a> for Player<'a> {
             if self.jumping {
                 self.jumping = false;
                 self.lock_jump_time = false;
+                self.was_flipping = false;
             }
         }
 
