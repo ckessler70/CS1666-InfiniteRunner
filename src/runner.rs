@@ -642,6 +642,8 @@ impl Game for Runner {
                         // ... Add any new types of objects here ...
                         _ => {}
                     }
+
+                    /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
                 }
 
                 // Update total_score
@@ -732,8 +734,7 @@ impl Game for Runner {
 
                 // Add adjustment to player
                 player.camera_adj(0, camera_adj_y);
-
-                /* ~~~~~~ End Camera Section ~~~~~~ */
+                /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
                 /* ~~~~~~ Remove stuff which is now offscreen ~~~~~~ */
                 let mut remove_inds: Vec<i32> = Vec::new();
@@ -788,6 +789,7 @@ impl Game for Runner {
                 for i in remove_inds.iter() {
                     all_powers.remove(*i as usize);
                 }
+                /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
                 /* ~~~~~~ Animation Updates ~~~~~~ */
                 bg_tick += 1;
@@ -811,6 +813,7 @@ impl Game for Runner {
                 // Next frame for coin animation
                 coin_anim += 1;
                 coin_anim %= 60;
+                /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
                 /* ~~~~~~ Draw All Elements ~~~~~~ */
                 // Wipe screen every frame
@@ -1054,6 +1057,7 @@ impl Game for Runner {
                 }
 
                 core.wincan.present();
+                /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
                 /* ~~~~~~ FPS Calculation ~~~~~~ */
                 // Time taken to display the last frame
@@ -1078,6 +1082,7 @@ impl Game for Runner {
                     all_frames = 0;
                     last_measurement_time = Instant::now();
                 }
+                /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
             }
 
             /* ~~~~~~ Helper Functions ~~~~~ */
@@ -1098,6 +1103,7 @@ impl Game for Runner {
                 }
                 return Point::new(-1, -1);
             }
+            /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
         } // End gameloop
 
         Ok(GameState {
