@@ -87,6 +87,9 @@ impl Game for Runner {
         let tex_floaty = texture_creator.load_texture("assets/floaty.png")?;
         let tex_shield = texture_creator.load_texture("assets/shield.png")?;
         let tex_shielded = texture_creator.load_texture("assets/shielded_player.png")?;
+        let tex_winged = texture_creator.load_texture("assets/winged_player.png")?;
+        let tex_springed = texture_creator.load_texture("assets/bouncy_player.png")?;
+        let tex_fast = texture_creator.load_texture("assets/speed_player.png")?;
 
         let tex_resume = texture_creator
             .create_texture_from_surface(
@@ -937,6 +940,9 @@ impl Game for Runner {
                 // Set player texture
                 let tex_player = match player.power_up() {
                     Some(PowerType::Shield) => &tex_shielded,
+                    Some(PowerType::LowerGravity) => &tex_winged,
+                    Some(PowerType::BouncyShoes) => &tex_springed,
+                    Some(PowerType::SpeedBoost) => &tex_fast,
                     // ... Add more types of powered player textures here ...
                     _ => player.texture(),
                 };
