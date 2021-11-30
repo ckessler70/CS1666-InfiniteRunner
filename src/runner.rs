@@ -194,8 +194,10 @@ impl Game for Runner {
         let mut spawn_timer: i32 = 500; // Can spawn a new object when it reaches 0
 
         //For Bezier Curves
-        let mut prev_P3: (i32, i32) = (-1, -1);
-        let mut prev_P2: (i32, i32) = (-1, -1);
+        // This information should be stored in the control_points arr of the Terrain
+        // Stuct instance
+        // let mut prev_P3: (i32, i32) = (-1, -1);
+        // let mut prev_P2: (i32, i32) = (-1, -1);
 
         /* ~~~~~~~~ Stuff for background sine waves ~~~~~~~~~~~~~~ */
         // Background & sine wave vars
@@ -246,8 +248,15 @@ impl Game for Runner {
             0.0,
             TerrainType::Grass,
             Color::GREEN,
-            (-1, -1),
-            (-1, -1),
+            [
+                *init_curve_1.get(0).unwrap(),
+                *init_curve_1.get(init_curve_1.len() / 3).unwrap(),
+                *init_curve_1.get(init_curve_1.len() * 2 / 3).unwrap(),
+                *init_curve_1.get(init_curve_1.len() - 1).unwrap(),
+            ], /* Control
+                * points
+                * for the starting
+                * rectangles */
         );
         let mut init_curve_2: Vec<(i32, i32)> = vec![(CAM_W as i32, CAM_H as i32 * 2 / 3)];
         for i in (CAM_W + 1)..(CAM_W * 2) {
@@ -259,8 +268,15 @@ impl Game for Runner {
             0.0,
             TerrainType::Grass,
             Color::BLUE,
-            (-1, -1),
-            (-1, -1),
+            [
+                *init_curve_2.get(0).unwrap(),
+                *init_curve_2.get(init_curve_1.len() / 3).unwrap(),
+                *init_curve_2.get(init_curve_1.len() * 2 / 3).unwrap(),
+                *init_curve_2.get(init_curve_1.len() - 1).unwrap(),
+            ], /* Control
+                * points
+                * for the starting
+                * rectangles */
         );
         all_terrain.push(init_terrain_1);
         all_terrain.push(init_terrain_2);
@@ -711,13 +727,15 @@ impl Game for Runner {
                 }
 
                 // Generate new ground when the last segment becomes visible
-                // All of this code is placeholder
-
-                /*
                 let last_seg = all_terrain.get(all_terrain.len() - 1).unwrap();
                 if last_seg.x() < CAM_W as i32 {
-                    let last_x = last_seg.curve().get(last_seg.curve().len() - 1).unwrap().0;
-                    let last_y = last_seg.curve().get(last_seg.curve().len() - 1).unwrap().1;
+                    // Get last point of previous curve, which is also
+                    // a bezier control point
+                    let last_x = last_seg.control_points()[3].0;
+                    let last_y = last_seg.control_points()[3].1;
+                    /*
+                    ~~~ Method calls to proceduralgen should replace this code! ~~~
+
                     let mut new_curve: Vec<(i32, i32)> = vec![(last_x + 1, last_y)];
 
                     let mut tempa: (i32, i32) = last_seg.get_p2();
@@ -738,9 +756,13 @@ impl Game for Runner {
                         last_seg.get_p2(),
                         last_seg.get_p3(),
                     );
+                    */
                     all_terrain.push(new_terrain);
                 }
-                */
+
+                /*
+
+                This code does not belong in this file! Please stay within the project structure
 
                 //Generate Control points
                 let mut points: Vec<(i32, i32)> = proceduralgen::gen_control_points(
@@ -779,6 +801,7 @@ impl Game for Runner {
                 //curvepoints is the curve.
 
                 //Now that
+                */
 
                 /* ~~~~~~ Begin Camera Section ~~~~~~ */
                 /* This should be the very last section of calcultions,
@@ -1003,6 +1026,7 @@ impl Game for Runner {
                 }
 
                 // Terrain
+                // Pseudocode we talked about goes here for drawing bezier curves!
                 for ground in all_terrain.iter() {
                     core.wincan.set_draw_color(ground.color());
                     core.wincan.fill_rect(ground.pos())?;

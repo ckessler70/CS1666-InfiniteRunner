@@ -39,8 +39,9 @@ pub struct TerrainSegment {
                              * downward on average */
     terrain_type: TerrainType,
     color: Color,
-    p2: (i32, i32),
-    p3: (i32, i32),
+    // p2: (i32, i32),
+    // p3: (i32, i32),
+    control_points: [(i32, i32); 4];
 }
 
 // Terrain Segment Definitions
@@ -51,8 +52,7 @@ impl TerrainSegment {
         angle_from_last: f64,
         terrain_type: TerrainType,
         color: Color,
-        p2: (i32, i32),
-        p3: (i32, i32),
+        control_points: [(i32, i32); 4],
     ) -> TerrainSegment {
         // Set defaults, should probably be different than this
         TerrainSegment {
@@ -61,8 +61,7 @@ impl TerrainSegment {
             angle_from_last: angle_from_last,
             terrain_type: terrain_type,
             color: color,
-            p2: p2,
-            p3: p3,
+            control_points: control_points,
         }
     }
 
