@@ -236,32 +236,61 @@ impl Game for Runner {
 
         // Initialize the starting terrain segments
         // Rectangles
-        let mut init_curve_1: Vec<(i32, i32)> = vec![(0, CAM_H as i32 * 2 / 3)];
-        for i in 1..CAM_W {
-            init_curve_1.push((i as i32, CAM_H as i32 * 2 / 3));
-        }
-        let init_terrain_1 = TerrainSegment::new(
-            rect!(0, CAM_H as i32 * 2 / 3, CAM_W, CAM_H as i32 * 2 / 3),
-            init_curve_1,
-            0.0,
-            TerrainType::Grass,
-            Color::GREEN,
-            (-1, -1),
-            (-1, -1),
+
+        let mut init_terrain_1 = proceduralgen::ProceduralGen::gen_terrain(
+            &random,
+            (0.0, (CAM_H / 3) as f64),
+            (-1.0, -1.0),
+            CAM_W as i32,
+            CAM_H as i32,
+            false,
+            false,
+            false,
         );
-        let mut init_curve_2: Vec<(i32, i32)> = vec![(CAM_W as i32, CAM_H as i32 * 2 / 3)];
-        for i in (CAM_W + 1)..(CAM_W * 2) {
-            init_curve_2.push((i as i32, CAM_H as i32 * 2 / 3));
-        }
-        let init_terrain_2 = TerrainSegment::new(
-            rect!(CAM_W, CAM_H as i32 * 2 / 3, CAM_W, CAM_H as i32 * 2 / 3),
-            init_curve_2,
-            0.0,
-            TerrainType::Grass,
-            Color::BLUE,
-            (-1, -1),
-            (-1, -1),
+
+        let mut init_terrain_2 = proceduralgen::ProceduralGen::gen_terrain(
+            &random,
+            (
+                init_terrain_1.get_p3().0 as f64,
+                init_terrain_1.get_p3().1 as f64,
+            ),
+            (
+                init_terrain_1.get_p2().0 as f64,
+                init_terrain_1.get_p2().1 as f64,
+            ),
+            CAM_W as i32,
+            CAM_H as i32,
+            false,
+            false,
+            false,
         );
+
+        // let mut init_curve_1: Vec<(i32, i32)> = vec![(0, CAM_H as i32 * 2 / 3)];
+        // for i in 1..CAM_W {
+        //     init_curve_1.push((i as i32, CAM_H as i32 * 2 / 3));
+        // }
+        // let init_terrain_1 = TerrainSegment::new(
+        //     rect!(0, CAM_H as i32 * 2 / 3, CAM_W, CAM_H as i32 * 2 / 3),
+        //     init_curve_1,
+        //     0.0,
+        //     TerrainType::Grass,
+        //     Color::GREEN,
+        //     (-1, -1),
+        //     (-1, -1),
+        // );
+        // let mut init_curve_2: Vec<(i32, i32)> = vec![(CAM_W as i32, CAM_H as i32 * 2 / 3)];
+        // for i in (CAM_W + 1)..(CAM_W * 2) {
+        //     init_curve_2.push((i as i32, CAM_H as i32 * 2 / 3));
+        // }
+        // let init_terrain_2 = TerrainSegment::new(
+        //     rect!(CAM_W, CAM_H as i32 * 2 / 3, CAM_W, CAM_H as i32 * 2 / 3),
+        //     init_curve_2,
+        //     0.0,
+        //     TerrainType::Grass,
+        //     Color::BLUE,
+        //     (-1, -1),
+        //     (-1, -1),
+        // );
         all_terrain.push(init_terrain_1);
         all_terrain.push(init_terrain_2);
 
@@ -742,39 +771,58 @@ impl Game for Runner {
                 }
                 */
 
-                //Generate Control points
-                let mut points: Vec<(i32, i32)> = proceduralgen::gen_control_points(
-                    (prev_P3.0 as f64, prev_P3.1 as f64),
-                    &random,
-                    CAM_W as i32,
-                    CAM_H as i32,
-                    100,
-                );
+                let last_seg = all_terrain.get(all_terrain.len() - 1).unwrap();
+                if last_seg.x() < CAM_W as i32 {
+                    let prev_p2 = last_seg.get_p2();
+                    let prev_p3 = last_seg.get_p3();
 
-                //Sloppy implementation of ensuring the control points will work for smooth
-                // curves. Will make better next week.
-                if (prev_P2.0 > 0) {
-                    points[1] = prev_P2;
-                    while (points[1].0 > points[2].0 || points[2].0 > points[3].0) {
-                        let temp: i32 = rng.gen::<i32>() * 25 + 25; //0-50
-                        if (points[1].0 > points[2].0) {
-                            points[2].0 += temp;
-                        } else if (points[2].0 > points[3].0) {
-                            points[2].0 -= temp;
-                        }
-                    }
+                    let new_terrain_seg = proceduralgen::ProceduralGen::gen_terrain(
+                        &random,
+                        (prev_p3.0 as f64, prev_p3.1 as f64),
+                        (prev_p2.0 as f64, prev_p2.1 as f64),
+                        CAM_W as i32,
+                        CAM_H as i32,
+                        false,
+                        false,
+                        false,
+                    );
+
+                    all_terrain.push(new_terrain_seg);
                 }
 
-                //input prevp3, prevp2, currp2, currp3
-                let mut curvePoints: Vec<(i32, i32)> = proceduralgen::extend_cubic_bezier_curve(
-                    (prev_P3.0 as f64, prev_P3.1 as f64),
-                    (prev_P2.0 as f64, prev_P2.1 as f64),
-                    (points[2].0 as f64, points[2].1 as f64),
-                    (points[3].0 as f64, points[3].1 as f64),
-                );
+                //Generate Control points
+                // let mut points: Vec<(i32, i32)> = proceduralgen::gen_control_points(
+                //     (prev_P3.0 as f64, prev_P3.1 as f64),
+                //     &random,
+                //     CAM_W as i32,
+                //     CAM_H as i32,
+                //     100,
+                // );
 
-                prev_P2 = points[2];
-                prev_P3 = points[3];
+                // //Sloppy implementation of ensuring the control points will work for smooth
+                // // curves. Will make better next week.
+                // if (prev_P2.0 > 0) {
+                //     points[1] = prev_P2;
+                //     while (points[1].0 > points[2].0 || points[2].0 > points[3].0) {
+                //         let temp: i32 = rng.gen::<i32>() * 25 + 25; //0-50
+                //         if (points[1].0 > points[2].0) {
+                //             points[2].0 += temp;
+                //         } else if (points[2].0 > points[3].0) {
+                //             points[2].0 -= temp;
+                //         }
+                //     }
+                // }
+
+                // //input prevp3, prevp2, currp2, currp3
+                // let mut curvePoints: Vec<(i32, i32)> = proceduralgen::extend_cubic_bezier_curve(
+                //     (prev_P3.0 as f64, prev_P3.1 as f64),
+                //     (prev_P2.0 as f64, prev_P2.1 as f64),
+                //     (points[2].0 as f64, points[2].1 as f64),
+                //     (points[3].0 as f64, points[3].1 as f64),
+                // );
+
+                // prev_P2 = points[2];
+                // prev_P3 = points[3];
 
                 //curvepoints is the curve.
 
@@ -1003,9 +1051,35 @@ impl Game for Runner {
                 }
 
                 // Terrain
-                for ground in all_terrain.iter() {
-                    core.wincan.set_draw_color(ground.color());
-                    core.wincan.fill_rect(ground.pos())?;
+                let mut cur_x = 0;
+                for ground_seg in all_terrain.iter() {
+                    let curve = ground_seg.curve();
+                    for curve_ind in 0..ground_seg.w() {
+                        if cur_x > CAM_W as i32 {
+                            break;
+                        }
+
+                        // Get Draw Coords
+                        let mut slice_x = curve[curve_ind as usize].0;
+                        let mut slice_y = curve[curve_ind as usize].1;
+
+                        // Don't draw in negative x
+                        if slice_x < 0 {
+                            continue;
+                        }
+                        // Stop drawing at CAM_W
+                        else if slice_x > CAM_W as i32 {
+                            break;
+                        }
+                        // Normal drawing
+                        else {
+                            core.wincan.set_draw_color(ground_seg.color());
+                            core.wincan
+                                .fill_rect(rect!(cur_x, slice_y, 1, CAM_H as i32 - slice_y));
+                        }
+
+                        cur_x += 1;
+                    }
                 }
 
                 // Set player texture

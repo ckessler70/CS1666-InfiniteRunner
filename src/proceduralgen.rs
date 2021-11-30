@@ -79,7 +79,7 @@ impl TerrainSegment {
         */
         for tuple in self.curve.iter_mut() {
             tuple.0 += x_adj;
-            tuple.1 += y_adj;
+            // tuple.1 += y_adj;
         }
     }
 
@@ -273,7 +273,7 @@ impl ProceduralGen {
         };
 
         // Extract x and y point from last terrain segment
-        let mut curve = gen_bezier_curve(
+        let mut curve_points = gen_bezier_curve(
             prev_point,
             prev_p2,
             cam_w,
@@ -285,9 +285,9 @@ impl ProceduralGen {
         );
 
         // Due to weird rust semantics, need to make a var to hold curve length
-        let curve_len = curve.len();
+        let curve_len = curve_points.0.len();
 
-        let rect = rect!(0, 0, 10, 10); // ?
+        let rect = rect!(0, 0, curve_points.0.len(), 10); // ?
         let angle_from_last = 0.0; // ?
         let terrain_type = choose_terrain_type(10);
         let color = match (terrain_type) {
@@ -299,234 +299,15 @@ impl ProceduralGen {
 
         let terrain = TerrainSegment::new(
             rect,
-            curve,
+            curve_points.0,
             angle_from_last,
             terrain_type,
             color,
-            (-1, -1),
-            (-1, -1),
+            (curve_points.1 .1 .0 as i32, curve_points.1 .1 .1 as i32),
+            (curve_points.1 .2 .0 as i32, curve_points.1 .2 .1 as i32),
         );
 
         return terrain;
-    }
-
-    /*  Currently Deprecated
-     *  Similar intent to gen_bezier_land
-     *
-     */
-    pub fn gen_land<'a>(
-        random: &[[(i32, i32); 256]; 256],
-        prev_segment: &TerrainSegment,
-        cam_w: i32,
-        cam_h: i32,
-        _is_pit: bool,
-        _is_flat: bool,
-        _is_cliff: bool,
-        texture: &'a Texture<'a>,
-    ) /* -> TerrainSegment */
-    {
-        //TODO
-
-        let mut rng = rand::thread_rng();
-
-        let flat_mod: f64 = 0.25;
-        let cliff_min_mod: f64 = 2.0;
-        let cliff_max_mod: f64 = 5.0;
-
-        let freq = rng.gen_range(32.0..256.0);
-        let amp: f64 = if _is_flat {
-            rng.gen::<f64>() * flat_mod
-        } else if _is_cliff {
-            rng.gen::<f64>() * cliff_max_mod.clamp(cliff_min_mod, cliff_max_mod)
-        } else {
-            rng.gen::<f64>()
-        };
-
-        // //Generates perlin noise map each terrain
-        // let perlin_noise: [[f64; 128]; 128] = gen_perlin_noise(freq, amp);
-
-        // // As mod is closer to 1, it should be higher. As it is closer to 0, it
-        // should be lower let point_mod: f64 = perlin_noise
-        //     [((rng.gen::<f64>() * (perlin_noise.len() - 1) as f64).floor()) as usize]
-        //     [((rng.gen::<f64>() * (perlin_noise.len() - 1) as f64).floor()) as
-        // usize];
-
-        // Generates perlin noise for random point instead of whole map
-        let map_size = 128;
-        let point_mod_1a: f64 = gen_point_mod(
-            &random,
-            (
-                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-            ),
-            freq,
-            amp,
-        );
-        let point_mod_1b: f64 = gen_point_mod(
-            &random,
-            (
-                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-            ),
-            freq,
-            amp,
-        );
-        let point_mod_2: f64 = gen_point_mod(
-            &random,
-            (
-                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-            ),
-            freq,
-            amp,
-        );
-
-        // Extract x and y point from last terrain segment
-        // let curve = gen_bezier_curve((x, y), cam_w, cam_h, (point_mod_1a,
-        // point_mod_1b), point_mod_2, 100);
-
-        //prev_point - Last point of the previouly generated bit of land
-        //length - length of next batch of generated land
-        //is_pit - binary tick, next batch of land will have a pit in it
-        //is_flat - binary tick, next batch of land will be flat or mostly flat
-        // (shallow curve) is_cliff - binary tick, next batch of land
-        // will have a point where it drops down into a cliff face
-
-        // TerrainSegment::new(
-        //     rect!(
-        //         prev_segment.x() + prev_segment.w(),
-        //         prev_segment.y(),
-        //         cam_w,
-        //         cam_h / 3
-        //     ),
-        //     &texture,
-        // )
-    }
-
-    /*  Handler method to setup necessary parts for generating Bezier Curves
-     *
-     *  - Takes in `random` which is the array of random tuples of (i32, i32)
-     *    Needs to be the same values on each run for porper noise output
-     *    Represents the gradient value for points. Passed into gen_point_mod
-     *  - Takes in `prev_point` which is the x (assumes 0) and y of the last part
-     *    of generated terrain
-     *  - Takes in `cam_w` which is the width of the camera (1280)
-     *  - Takes in `cam_h` which is the height of the camera (720)
-     *  - Takes in `_is_pit` boolean which will generate a pit within this land
-     *    segment *NOT IMPLEMENTED YET*
-     *  - Takes in `_is_flat` boolean which will make the generated control point
-     *    modifiers around the same y and thus, curves should be relatively flat
-     *    for the next land segment
-     *  - Takes in `_is_cliff` boolean which will make a cliff within the next
-     *    land segment *NOT IMPLEMENTED YET*
-     *
-     *  - Returns array of tuples associated with the output curve.
-     */
-    pub fn gen_bezier_land(
-        random: &[[(i32, i32); 256]; 256],
-        mut prev_point: (f64, f64),
-        mut prev_p2: (f64, f64),
-        cam_w: i32,
-        cam_h: i32,
-        _is_pit: bool,
-        _is_flat: bool,
-        _is_cliff: bool,
-    ) -> Vec<(i32, i32)> {
-        //last point will act as bouncy flag.
-        let mut rng = rand::thread_rng();
-
-        let flat_mod: f64 = 0.25;
-        let cliff_min_mod: f64 = 2.0;
-        let cliff_max_mod: f64 = 5.0;
-
-        let freq = rng.gen_range(32.0..256.0);
-        let amp: f64 = if _is_flat {
-            rng.gen::<f64>() * flat_mod
-        } else if _is_cliff {
-            rng.gen::<f64>() * cliff_max_mod.clamp(cliff_min_mod, cliff_max_mod)
-        } else {
-            rng.gen::<f64>()
-        };
-
-        // Generates perlin noise for random point instead of whole map
-        let map_size = 128;
-        let point_mod_1a: f64 = gen_point_mod(
-            &random,
-            (
-                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-            ),
-            freq,
-            amp,
-        );
-        let point_mod_1b: f64 = gen_point_mod(
-            &random,
-            (
-                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-            ),
-            freq,
-            amp,
-        );
-        let point_mod_2a: f64 = gen_point_mod(
-            &random,
-            (
-                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-            ),
-            freq,
-            amp,
-        );
-        let point_mod_2b: f64 = gen_point_mod(
-            &random,
-            (
-                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-            ),
-            freq,
-            amp,
-        );
-        let point_mod_3a: f64 = gen_point_mod(
-            &random,
-            (
-                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-            ),
-            freq,
-            amp,
-        );
-        let point_mod_3b: f64 = gen_point_mod(
-            &random,
-            (
-                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-            ),
-            freq,
-            amp,
-        );
-
-        prev_point = if _is_pit {
-            (prev_point.0, prev_point.1 + 100.0)
-        } else {
-            prev_point
-        };
-
-        // Extract x and y point from last terrain segment
-        let mut last_curve_point = gen_bezier_curve(
-            prev_point,
-            prev_p2,
-            cam_w,
-            cam_h,
-            (point_mod_1a, point_mod_1b),
-            (point_mod_2a, point_mod_2b),
-            (point_mod_3a, point_mod_3b),
-            100,
-        );
-
-        // Due to weird rust semantics, need to make a var to hold curve length
-        let curve_len = last_curve_point.len();
-
-        return (last_curve_point);
     }
 }
 
@@ -581,15 +362,14 @@ fn gen_bezier_curve(
     point_mod_2: (f64, f64),
     point_mod_3: (f64, f64),
     buffer: i32,
-) -> Vec<(i32, i32)> {
+) -> (Vec<(i32, i32)>, ((f64, f64), (f64, f64), (f64, f64))) {
     //TODO - CONTROL POINT LOGIC NEEDS TO BE REFINED
     //Bezier curve
 
     //Cubic
 
     let p2: (f64, f64) = (
-        (point_mod_2.0 * (length / 2 - buffer) as f64 + p0.0 + buffer as f64)
-            .clamp(p0.0 + buffer as f64, (length / 2 - buffer) as f64),
+        (point_mod_2.0 * (length / 2 - buffer) as f64 + p0.0 + buffer as f64),
         (point_mod_2.1 * p0.1 * 2.0 - p0.1).clamp(p0.1 - buffer as f64, height as f64),
     );
 
@@ -603,11 +383,7 @@ fn gen_bezier_curve(
             (point_mod_1.0 * (length / 2 + buffer) as f64
                 + p0.0
                 + buffer as f64
-                + (length / 2) as f64)
-                .clamp(
-                    p0.0 + buffer as f64 + (length / 2) as f64,
-                    (length - buffer) as f64,
-                ),
+                + (length / 2) as f64),
             (point_mod_1.1 * p0.1 * 2.0 - p0.1).clamp(p0.1 - buffer as f64, height as f64),
         );
 
@@ -616,7 +392,7 @@ fn gen_bezier_curve(
         group_of_points = extend_cubic_bezier_curve(p0, p1, p2, p3); //might need to swap p0 and p1
     }
 
-    return group_of_points;
+    return (group_of_points, (p0, p1, p2));
 }
 
 /*
