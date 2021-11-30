@@ -78,8 +78,8 @@ impl TerrainSegment {
         }
         */
         for tuple in self.curve.iter_mut() {
-            tuple.0 += x_adj;
-            // tuple.1 += y_adj;
+            tuple.0 -= x_adj;
+            // tuple.1 -= y_adj;
         }
     }
 

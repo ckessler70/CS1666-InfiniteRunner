@@ -876,7 +876,7 @@ impl Game for Runner {
                 // Terrain
                 for ground in all_terrain.iter() {
                     ind += 1;
-                    if ground.x() + ground.w() <= -1 * TILE_SIZE as i32 {
+                    if ground.x() + ground.w() <= 0 {
                         remove_inds.push(ind);
                     }
                 }
@@ -1075,7 +1075,7 @@ impl Game for Runner {
                         else {
                             core.wincan.set_draw_color(ground_seg.color());
                             core.wincan
-                                .fill_rect(rect!(cur_x, slice_y, 1, CAM_H as i32 - slice_y));
+                                .fill_rect(rect!(cur_x, CAM_H as i32 - slice_y, 1, slice_y));
                         }
 
                         cur_x += 1;
@@ -1257,6 +1257,9 @@ impl Game for Runner {
                     // the given x, which it must be above
                     if ground.x() <= screen_x {
                         let point_ind: usize = (screen_x - ground.x()) as usize;
+                        if point_ind >= ground.curve().len() {
+                            continue;
+                        }
                         return Point::new(
                             ground.curve().get(point_ind).unwrap().0,
                             ground.curve().get(point_ind).unwrap().1,
