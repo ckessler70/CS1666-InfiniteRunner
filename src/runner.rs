@@ -996,51 +996,30 @@ impl Game for Runner {
                 }
 
                 // Terrain
-<<<<<<< HEAD
-                for ground in all_terrain.iter() {
-                    let curve = ground.curve();
-                    for i in 0..ground.w() {
-                        // Get coords
-                        let slice_x = curve.get(i as usize).unwrap().0;
-                        let slice_y = curve.get(i as usize).unwrap().1;
-=======
                 for ground_seg in all_terrain.iter() {
                     let curve = ground_seg.curve();
                     for curve_ind in 0..ground_seg.w() {
                         // Get Draw Coords
                         let mut slice_x = curve[curve_ind as usize].0;
                         let mut slice_y = curve[curve_ind as usize].1;
->>>>>>> 7c0c3a4f4d977221b796f62790a57ed70971062a
 
                         // Don't draw in negative x
                         if slice_x < 0 {
                             continue;
                         }
                         // Stop drawing at CAM_W
-<<<<<<< HEAD
                         else if slice_x >= CAM_W as i32 {
-=======
-                        else if slice_x > CAM_W as i32 {
->>>>>>> 7c0c3a4f4d977221b796f62790a57ed70971062a
                             break;
                         }
                         // Normal drawing
                         else {
-<<<<<<< HEAD
-                            core.wincan.set_draw_color(ground.color());
-=======
                             core.wincan.set_draw_color(ground_seg.color());
->>>>>>> 7c0c3a4f4d977221b796f62790a57ed70971062a
                             core.wincan.fill_rect(rect!(
                                 slice_x,
                                 slice_y,
                                 1,
                                 CAM_H as i32 - slice_y
-<<<<<<< HEAD
                             ))?;
-=======
-                            ));
->>>>>>> 7c0c3a4f4d977221b796f62790a57ed70971062a
                         }
                     }
                 }
