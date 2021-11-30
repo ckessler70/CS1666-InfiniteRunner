@@ -237,23 +237,37 @@ impl Game for Runner {
         for i in 1..CAM_W {
             init_curve_1.push((i as i32, CAM_H as i32 * 2 / 3));
         }
+        let cp_1 = [
+            init_curve_1[0],
+            init_curve_1[init_curve_1.len() / 3],
+            init_curve_1[init_curve_1.len() * 2 / 3],
+            init_curve_1[init_curve_1.len() - 1],
+        ];
         let init_terrain_1 = TerrainSegment::new(
             rect!(0, CAM_H as i32 * 2 / 3, CAM_W, CAM_H as i32 * 2 / 3),
             init_curve_1,
             0.0,
             TerrainType::Water,
             Color::GREEN,
+            cp_1,
         );
         let mut init_curve_2: Vec<(i32, i32)> = vec![(CAM_W as i32, CAM_H as i32 * 2 / 3)];
         for i in (CAM_W + 1)..(CAM_W * 2) {
             init_curve_2.push((i as i32, CAM_H as i32 * 2 / 3));
         }
+        let cp_2 = [
+            init_curve_2[0],
+            init_curve_2[init_curve_2.len() / 3],
+            init_curve_2[init_curve_2.len() * 2 / 3],
+            init_curve_2[init_curve_2.len() - 1],
+        ];
         let init_terrain_2 = TerrainSegment::new(
             rect!(CAM_W, CAM_H as i32 * 2 / 3, CAM_W, CAM_H as i32 * 2 / 3),
             init_curve_2,
             0.0,
             TerrainType::Water,
             Color::BLUE,
+            cp_2,
         );
         all_terrain.push(init_terrain_1);
         all_terrain.push(init_terrain_2);
@@ -482,13 +496,25 @@ impl Game for Runner {
                 player.update_pos(curr_ground_point, angle, game_over);
                 player.flip();
 
-                //DEBUG PLAYER (Plz dont delete, just comment out)
-                println!("A-> vx:{} ax:{}, vy:{} ay:{}",player.vel_x(),player.accel_x(),player.vel_y(),player.accel_y());
-                
+                // //DEBUG PLAYER (Plz dont delete, just comment out)
+                // println!(
+                //     "A-> vx:{} ax:{}, vy:{} ay:{}",
+                //     player.vel_x(),
+                //     player.accel_x(),
+                //     player.vel_y(),
+                //     player.accel_y()
+                // );
+
                 player.reset_accel();
 
-                //DEBUG PLAYER (Plz dont delete, just comment out)
-                println!("B-> vx:{} ax:{}, vy:{} ay:{}",player.vel_x(),player.vel_y(),player.accel_x(),player.accel_y());
+                // //DEBUG PLAYER (Plz dont delete, just comment out)
+                // println!(
+                //     "B-> vx:{} ax:{}, vy:{} ay:{}",
+                //     player.vel_x(),
+                //     player.vel_y(),
+                //     player.accel_x(),
+                //     player.accel_y()
+                // );
 
                 // apply forces to obstacles
                 for o in all_obstacles.iter_mut() {
@@ -722,12 +748,20 @@ impl Game for Runner {
                     for i in (last_x + 2)..(last_x + CAM_W as i32 + 1) {
                         new_curve.push((i as i32, last_y));
                     }
+
+                    let cp_new = [
+                        new_curve[0],
+                        new_curve[new_curve.len() / 3],
+                        new_curve[new_curve.len() * 2 / 3],
+                        new_curve[new_curve.len() - 1],
+                    ];
                     let new_terrain = TerrainSegment::new(
                         rect!(last_x + 1, last_y, CAM_W, CAM_H * 2 / 3),
                         new_curve,
                         0.0,
                         TerrainType::Water,
                         Color::GREEN,
+                        cp_new,
                     );
                     all_terrain.push(new_terrain);
                 }
