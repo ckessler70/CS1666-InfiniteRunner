@@ -331,6 +331,7 @@ pub fn extend_cubic_bezier_curve(
     for t in 0..CAM_W as usize {
         let point = t as f64;
         //points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / 32.0);
+<<<<<<< HEAD
         points.push(cubic_bezier_curve_point(
             prev_pn,
             p1,
@@ -338,6 +339,9 @@ pub fn extend_cubic_bezier_curve(
             p3,
             point / CAM_W as f64,
         ));
+=======
+        points[t] = cubic_bezier_curve_point(prev_pn, p1, p2, p3, point / CAM_W as f64);
+>>>>>>> 9c3b8a82b61441585821cbc75849d6169e9b45a1
     }
     return points;
 }
@@ -872,7 +876,7 @@ pub fn choose_static_object() -> StaticObject {
     let mut rng = rand::thread_rng();
     match rng.gen_range(0..=4) {
         0 => StaticObject::Statue,
-        1 => StaticObject::Spring,
+        1 => StaticObject::Balloon,
         2 => StaticObject::Chest,
         3 => StaticObject::Coin,
         _ => StaticObject::Power,
