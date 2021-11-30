@@ -132,6 +132,13 @@ impl TerrainSegment {
     pub fn curve(&self) -> &Vec<(i32, i32)> {
         &(self.curve)
     }
+
+    pub fn get_p2(&self) -> (i32, i32) {
+        self.p2
+    }
+    pub fn get_p3(&self) -> (i32, i32) {
+        self.p3
+    }
 }
 
 impl PartialEq for TerrainSegment {

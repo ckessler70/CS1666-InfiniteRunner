@@ -722,8 +722,8 @@ impl Game for Runner {
                         0.0,
                         TerrainType::Grass,
                         Color::GREEN,
-                        (-1, -1),
-                        (-1, -1),
+                        last_seg.get_p2(),
+                        last_seg.get_p3(),
                     );
                     all_terrain.push(new_terrain);
                 }
