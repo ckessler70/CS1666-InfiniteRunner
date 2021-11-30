@@ -39,7 +39,7 @@ pub struct TerrainSegment {
                              * downward on average */
     terrain_type: TerrainType,
     color: Color,
-    control_points: [(i32, i32); 4];
+    control_points: [(i32, i32); 4],
 }
 
 // Terrain Segment Definitions
@@ -129,7 +129,7 @@ impl TerrainSegment {
         &(self.curve)
     }
 
-    pub fn get_points(&self) -> &Vec<(i32, i32)> {
+    pub fn get_crtl_points(&self) -> &[(i32, i32); 4] {
         &(self.control_points)
     }
 }

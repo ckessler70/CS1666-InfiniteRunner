@@ -455,7 +455,8 @@ impl Game for Runner {
                                                           // coins value
 
                             last_coin_val = c.value();
-                            coin_timer = 60; // Time to show last_coin_val on screen
+                            coin_timer = 60; // Time to show last_coin_val on
+                                             // screen
                         }
                         continue;
                     }
@@ -507,12 +508,24 @@ impl Game for Runner {
                 player.flip();
 
                 //DEBUG PLAYER (Plz dont delete, just comment out)
-                println!("A-> vx:{} ax:{}, vy:{} ay:{}",player.vel_x(),player.accel_x(),player.vel_y(),player.accel_y());
-                
+                println!(
+                    "A-> vx:{} ax:{}, vy:{} ay:{}",
+                    player.vel_x(),
+                    player.accel_x(),
+                    player.vel_y(),
+                    player.accel_y()
+                );
+
                 player.reset_accel();
 
                 //DEBUG PLAYER (Plz dont delete, just comment out)
-                println!("B-> vx:{} ax:{}, vy:{} ay:{}",player.vel_x(),player.vel_y(),player.accel_x(),player.accel_y());
+                println!(
+                    "B-> vx:{} ax:{}, vy:{} ay:{}",
+                    player.vel_x(),
+                    player.vel_y(),
+                    player.accel_x(),
+                    player.accel_y()
+                );
 
                 // apply forces to obstacles
                 for o in all_obstacles.iter_mut() {
@@ -741,8 +754,8 @@ impl Game for Runner {
                 if last_seg.x() < CAM_W as i32 {
                     // Get last point of previous curve, which is also
                     // a bezier control point
-                    let last_x = last_seg.control_points()[3].0;
-                    let last_y = last_seg.control_points()[3].1;
+                    let last_x = last_seg.get_crtl_points()[3].0;
+                    let last_y = last_seg.get_crtl_points()[3].1;
                     /*
                     ~~~ Method calls to proceduralgen should replace this code! ~~~
 
