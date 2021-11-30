@@ -708,6 +708,8 @@ impl Game for Runner {
 
                 // Generate new ground when the last segment becomes visible
                 // All of this code is placeholder
+
+                /*
                 let last_seg = all_terrain.get(all_terrain.len() - 1).unwrap();
                 if last_seg.x() < CAM_W as i32 {
                     let last_x = last_seg.curve().get(last_seg.curve().len() - 1).unwrap().0;
@@ -734,6 +736,11 @@ impl Game for Runner {
                     );
                     all_terrain.push(new_terrain);
                 }
+                */
+
+                let mut p0: (f64, f64) = (-1.0, -1.0);
+                let mut points: Vec<(i32, i32)> =
+                    proceduralgen::gen_control_points(p0, random, CAM_W as i32, CAM_H as i32, 100);
 
                 /* ~~~~~~ Begin Camera Section ~~~~~~ */
                 /* This should be the very last section of calcultions,

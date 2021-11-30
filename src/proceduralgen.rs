@@ -718,10 +718,11 @@ fn quadratic_bezier_curve_point(
  *
  * NEW FUNCTIONS THAT CAN ACTUALLY BE USED
  *
+ * Call from runner.rs not other procgen functions
+ *
  */
 pub fn gen_control_points(
     p0: (f64, f64),
-    prev_p2: (f64, f64), //if first curve then give (-1,-1) for prev_p2
     random: &[[(i32, i32); 256]; 256],
     cam_w: i32,
     cam_h: i32,
@@ -794,6 +795,31 @@ pub fn gen_control_points(
         freq,
         amp,
     );
+
+    let length: i32 = cam_w;
+    let height: i32 = cam_h;
+
+    let p1: (f64, f64) = (
+        (point_mod_1a * (length / 2 + buffer) as f64 + p0.0 + buffer as f64 + (length / 2) as f64)
+            .clamp(
+                p0.0 + buffer as f64 + (length / 2) as f64,
+                (length - buffer) as f64,
+            ),
+        (point_mod_1b * p0.1 * 2.0 - p0.1).clamp(p0.1 - buffer as f64, height as f64),
+    );
+
+    let p2: (f64, f64) = (
+        (point_mod_2a * (length / 2 - buffer) as f64 + p0.0 + buffer as f64)
+            .clamp(p0.0 + buffer as f64, (length / 2 - buffer) as f64),
+        (point_mod_2b * p0.1 * 2.0 - p0.1).clamp(p0.1 - buffer as f64, height as f64),
+    );
+
+    let p3: (f64, f64) = (length as f64 + p0.0, point_mod_3b * (height / 3) as f64);
+
+    points.insert(0, (p0.0 as i32, p0.1 as i32));
+    points.insert(1, (p1.0 as i32, p1.1 as i32));
+    points.insert(2, (p2.0 as i32, p2.1 as i32));
+    points.insert(3, (p3.0 as i32, p3.1 as i32));
 
     return points;
 }
