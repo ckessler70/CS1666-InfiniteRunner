@@ -714,6 +714,90 @@ fn quadratic_bezier_curve_point(
     return (x_value as i32, y_value as i32);
 }
 
+/*******************************************
+ *
+ * NEW FUNCTIONS THAT CAN ACTUALLY BE USED
+ *
+ */
+pub fn gen_control_points(
+    p0: (f64, f64),
+    prev_p2: (f64, f64), //if first curve then give (-1,-1) for prev_p2
+    random: &[[(i32, i32); 256]; 256],
+    cam_w: i32,
+    cam_h: i32,
+    buffer: i32,
+) -> Vec<(i32, i32)> {
+    let mut points: Vec<(i32, i32)> = vec![(-1, -1)];
+
+    let mut rng = rand::thread_rng();
+
+    //let flat_mod: f64 = 0.25;
+    //let cliff_min_mod: f64 = 2.0;
+    //let cliff_max_mod: f64 = 5.0;
+
+    let freq = rng.gen_range(32.0..256.0);
+    let amp: f64 = rng.gen::<f64>();
+
+    // Generates perlin noise for random point instead of whole map
+    let map_size = 128;
+    let point_mod_1a: f64 = gen_point_mod(
+        &random,
+        (
+            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+        ),
+        freq,
+        amp,
+    );
+    let point_mod_1b: f64 = gen_point_mod(
+        &random,
+        (
+            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+        ),
+        freq,
+        amp,
+    );
+    let point_mod_2a: f64 = gen_point_mod(
+        &random,
+        (
+            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+        ),
+        freq,
+        amp,
+    );
+    let point_mod_2b: f64 = gen_point_mod(
+        &random,
+        (
+            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+        ),
+        freq,
+        amp,
+    );
+    let point_mod_3a: f64 = gen_point_mod(
+        &random,
+        (
+            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+        ),
+        freq,
+        amp,
+    );
+    let point_mod_3b: f64 = gen_point_mod(
+        &random,
+        (
+            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+        ),
+        freq,
+        amp,
+    );
+
+    return points;
+}
+
 /******      Perlin primary functions      ***** */
 
 /*  Generates a single value from the 1d perlin noise

@@ -713,6 +713,13 @@ impl Game for Runner {
                     let last_x = last_seg.curve().get(last_seg.curve().len() - 1).unwrap().0;
                     let last_y = last_seg.curve().get(last_seg.curve().len() - 1).unwrap().1;
                     let mut new_curve: Vec<(i32, i32)> = vec![(last_x + 1, last_y)];
+
+                    let mut tempa: (i32, i32) = last_seg.get_p2();
+                    let mut tempb: (i32, i32) = last_seg.get_p3();
+
+                    println!("Prev P2 is: {},{}", tempa.0, tempa.1);
+                    println!("Prev P3 is: {},{}", tempb.0, tempb.1);
+
                     for i in (last_x + 2)..(last_x + CAM_W as i32 + 1) {
                         new_curve.push((i as i32, last_y));
                     }
