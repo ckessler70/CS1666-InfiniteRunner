@@ -193,6 +193,10 @@ impl Game for Runner {
         // Object spawning vars
         let mut spawn_timer: i32 = 500; // Can spawn a new object when it reaches 0
 
+        //For Bezier Curves
+        let mut prevP3: (i32, i32) = (-1, -1);
+        let mut prevP2: (i32, i32) = (-1, -1);
+
         /* ~~~~~~~~ Stuff for background sine waves ~~~~~~~~~~~~~~ */
         // Background & sine wave vars
         let mut bg_buff = 0;
@@ -739,8 +743,35 @@ impl Game for Runner {
                 */
 
                 let mut p0: (f64, f64) = (-1.0, -1.0);
+                //Generate Control points
                 let mut points: Vec<(i32, i32)> =
-                    proceduralgen::gen_control_points(p0, random, CAM_W as i32, CAM_H as i32, 100);
+                    proceduralgen::gen_control_points(p0, &random, CAM_W as i32, CAM_H as i32, 100);
+
+                //Sloppy implementation of ensuring the control points will work for smooth
+                // curves. Will make better next week.
+                if (prevP2.0 > 0) {
+                    points[1] = prevP2;
+                    while (points[1].0 > points[2].0 || points[2].0 > points[3].0) {
+                        let temp: i32 = rng.gen::<i32>() * 25 + 25; //0-50
+                        if (points[1].0 > points[2].0) {
+                            points[2].0 += temp;
+                        } else if (points[2].0 > points[3].0) {
+                            points[2].0 -= temp;
+                        }
+                    }
+                }
+
+                //input prevp3, prevp2, currp2, currp3
+                let mut curvePoints: Vec<(i32, i32)> = proceduralgen::extend_cubic_bezier_curve(
+                    (prevP3.0 as f64, prevP3.1 as f64),
+                    (prevP2.0 as f64, prevP2.1 as f64),
+                    (points[2].0 as f64, points[2].1 as f64),
+                    (points[3].0 as f64, points[3].1 as f64),
+                );
+
+                //curvepoints is the curve.
+
+                //Now that
 
                 /* ~~~~~~ Begin Camera Section ~~~~~~ */
                 /* This should be the very last section of calcultions,
