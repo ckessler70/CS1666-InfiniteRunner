@@ -989,9 +989,32 @@ impl Game for Runner {
                 }
 
                 // Terrain
-                for ground in all_terrain.iter() {
-                    core.wincan.set_draw_color(ground.color());
-                    core.wincan.fill_rect(ground.pos())?;
+                for ground_seg in all_terrain.iter() {
+                    let curve = ground_seg.curve();
+                    for curve_ind in 0..ground_seg.w() {
+                        // Get Draw Coords
+                        let mut slice_x = curve[curve_ind as usize].0;
+                        let mut slice_y = curve[curve_ind as usize].1;
+
+                        // Don't draw in negative x
+                        if slice_x < 0 {
+                            continue;
+                        }
+                        // Stop drawing at CAM_W
+                        else if slice_x > CAM_W as i32 {
+                            break;
+                        }
+                        // Normal drawing
+                        else {
+                            core.wincan.set_draw_color(ground_seg.color());
+                            core.wincan.fill_rect(rect!(
+                                slice_x,
+                                slice_y,
+                                1,
+                                CAM_H as i32 - slice_y
+                            ));
+                        }
+                    }
                 }
 
                 // Set player texture
