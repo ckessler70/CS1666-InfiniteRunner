@@ -769,6 +769,9 @@ impl Game for Runner {
                     (points[3].0 as f64, points[3].1 as f64),
                 );
 
+                prevP2 = points[2];
+                prevP3 = points[3];
+
                 //curvepoints is the curve.
 
                 //Now that
