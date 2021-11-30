@@ -287,6 +287,33 @@ impl ProceduralGen {
         return terrain;
     }
 
+/*  Function for extending a cubic bezier curve while keeping the chained
+ *  curve smooth. Works similarly to gen_cubic_bezier_curve_points()
+ *      http://www.inf.ed.ac.uk/teaching/courses/cg/d3/bezierJoin.html
+ */
+pub fn extend_cubic_bezier_curve(
+    prev_pn: (f64, f64),
+    prev_pn_minus_1: (f64, f64),
+    //no p0 or p1, above data structures work instead
+    p2: (f64, f64),
+    p3: (f64, f64),
+) -> Vec<(i32, i32)> {
+    let mut points: Vec<(i32, i32)> = vec![(-1, -1)];
+
+    //Calculate p1
+    let mut p1: (f64, f64) = (0.0, 0.0);
+
+    p1.0 = prev_pn.0 + (prev_pn.0 - prev_pn_minus_1.0);
+    p1.1 = prev_pn.1 + (prev_pn.1 - prev_pn_minus_1.1);
+
+    for t in 0..CAM_W as usize {
+        let point = t as f64;
+        //points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / 32.0);
+        points[t] = cubic_bezier_curve_point(prev_pn, p1, p2, p3, point / CAM_W as f64);
+    }
+    return points;
+}
+
 /* ~~~~~~     Bezier primary functions      ~~~~~~ */
 
 /*  Handler for getting either quadratic or cubic bezier curve representation
