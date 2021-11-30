@@ -194,7 +194,7 @@ impl Game for Runner {
         // Object spawning vars
         let mut spawn_timer: i32 = 500; // Can spawn a new object when it reaches 0
 
-        /*~~~~~~~~ Stuff for background sine waves ~~~~~~~~~~~~~~*/
+        /* ~~~~~~~~ Stuff for background sine waves ~~~~~~~~~~~~~~ */
         // Background & sine wave vars
         let mut bg_buff = 0;
         let mut bg_tick = 0;
@@ -221,7 +221,7 @@ impl Game for Runner {
             background_curves[IND_BACKGROUND_BACK][i] =
                 proceduralgen::gen_perlin_hill_point((i + buff_2), freq, amp_2, 1.0, 820.0);
         }
-        /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+        /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
         // Perlin Noise init
         let mut random: [[(i32, i32); 256]; 256] = [[(0, 0); 256]; 256];
@@ -244,10 +244,10 @@ impl Game for Runner {
             init_curve_1[init_curve_1.len() - 1],
         ];
         let init_terrain_1 = TerrainSegment::new(
-            rect!(0, CAM_H as i32 * 2 / 3, CAM_W, CAM_H as i32 * 2 / 3),
+            rect!(0, CAM_H as i32 * 2 / 3, CAM_W, CAM_H as i32 * 1 / 3),
             init_curve_1,
             0.0,
-            TerrainType::Water,
+            TerrainType::Grass,
             Color::GREEN,
             cp_1,
         );
@@ -262,10 +262,10 @@ impl Game for Runner {
             init_curve_2[init_curve_2.len() - 1],
         ];
         let init_terrain_2 = TerrainSegment::new(
-            rect!(CAM_W, CAM_H as i32 * 2 / 3, CAM_W, CAM_H as i32 * 2 / 3),
+            rect!(CAM_W, CAM_H as i32 * 2 / 3, CAM_W, CAM_H as i32 * 1 / 3),
             init_curve_2,
             0.0,
-            TerrainType::Water,
+            TerrainType::Grass,
             Color::BLUE,
             cp_2,
         );
@@ -445,7 +445,8 @@ impl Game for Runner {
                                                           // coins value
 
                             last_coin_val = c.value();
-                            coin_timer = 60; // Time to show last_coin_val on screen
+                            coin_timer = 60; // Time to show last_coin_val on
+                                             // screen
                         }
                         continue;
                     }
@@ -739,11 +740,15 @@ impl Game for Runner {
                 }
 
                 // Generate new ground when the last segment becomes visible
-                // All of this code is placeholder
                 let last_seg = all_terrain.get(all_terrain.len() - 1).unwrap();
                 if last_seg.x() < CAM_W as i32 {
-                    let last_x = last_seg.curve().get(last_seg.curve().len() - 1).unwrap().0;
-                    let last_y = last_seg.curve().get(last_seg.curve().len() - 1).unwrap().1;
+                    /* Once bezier generation is done...
+                    new_terrain = proceduralgen::create_new_terrain(last_seg);
+                    */
+
+                    // Begin placeholder code for infinite rects
+                    let last_x = last_seg.get_ctrl_points()[3].0;
+                    let last_y = last_seg.get_ctrl_points()[3].1;
                     let mut new_curve: Vec<(i32, i32)> = vec![(last_x + 1, last_y)];
                     for i in (last_x + 2)..(last_x + CAM_W as i32 + 1) {
                         new_curve.push((i as i32, last_y));
@@ -756,13 +761,15 @@ impl Game for Runner {
                         new_curve[new_curve.len() - 1],
                     ];
                     let new_terrain = TerrainSegment::new(
-                        rect!(last_x + 1, last_y, CAM_W, CAM_H * 2 / 3),
+                        rect!(last_x + 1, last_y, CAM_W, CAM_H * 1 / 3),
                         new_curve,
                         0.0,
-                        TerrainType::Water,
+                        TerrainType::Grass,
                         Color::GREEN,
                         cp_new,
                     );
+                    // End placeholder code for infinite rects
+
                     all_terrain.push(new_terrain);
                 }
 
@@ -990,8 +997,31 @@ impl Game for Runner {
 
                 // Terrain
                 for ground in all_terrain.iter() {
-                    core.wincan.set_draw_color(ground.color());
-                    core.wincan.fill_rect(ground.pos())?;
+                    let curve = ground.curve();
+                    for i in 0..ground.w() {
+                        // Get coords
+                        let slice_x = curve.get(i as usize).unwrap().0;
+                        let slice_y = curve.get(i as usize).unwrap().1;
+
+                        // Don't draw in negative x
+                        if slice_x < 0 {
+                            continue;
+                        }
+                        // Stop drawing at CAM_W
+                        else if slice_x >= CAM_W as i32 {
+                            break;
+                        }
+                        // Normal drawing
+                        else {
+                            core.wincan.set_draw_color(ground.color());
+                            core.wincan.fill_rect(rect!(
+                                slice_x,
+                                slice_y,
+                                1,
+                                CAM_H as i32 - slice_y
+                            ))?;
+                        }
+                    }
                 }
 
                 // Set player texture

@@ -68,13 +68,11 @@ impl TerrainSegment {
     pub fn camera_adj(&mut self, x_adj: i32, y_adj: i32) {
         self.pos.set_x(self.pos.x() + x_adj);
         self.pos.set_y(self.pos.y() + y_adj);
-        /*
-        for (x, y) in self.curve.iter_mut() {
-            *x += x_adj;
-            *y += y_adj;
-        }
-        */
         for tuple in self.curve.iter_mut() {
+            tuple.0 += x_adj;
+            tuple.1 += y_adj;
+        }
+        for tuple in self.control_points.iter_mut() {
             tuple.0 += x_adj;
             tuple.1 += y_adj;
         }
@@ -83,12 +81,10 @@ impl TerrainSegment {
     // Shifts terrain left so player can "move forward"
     pub fn travel_update(&mut self, travel_adj: i32) {
         self.pos.set_x(self.pos.x() - travel_adj);
-        /*
-        for (x, y) in self.curve.iter_mut() {
-            *x += travel_adj;
-        }
-        */
         for tuple in self.curve.iter_mut() {
+            tuple.0 -= travel_adj;
+        }
+        for tuple in self.control_points.iter_mut() {
             tuple.0 -= travel_adj;
         }
     }
