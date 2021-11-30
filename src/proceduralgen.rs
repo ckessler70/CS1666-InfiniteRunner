@@ -39,8 +39,7 @@ pub struct TerrainSegment {
                              * downward on average */
     terrain_type: TerrainType,
     color: Color,
-    p2: (i32, i32),
-    p3: (i32, i32),
+    control_points: Vec<(i32, i32)>,
 }
 
 // Terrain Segment Definitions
@@ -51,18 +50,15 @@ impl TerrainSegment {
         angle_from_last: f64,
         terrain_type: TerrainType,
         color: Color,
-        p2: (i32, i32),
-        p3: (i32, i32),
+        control_points: Vec<(i32, i32)>,
     ) -> TerrainSegment {
-        // Set defaults, should probably be different than this
         TerrainSegment {
             pos: pos,
             curve: curve,
             angle_from_last: angle_from_last,
             terrain_type: terrain_type,
             color: color,
-            p2: p2,
-            p3: p3,
+            control_points: control_points,
         }
     }
 
@@ -133,11 +129,8 @@ impl TerrainSegment {
         &(self.curve)
     }
 
-    pub fn get_p2(&self) -> (i32, i32) {
-        self.p2
-    }
-    pub fn get_p3(&self) -> (i32, i32) {
-        self.p3
+    pub fn get_points(&self) -> &Vec<(i32, i32)> {
+        &(self.control_points)
     }
 }
 
@@ -186,8 +179,7 @@ impl ProceduralGen {
      */
     pub fn gen_terrain(
         random: &[[(i32, i32); 256]; 256],
-        mut prev_point: (f64, f64),
-        mut prev_p2: (f64, f64),
+        prev_seg: &TerrainSegment,
         cam_w: i32,
         cam_h: i32,
         _is_pit: bool,
@@ -266,16 +258,23 @@ impl ProceduralGen {
             amp,
         );
 
-        prev_point = if _is_pit || _is_cliff {
-            (prev_point.0, prev_point.1 + 100.0)
+        let prev_points = prev_seg.get_points();
+
+        let q_n = if _is_pit || _is_cliff {
+            (
+                prev_points[prev_points.len() - 1].0,
+                prev_points[prev_points.len() - 1].1 + 100,
+            )
         } else {
-            prev_point
+            prev_points[prev_points.len() - 1]
         };
+
+        let q_n1 = prev_points[prev_points.len() - 2];
 
         // Extract x and y point from last terrain segment
         let mut curve_points = gen_bezier_curve(
-            prev_point,
-            prev_p2,
+            q_n,
+            q_n1,
             cam_w,
             cam_h,
             (point_mod_1a, point_mod_1b),
@@ -303,8 +302,7 @@ impl ProceduralGen {
             angle_from_last,
             terrain_type,
             color,
-            (curve_points.1 .1 .0 as i32, curve_points.1 .1 .1 as i32),
-            (curve_points.1 .2 .0 as i32, curve_points.1 .2 .1 as i32),
+            curve_points.1,
         );
 
         return terrain;
@@ -333,7 +331,13 @@ pub fn extend_cubic_bezier_curve(
     for t in 0..CAM_W as usize {
         let point = t as f64;
         //points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / 32.0);
-        points[t] = cubic_bezier_curve_point(prev_pn, p1, p2, p3, point / CAM_W as f64);
+        points.push(cubic_bezier_curve_point(
+            prev_pn,
+            p1,
+            p2,
+            p3,
+            point / CAM_W as f64,
+        ));
     }
     return points;
 }
@@ -354,45 +358,64 @@ pub fn extend_cubic_bezier_curve(
  *  - Returns Bezier Curve representation
  */
 fn gen_bezier_curve(
-    p0: (f64, f64),
-    p1: (f64, f64),
+    q_n: (i32, i32),
+    q_n1: (i32, i32),
     length: i32, // Needs to be static which is stupid so 1280
     height: i32,
     point_mod_1: (f64, f64),
     point_mod_2: (f64, f64),
     point_mod_3: (f64, f64),
     buffer: i32,
-) -> (Vec<(i32, i32)>, ((f64, f64), (f64, f64), (f64, f64))) {
+) -> (Vec<(i32, i32)>, Vec<(i32, i32)>) {
     //TODO - CONTROL POINT LOGIC NEEDS TO BE REFINED
     //Bezier curve
 
     //Cubic
 
     let p2: (f64, f64) = (
-        (point_mod_2.0 * (length / 2 - buffer) as f64 + p0.0 + buffer as f64),
-        (point_mod_2.1 * p0.1 * 2.0 - p0.1).clamp(p0.1 - buffer as f64, height as f64),
+        (point_mod_2.0 * (length / 2 - buffer) as f64 + q_n.0 as f64 + buffer as f64),
+        (point_mod_2.1 * q_n.1 as f64 * 2.0 - q_n.1 as f64)
+            .clamp(q_n.1 as f64 - buffer as f64, height as f64),
     );
 
-    let p3: (f64, f64) = (length as f64 + p0.0, point_mod_3.1 * (height / 3) as f64);
+    let p3: (f64, f64) = (
+        length as f64 + q_n.0 as f64,
+        point_mod_3.1 * (height / 3) as f64,
+    );
 
     let mut group_of_points: Vec<(i32, i32)> = vec![(-1, -1)];
 
     //if p1 value hasn't been given, generating the initial curve
-    if (p1 == (-1.0, -1.0)) {
+    if (q_n1 == (-1, -1)) {
         let mut temp_point: (f64, f64) = (
             (point_mod_1.0 * (length / 2 + buffer) as f64
-                + p0.0
+                + q_n.0 as f64
                 + buffer as f64
                 + (length / 2) as f64),
-            (point_mod_1.1 * p0.1 * 2.0 - p0.1).clamp(p0.1 - buffer as f64, height as f64),
+            (point_mod_1.1 * q_n.1 as f64 * 2.0 - q_n.1 as f64)
+                .clamp(q_n.1 as f64 - buffer as f64, height as f64),
         );
 
-        group_of_points = gen_cubic_bezier_curve_points(p0, temp_point, p2, p3);
+        group_of_points =
+            gen_cubic_bezier_curve_points((q_n.0 as f64, q_n.1 as f64), temp_point, p2, p3);
     } else {
-        group_of_points = extend_cubic_bezier_curve(p0, p1, p2, p3); //might need to swap p0 and p1
+        group_of_points = extend_cubic_bezier_curve(
+            (q_n.0 as f64, q_n.1 as f64),
+            (q_n1.0 as f64, q_n1.1 as f64),
+            p2,
+            p3,
+        ); //might need to swap p0 and p1
     }
 
-    return (group_of_points, (p0, p1, p2));
+    return (
+        group_of_points,
+        (vec![
+            q_n,
+            q_n1,
+            (p2.0 as i32, p2.1 as i32),
+            (p3.0 as i32, p3.1 as i32),
+        ]),
+    );
 }
 
 /*

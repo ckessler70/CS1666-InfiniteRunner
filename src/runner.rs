@@ -236,11 +236,21 @@ impl Game for Runner {
 
         // Initialize the starting terrain segments
         // Rectangles
+        let null_curve: Vec<(i32, i32)> = vec![(0, CAM_H as i32 * 2 / 3)];
+        let null_points: Vec<(i32, i32)> = vec![(-1, -1), (0, CAM_H as i32 / 3)];
+
+        let null_terrain = proceduralgen::TerrainSegment::new(
+            rect!(0, 0, 1, 1),
+            null_curve,
+            0.0,
+            TerrainType::Grass,
+            Color::RGB(86, 125, 70),
+            null_points,
+        );
 
         let mut init_terrain_1 = proceduralgen::ProceduralGen::gen_terrain(
             &random,
-            (0.0, (CAM_H / 3) as f64),
-            (-1.0, -1.0),
+            &null_terrain,
             CAM_W as i32,
             CAM_H as i32,
             false,
@@ -250,14 +260,7 @@ impl Game for Runner {
 
         let mut init_terrain_2 = proceduralgen::ProceduralGen::gen_terrain(
             &random,
-            (
-                init_terrain_1.get_p3().0 as f64,
-                init_terrain_1.get_p3().1 as f64,
-            ),
-            (
-                init_terrain_1.get_p2().0 as f64,
-                init_terrain_1.get_p2().1 as f64,
-            ),
+            &init_terrain_1,
             CAM_W as i32,
             CAM_H as i32,
             false,
@@ -773,13 +776,9 @@ impl Game for Runner {
 
                 let last_seg = all_terrain.get(all_terrain.len() - 1).unwrap();
                 if last_seg.x() < CAM_W as i32 {
-                    let prev_p2 = last_seg.get_p2();
-                    let prev_p3 = last_seg.get_p3();
-
                     let new_terrain_seg = proceduralgen::ProceduralGen::gen_terrain(
                         &random,
-                        (prev_p3.0 as f64, prev_p3.1 as f64),
-                        (prev_p2.0 as f64, prev_p2.1 as f64),
+                        &last_seg,
                         CAM_W as i32,
                         CAM_H as i32,
                         false,
