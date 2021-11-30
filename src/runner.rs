@@ -193,7 +193,7 @@ impl Game for Runner {
         // Object spawning vars
         let mut spawn_timer: i32 = 500; // Can spawn a new object when it reaches 0
 
-        /*~~~~~~~~ Stuff for background sine waves ~~~~~~~~~~~~~~*/
+        /* ~~~~~~~~ Stuff for background sine waves ~~~~~~~~~~~~~~ */
         // Background & sine wave vars
         let mut bg_buff = 0;
         let mut bg_tick = 0;
@@ -220,7 +220,7 @@ impl Game for Runner {
             background_curves[IND_BACKGROUND_BACK][i] =
                 proceduralgen::gen_perlin_hill_point((i + buff_2), freq, amp_2, 1.0, 820.0);
         }
-        /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+        /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
         // Perlin Noise init
         let mut random: [[(i32, i32); 256]; 256] = [[(0, 0); 256]; 256];
@@ -242,6 +242,8 @@ impl Game for Runner {
             0.0,
             TerrainType::Grass,
             Color::GREEN,
+            (-1, -1),
+            (-1, -1),
         );
         let mut init_curve_2: Vec<(i32, i32)> = vec![(CAM_W as i32, CAM_H as i32 * 2 / 3)];
         for i in (CAM_W + 1)..(CAM_W * 2) {
@@ -253,6 +255,8 @@ impl Game for Runner {
             0.0,
             TerrainType::Grass,
             Color::BLUE,
+            (-1, -1),
+            (-1, -1),
         );
         all_terrain.push(init_terrain_1);
         all_terrain.push(init_terrain_2);
@@ -718,6 +722,8 @@ impl Game for Runner {
                         0.0,
                         TerrainType::Grass,
                         Color::GREEN,
+                        (-1, -1),
+                        (-1, -1),
                     );
                     all_terrain.push(new_terrain);
                 }
