@@ -81,7 +81,7 @@ impl Game for Runner {
         let tex_grad = texture_creator.load_texture("assets/sunset_gradient.png")?;
 
         let tex_statue = texture_creator.load_texture("assets/obstacles/statue.png")?;
-        let tex_ballon = texture_creator.load_texture("assets/obstacles/balloon.png")?;
+        let tex_balloon = texture_creator.load_texture("assets/obstacles/balloon.png")?;
         let tex_chest = texture_creator.load_texture("assets/obstacles/box.png")?;
         let tex_coin = texture_creator.load_texture("assets/obstacles/coin.png")?;
         let tex_powerup = texture_creator.load_texture("assets/obstacles/powerup.png")?;
@@ -606,7 +606,7 @@ impl Game for Runner {
                             );
                             all_obstacles.push(obstacle);
                         }
-                        Some(StaticObject::Spring) => {
+                        Some(StaticObject::Balloon) => {
                             let spawn_coord: Point =
                                 get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
                             let obstacle = Obstacle::new(
@@ -617,8 +617,8 @@ impl Game for Runner {
                                     TILE_SIZE
                                 ),
                                 1.0,
-                                &tex_ballon,
-                                ObstacleType::Spring,
+                                &tex_balloon,
+                                ObstacleType::Balloon,
                             );
                             all_obstacles.push(obstacle);
                         }
@@ -999,7 +999,7 @@ impl Game for Runner {
                             core.wincan.draw_rect(obs.hitbox())?;
                             break;
                         }
-                        ObstacleType::Spring => {
+                        ObstacleType::Balloon => {
                             core.wincan.copy_ex(
                                 obs.texture(),
                                 None,

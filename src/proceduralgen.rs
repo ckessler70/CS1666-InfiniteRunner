@@ -286,6 +286,7 @@ impl ProceduralGen {
 
         return terrain;
     }
+}
 
 /*  Function for extending a cubic bezier curve while keeping the chained
  *  curve smooth. Works similarly to gen_cubic_bezier_curve_points()
@@ -728,7 +729,7 @@ pub fn choose_static_object() -> StaticObject {
     let mut rng = rand::thread_rng();
     match rng.gen_range(0..=4) {
         0 => StaticObject::Statue,
-        1 => StaticObject::Spring,
+        1 => StaticObject::Balloon,
         2 => StaticObject::Chest,
         3 => StaticObject::Coin,
         _ => StaticObject::Power,

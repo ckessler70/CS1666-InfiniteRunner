@@ -427,7 +427,7 @@ impl<'a> Player<'a> {
                     }
                 }
                 // For spring, do nothing upon SIDE collision
-                ObstacleType::Spring => false,
+                ObstacleType::Balloon => false,
             }
         }
         // if the collision box is wider than it is tall, the player hit the top of the object
@@ -459,7 +459,7 @@ impl<'a> Player<'a> {
                     true
                 }
                 // For spring, bounce off with Hooke's law force
-                ObstacleType::Spring => {
+                ObstacleType::Balloon => {
                     Physics::apply_bounce(self, obstacle);
                     false
                 }
