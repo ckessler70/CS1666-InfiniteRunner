@@ -192,13 +192,7 @@ impl Game for Runner {
         let mut next_status = GameStatus::Main;
 
         // Object spawning vars
-        let mut spawn_timer: i32 = 500; // Can spawn a new object when it reaches 0
-
-        //For Bezier Curves
-        // This information should be stored in the control_points arr of the Terrain
-        // Stuct instance
-        // let mut prev_P3: (i32, i32) = (-1, -1);
-        // let mut prev_P2: (i32, i32) = (-1, -1);
+        let mut spawn_timer: i32 = 500; // Can spawn a new object when it reaches
 
         /* ~~~~~~~~ Stuff for background sine waves ~~~~~~~~~~~~~~ */
         // Background & sine wave vars
@@ -243,41 +237,43 @@ impl Game for Runner {
         for i in 1..CAM_W {
             init_curve_1.push((i as i32, CAM_H as i32 * 2 / 3));
         }
+        let ctrl_pts_1 = [
+            *init_curve_1.get(0).unwrap(),
+            *init_curve_1.get(init_curve_1.len() / 3).unwrap(),
+            *init_curve_1.get(init_curve_1.len() * 2 / 3).unwrap(),
+            *init_curve_1.get(init_curve_1.len() - 1).unwrap(),
+        ];
         let init_terrain_1 = proceduralgen::TerrainSegment::new(
             rect!(0, CAM_H as i32 * 2 / 3, CAM_W, CAM_H as i32 * 2 / 3),
             init_curve_1,
             0.0,
             TerrainType::Water,
             Color::GREEN,
-            [
-                *init_curve_1.get(0).unwrap(),
-                *init_curve_1.get(init_curve_1.len() / 3).unwrap(),
-                *init_curve_1.get(init_curve_1.len() * 2 / 3).unwrap(),
-                *init_curve_1.get(init_curve_1.len() - 1).unwrap(),
-            ], /* Control
-                * points
-                * for the starting
-                * rectangles */
+            ctrl_pts_1, /* Control
+                         * points
+                         * for the starting
+                         * rectangles */
         );
         let mut init_curve_2: Vec<(i32, i32)> = vec![(CAM_W as i32, CAM_H as i32 * 2 / 3)];
         for i in (CAM_W + 1)..(CAM_W * 2) {
             init_curve_2.push((i as i32, CAM_H as i32 * 2 / 3));
         }
+        let ctrl_pts_2 = [
+            *init_curve_2.get(0).unwrap(),
+            *init_curve_2.get(init_curve_2.len() / 3).unwrap(),
+            *init_curve_2.get(init_curve_2.len() * 2 / 3).unwrap(),
+            *init_curve_2.get(init_curve_2.len() - 1).unwrap(),
+        ];
         let init_terrain_2 = TerrainSegment::new(
             rect!(CAM_W, CAM_H as i32 * 2 / 3, CAM_W, CAM_H as i32 * 2 / 3),
             init_curve_2,
             0.0,
-            TerrainType::Water,
-            Color::BLUE,
-            [
-                *init_curve_2.get(0).unwrap(),
-                *init_curve_2.get(init_curve_1.len() / 3).unwrap(),
-                *init_curve_2.get(init_curve_1.len() * 2 / 3).unwrap(),
-                *init_curve_2.get(init_curve_1.len() - 1).unwrap(),
-            ], /* Control
-                * points
-                * for the starting
-                * rectangles */
+            TerrainType::Grass,
+            Color::GREEN,
+            ctrl_pts_2, /* Control
+                         * points
+                         * for the starting
+                         * rectangles */
         );
         all_terrain.push(init_terrain_1);
         all_terrain.push(init_terrain_2);
@@ -756,30 +752,26 @@ impl Game for Runner {
                     // a bezier control point
                     let last_x = last_seg.get_crtl_points()[3].0;
                     let last_y = last_seg.get_crtl_points()[3].1;
-                    /*
-                    ~~~ Method calls to proceduralgen should replace this code! ~~~
 
                     let mut new_curve: Vec<(i32, i32)> = vec![(last_x + 1, last_y)];
-
-                    let mut tempa: (i32, i32) = last_seg.get_p2();
-                    let mut tempb: (i32, i32) = last_seg.get_p3();
-
-                    println!("Prev P2 is: {},{}", tempa.0, tempa.1);
-                    println!("Prev P3 is: {},{}", tempb.0, tempb.1);
 
                     for i in (last_x + 2)..(last_x + CAM_W as i32 + 1) {
                         new_curve.push((i as i32, last_y));
                     }
+                    let ctrl_pts_new = [
+                        *new_curve.get(0).unwrap(),
+                        *new_curve.get(new_curve.len() / 3).unwrap(),
+                        *new_curve.get(new_curve.len() * 2 / 3).unwrap(),
+                        *new_curve.get(new_curve.len() - 1).unwrap(),
+                    ];
                     let new_terrain = TerrainSegment::new(
                         rect!(last_x + 1, last_y, CAM_W, CAM_H * 2 / 3),
                         new_curve,
                         0.0,
-                        TerrainType::Water,
+                        TerrainType::Grass,
                         Color::GREEN,
-                        last_seg.get_p2(),
-                        last_seg.get_p3(),
+                        ctrl_pts_new,
                     );
-                    */
                     all_terrain.push(new_terrain);
                 }
 

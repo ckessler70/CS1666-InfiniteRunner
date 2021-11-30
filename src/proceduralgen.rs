@@ -258,7 +258,7 @@ impl ProceduralGen {
             amp,
         );
 
-        let prev_points = prev_seg.get_points();
+        let prev_points = prev_seg.get_crtl_points();
 
         let q_n = if _is_pit || _is_cliff {
             (
@@ -330,8 +330,6 @@ pub fn extend_cubic_bezier_curve(
 
     for t in 0..CAM_W as usize {
         let point = t as f64;
-        //points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / 32.0);
-<<<<<<< HEAD
         points.push(cubic_bezier_curve_point(
             prev_pn,
             p1,
@@ -339,9 +337,6 @@ pub fn extend_cubic_bezier_curve(
             p3,
             point / CAM_W as f64,
         ));
-=======
-        points[t] = cubic_bezier_curve_point(prev_pn, p1, p2, p3, point / CAM_W as f64);
->>>>>>> 9c3b8a82b61441585821cbc75849d6169e9b45a1
     }
     return points;
 }
@@ -370,7 +365,7 @@ fn gen_bezier_curve(
     point_mod_2: (f64, f64),
     point_mod_3: (f64, f64),
     buffer: i32,
-) -> (Vec<(i32, i32)>, Vec<(i32, i32)>) {
+) -> (Vec<(i32, i32)>, [(i32, i32); 4]) {
     //TODO - CONTROL POINT LOGIC NEEDS TO BE REFINED
     //Bezier curve
 
@@ -413,7 +408,7 @@ fn gen_bezier_curve(
 
     return (
         group_of_points,
-        (vec![
+        ([
             q_n,
             q_n1,
             (p2.0 as i32, p2.1 as i32),
