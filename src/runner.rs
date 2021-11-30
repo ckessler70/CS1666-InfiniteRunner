@@ -194,8 +194,8 @@ impl Game for Runner {
         let mut spawn_timer: i32 = 500; // Can spawn a new object when it reaches 0
 
         //For Bezier Curves
-        let mut prevP3: (i32, i32) = (-1, -1);
-        let mut prevP2: (i32, i32) = (-1, -1);
+        let mut prev_P3: (i32, i32) = (-1, -1);
+        let mut prev_P2: (i32, i32) = (-1, -1);
 
         /* ~~~~~~~~ Stuff for background sine waves ~~~~~~~~~~~~~~ */
         // Background & sine wave vars
@@ -763,14 +763,14 @@ impl Game for Runner {
 
                 //input prevp3, prevp2, currp2, currp3
                 let mut curvePoints: Vec<(i32, i32)> = proceduralgen::extend_cubic_bezier_curve(
-                    (prevP3.0 as f64, prevP3.1 as f64),
-                    (prevP2.0 as f64, prevP2.1 as f64),
+                    (prev_P3.0 as f64, prev_P3.1 as f64),
+                    (prev_P2.0 as f64, prev_P2.1 as f64),
                     (points[2].0 as f64, points[2].1 as f64),
                     (points[3].0 as f64, points[3].1 as f64),
                 );
 
-                prevP2 = points[2];
-                prevP3 = points[3];
+                prev_P2 = points[2];
+                prev_P3 = points[3];
 
                 //curvepoints is the curve.
 
