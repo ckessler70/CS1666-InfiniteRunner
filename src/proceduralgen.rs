@@ -286,7 +286,13 @@ impl ProceduralGen {
         // Due to weird rust semantics, need to make a var to hold curve length
         let curve_len = curve_points.0.len();
 
-        let rect = rect!(0, 0, curve_points.0.len(), 10); // ?
+        let rect = rect!(
+            prev_seg.curve().get(prev_seg.curve().len() - 1).unwrap().0 + 1,
+            prev_seg.curve().get(prev_seg.curve().len() - 1).unwrap().1,
+            curve_points.0.len(),
+            10
+        );
+
         let angle_from_last = 0.0; // ?
         let terrain_type = choose_terrain_type(10);
         let color = match (terrain_type) {

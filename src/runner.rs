@@ -774,8 +774,8 @@ impl Game for Runner {
                 }
                 */
 
-                let last_seg = all_terrain.get(all_terrain.len() - 1).unwrap();
-                if last_seg.x() < CAM_W as i32 {
+                if all_terrain.len() < 5 {
+                    let last_seg = all_terrain.get(all_terrain.len() - 1).unwrap();
                     let new_terrain_seg = proceduralgen::ProceduralGen::gen_terrain(
                         &random,
                         &last_seg,
@@ -875,12 +875,23 @@ impl Game for Runner {
                 // Terrain
                 for ground in all_terrain.iter() {
                     ind += 1;
-                    if ground.x() + ground.w() <= 0 {
+                    if ground.x() + ground.w() + 1 <= 0 {
+                        println!(
+                            "{:?} {:?} {:?}",
+                            ground.x() + ground.w(),
+                            ground.x(),
+                            ground.w()
+                        );
                         remove_inds.push(ind);
                     }
                 }
-                for i in remove_inds.iter() {
-                    all_terrain.remove(*i as usize);
+                // for i in remove_inds.iter() {
+
+                //     println!("{:?}", i);
+                //     all_terrain.remove(*i as usize);
+                // }
+                if remove_inds.len() > 0 {
+                    all_terrain.remove(0);
                 }
                 remove_inds.clear();
 
@@ -1050,35 +1061,38 @@ impl Game for Runner {
                 }
 
                 // Terrain
-                let mut cur_x = 0;
+                // let mut cur_x = 0;
                 for ground_seg in all_terrain.iter() {
                     let curve = ground_seg.curve();
                     for curve_ind in 0..ground_seg.w() {
-                        if cur_x > CAM_W as i32 {
-                            break;
-                        }
+                        // if cur_x > CAM_W as i32 {
+                        //     break;
+                        // }
 
                         // Get Draw Coords
                         let mut slice_x = curve[curve_ind as usize].0;
                         let mut slice_y = curve[curve_ind as usize].1;
 
-                        // Don't draw in negative x
-                        if slice_x < 0 {
-                            continue;
-                        }
-                        // Stop drawing at CAM_W
-                        else if slice_x > CAM_W as i32 {
-                            break;
-                        }
-                        // Normal drawing
-                        else {
-                            core.wincan.set_draw_color(ground_seg.color());
-                            core.wincan
-                                .fill_rect(rect!(cur_x, CAM_H as i32 - slice_y, 1, slice_y));
-                        }
+                        // // Don't draw in negative x
+                        // if slice_x < 0 {
+                        //     continue;
+                        // }
+                        // // Stop drawing at CAM_W
+                        // else if slice_x > CAM_W as i32 {
+                        //     break;
+                        // }
+                        // // Normal drawing
+                        // else {
+                        core.wincan.set_draw_color(ground_seg.color());
+                        core.wincan
+                            .fill_rect(rect!(slice_x, CAM_H as i32 - slice_y, 1, slice_y));
+                        // }
 
-                        cur_x += 1;
+                        // cur_x += 1;
                     }
+                    // if cur_x > CAM_W as i32 {
+                    //     break;
+                    // }
                 }
 
                 // Set player texture
