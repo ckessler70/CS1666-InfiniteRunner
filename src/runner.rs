@@ -156,7 +156,8 @@ impl Game for Runner {
         );
 
         let mut power_timer: i32 = 0; // Current powerup expires when it reaches 0
-        let mut coin_count: i32 = 0; // Total num coins collected
+        let mut coin_timer: i32 = 0; // Timer to show +coin_value
+        let mut last_coin_val: i32 = 0; // Last collected coin's value
 
         // Initialize ground / object vectors
         let mut all_terrain: Vec<TerrainSegment> = Vec::new();
@@ -425,10 +426,12 @@ impl Game for Runner {
                     if Physics::check_collision(&mut player, c) {
                         if player.collide_coin(c) {
                             to_remove_ind = counter;
-                            coin_count += 1;
                             curr_step_score += c.value(); //increments the
                                                           // score based on the
                                                           // coins value
+
+                            last_coin_val = c.value();
+                            coin_timer = 60; // Time to show last_coin_val on screen
                         }
                         continue;
                     }
@@ -1062,22 +1065,27 @@ impl Game for Runner {
                     .map_err(|e| e.to_string())?;
 
                 // Display total_score
-                let score_texture = texture_creator
+                let tex_score = texture_creator
                     .create_texture_from_surface(&tex_score)
                     .map_err(|e| e.to_string())?;
                 core.wincan
-                    .copy(&score_texture, None, Some(rect!(10, 10, 100, 50)))?;
+                    .copy(&tex_score, None, Some(rect!(10, 10, 100, 50)))?;
 
-                // Display num coins collected
+                // Display added coin value when coin is collected
                 let coin_surface = font
-                    .render(&format!("{:03}", coin_count))
+                    .render(&format!("   +{:04}", last_coin_val))
                     .blended(Color::RGBA(100, 0, 200, 100))
                     .map_err(|e| e.to_string())?;
-                let coin_count_texture = texture_creator
+                let tex_coin_val = texture_creator
                     .create_texture_from_surface(&coin_surface)
                     .map_err(|e| e.to_string())?;
-                core.wincan
-                    .copy(&coin_count_texture, None, Some(rect!(160, 10, 80, 50)))?;
+
+                // Only show right after collecting a coin
+                if coin_timer > 0 {
+                    core.wincan
+                        .copy(&tex_coin_val, None, Some(rect!(10, 50, 100, 50)))?;
+                    coin_timer -= 1;
+                }
 
                 if game_over {
                     // Cleaned up calculation of texture position
