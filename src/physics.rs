@@ -11,7 +11,7 @@ use crate::runner::TILE_SIZE as InitTILE_SIZE;
 use std::f64::consts::PI;
 
 const LOWER_SPEED: f64 = -5.0;
-const UPPER_SPEED: f64 = 5.0;
+const UPPER_SPEED: f64 = 8.0;
 const OMEGA: f64 = PI / 18.0;
 const TILE_SIZE: f64 = InitTILE_SIZE as f64;
 
@@ -49,20 +49,20 @@ impl Physics {
     ) {
         // Set Gravity & Friction Strength From TerrainType
         let fric_coeff: f64;
-        let mut g: f64 = 1.0;
-        //these are currenty untested & arbitrary
+        let mut g: f64 = 1.5;
+        //As of now, all conds lead to +accel on flat ground (we could change this)
         match terrain_type {
-            TerrainType::Asphalt => {
+            TerrainType::Asphalt => { //quick accel to max on flat
                 fric_coeff = 0.05;
             }
-            TerrainType::Grass => {
-                fric_coeff = 0.1;
+            TerrainType::Grass => { //moderate accel to max on flat
+                fric_coeff = 0.075;
             }
-            TerrainType::Sand => {
-                fric_coeff = 0.15;
-                g = 1.5;
+            TerrainType::Sand => {  //v slow accel to max on flat & short jumps
+                fric_coeff = 0.06;  //less friction is more bc higher gravity
+                g = 2.0;
             }
-            TerrainType::Water => {
+            TerrainType::Water => { //NOT YET CONFIGURED
                 fric_coeff = 0.2;
             }
         }
@@ -570,7 +570,7 @@ impl<'a> Body<'a> for Player<'a> {
         }
 
         self.velocity.1 =
-            (self.velocity.1 + self.accel.1).clamp(2.0 * LOWER_SPEED, 5.0 * UPPER_SPEED);
+            (self.velocity.1 + self.accel.1).clamp(3.0 * LOWER_SPEED, 5.0 * UPPER_SPEED);
     }
 
     fn hard_set_vel(&mut self, vel: (f64, f64)) {
