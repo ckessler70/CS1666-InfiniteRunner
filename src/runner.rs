@@ -247,7 +247,7 @@ impl Game for Runner {
             rect!(0, CAM_H as i32 * 2 / 3, CAM_W, CAM_H as i32 * 2 / 3),
             init_curve_1,
             0.0,
-            TerrainType::Water,
+            TerrainType::Grass,
             Color::GREEN,
             ctrl_pts_1, /* Control
                          * points
@@ -362,6 +362,14 @@ impl Game for Runner {
                 let angle = ((next_ground_point.y() as f64 - curr_ground_point.y() as f64)
                     / (TILE_SIZE as f64))
                     .atan();
+
+                println!(
+                    "Curr Point = ({}, {}), Next Point = ({}, {})",
+                    curr_ground_point.x,
+                    curr_ground_point.y,
+                    next_ground_point.x,
+                    next_ground_point.y,
+                );
 
                 /* ~~~~~~ Handle Input ~~~~~~ */
                 let mut keypress_moment: SystemTime = SystemTime::now();
@@ -504,6 +512,7 @@ impl Game for Runner {
                 player.flip();
 
                 //DEBUG PLAYER (Plz dont delete, just comment out)
+                /*
                 println!(
                     "A-> vx:{} ax:{}, vy:{} ay:{}",
                     player.vel_x(),
@@ -511,9 +520,10 @@ impl Game for Runner {
                     player.vel_y(),
                     player.accel_y()
                 );
-
+                */
                 player.reset_accel();
 
+                /*
                 //DEBUG PLAYER (Plz dont delete, just comment out)
                 println!(
                     "B-> vx:{} ax:{}, vy:{} ay:{}",
@@ -522,6 +532,7 @@ impl Game for Runner {
                     player.accel_x(),
                     player.accel_y()
                 );
+                */
 
                 // apply forces to obstacles
                 for o in all_obstacles.iter_mut() {
@@ -1060,8 +1071,8 @@ impl Game for Runner {
                     let curve = ground_seg.curve();
                     for curve_ind in 0..ground_seg.w() {
                         // Get Draw Coords
-                        let mut slice_x = curve[curve_ind as usize].0;
-                        let mut slice_y = curve[curve_ind as usize].1;
+                        let slice_x = curve[curve_ind as usize].0;
+                        let slice_y = curve[curve_ind as usize].1;
 
                         // Don't draw in negative x
                         if slice_x < 0 {
@@ -1264,9 +1275,6 @@ impl Game for Runner {
                     // the given x, which it must be above
                     if ground.x() <= screen_x {
                         let point_ind: usize = (screen_x - ground.x()) as usize;
-                        if point_ind >= ground.curve().len() {
-                            continue;
-                        }
                         return Point::new(
                             ground.curve().get(point_ind).unwrap().0,
                             ground.curve().get(point_ind).unwrap().1,
