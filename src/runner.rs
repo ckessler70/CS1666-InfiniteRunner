@@ -742,15 +742,19 @@ impl Game for Runner {
                 }
                 */
 
-                let mut p0: (f64, f64) = (-1.0, -1.0);
                 //Generate Control points
-                let mut points: Vec<(i32, i32)> =
-                    proceduralgen::gen_control_points(p0, &random, CAM_W as i32, CAM_H as i32, 100);
+                let mut points: Vec<(i32, i32)> = proceduralgen::gen_control_points(
+                    (prev_P3.0 as f64, prev_P3.1 as f64),
+                    &random,
+                    CAM_W as i32,
+                    CAM_H as i32,
+                    100,
+                );
 
                 //Sloppy implementation of ensuring the control points will work for smooth
                 // curves. Will make better next week.
-                if (prevP2.0 > 0) {
-                    points[1] = prevP2;
+                if (prev_P2.0 > 0) {
+                    points[1] = prev_P2;
                     while (points[1].0 > points[2].0 || points[2].0 > points[3].0) {
                         let temp: i32 = rng.gen::<i32>() * 25 + 25; //0-50
                         if (points[1].0 > points[2].0) {
