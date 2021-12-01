@@ -350,12 +350,14 @@ impl Game for Runner {
                 }
 
                 //  Get ground point at player and TILE_SIZE ahead of player
-                let curr_ground_point: Point = get_ground_coord(&all_terrain, PLAYER_X);
-                let next_ground_point: Point =
-                    get_ground_coord(&all_terrain, PLAYER_X + TILE_SIZE as i32);
-                let angle = ((next_ground_point.y() as f64 - curr_ground_point.y() as f64)
+                let left_ground_point: Point = get_ground_coord(&all_terrain, PLAYER_X); // left of player
+                let curr_ground_point: Point =
+                    get_ground_coord(&all_terrain, PLAYER_X + (TILE_SIZE as i32) / 2); // middle of player
+                let right_ground_point: Point =
+                    get_ground_coord(&all_terrain, PLAYER_X + TILE_SIZE as i32); // right of player
+                let angle = ((right_ground_point.y() as f64 - left_ground_point.y() as f64)
                     / (TILE_SIZE as f64))
-                    .atan();
+                    .atan(); // slope between left and right of player
 
                 /* ~~~~~~ Handle Input ~~~~~~ */
                 let mut keypress_moment: SystemTime = SystemTime::now();
@@ -511,7 +513,8 @@ impl Game for Runner {
                 for o in all_obstacles.iter_mut() {
                     // Only actually apply forces after a collision occurs
                     if o.collided() {
-                        let object_ground = get_ground_coord(&all_terrain, o.x());
+                        let object_ground =
+                            get_ground_coord(&all_terrain, o.x() + (TILE_SIZE as i32) / 2);
                         let object_terrain_type = get_ground_type(&all_terrain, o.x());
                         // Very small friction coefficient because there's no
                         // "skate force" to counteract friction
@@ -619,7 +622,7 @@ impl Game for Runner {
                                 get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
                             let obstacle = Obstacle::new(
                                 rect!(
-                                    spawn_coord.x,
+                                    spawn_coord.x - (TILE_SIZE as i32) / 2,
                                     spawn_coord.y - TILE_SIZE as i32,
                                     TILE_SIZE,
                                     TILE_SIZE
@@ -635,7 +638,7 @@ impl Game for Runner {
                                 get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
                             let obstacle = Obstacle::new(
                                 rect!(
-                                    spawn_coord.x,
+                                    spawn_coord.x - (TILE_SIZE as i32) / 2,
                                     spawn_coord.y - TILE_SIZE as i32,
                                     TILE_SIZE,
                                     TILE_SIZE
@@ -651,7 +654,7 @@ impl Game for Runner {
                                 get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
                             let obstacle = Obstacle::new(
                                 rect!(
-                                    spawn_coord.x,
+                                    spawn_coord.x - (TILE_SIZE as i32) / 2,
                                     spawn_coord.y - TILE_SIZE as i32,
                                     TILE_SIZE,
                                     TILE_SIZE
@@ -667,7 +670,7 @@ impl Game for Runner {
                                 get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
                             let coin = Coin::new(
                                 rect!(
-                                    spawn_coord.x,
+                                    spawn_coord.x - (TILE_SIZE as i32) / 2,
                                     spawn_coord.y - TILE_SIZE as i32,
                                     TILE_SIZE,
                                     TILE_SIZE
@@ -682,7 +685,7 @@ impl Game for Runner {
                                 get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
                             let pow = Power::new(
                                 rect!(
-                                    spawn_coord.x,
+                                    spawn_coord.x - (TILE_SIZE as i32) / 2,
                                     spawn_coord.y - TILE_SIZE as i32,
                                     TILE_SIZE,
                                     TILE_SIZE
