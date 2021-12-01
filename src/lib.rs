@@ -21,6 +21,7 @@ pub enum GameStatus {
 }
 
 // Contains all types of terrain
+#[derive(Debug)]
 pub enum TerrainType {
     Grass,
     Asphalt,
