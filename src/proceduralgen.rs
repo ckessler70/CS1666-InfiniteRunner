@@ -283,7 +283,12 @@ impl ProceduralGen {
         // Due to weird rust semantics, need to make a var to hold curve length
         let curve_len = curve_points.0.len();
 
-        let rect = rect!(0, 0, curve_points.0.len(), 10); // ?
+        let rect = rect!(
+            prev_seg.curve().get(prev_seg.curve().len() - 1).unwrap().0 + 1,
+            prev_seg.curve().get(prev_seg.curve().len() - 1).unwrap().1,
+            curve_points.0.len(),
+            10
+        );
         let angle_from_last = 0.0; // ?
         let terrain_type = choose_terrain_type(10);
         let color = match (terrain_type) {
@@ -316,8 +321,8 @@ pub fn extend_cubic_bezier_curve(
     //no p0 or p1, above data structures work instead
     p2: (f64, f64),
     p3: (f64, f64),
-) -> Vec<(i32, i32)> {
-    let mut points: Vec<(i32, i32)> = vec![(-1, -1)];
+) -> (Vec<(i32, i32)>, (i32, i32)) {
+    let mut points: Vec<(i32, i32)> = Vec::new();
 
     //Calculate p1
     let mut p1: (f64, f64) = (0.0, 0.0);
@@ -336,7 +341,8 @@ pub fn extend_cubic_bezier_curve(
             point / CAM_W as f64,
         ));
     }
-    return points;
+
+    return (points, (p1.0 as i32, p1.1 as i32));
 }
 
 /* ~~~~~~     Bezier primary functions      ~~~~~~ */
@@ -371,8 +377,8 @@ fn gen_bezier_curve(
 
     let p2: (f64, f64) = (
         (point_mod_2.0 * (length / 2 - buffer) as f64 + q_n.0 as f64 + buffer as f64),
-        (point_mod_2.1 * q_n.1 as f64 * 2.0 - q_n.1 as f64)
-            .clamp(q_n.1 as f64 - buffer as f64, height as f64),
+        (point_mod_2.1 * q_n.1 as f64 * 2.0 - q_n.1 as f64),
+        // .clamp(q_n.1 as f64 + buffer as f64, height as f64),
     );
 
     let p3: (f64, f64) = (
@@ -380,7 +386,8 @@ fn gen_bezier_curve(
         point_mod_3.1 * (height / 3) as f64,
     );
 
-    let mut group_of_points: Vec<(i32, i32)> = vec![(-1, -1)];
+    let mut group_of_points: Vec<(i32, i32)> = Vec::new();
+    let mut p1 = (-1, -1);
 
     //if p1 value hasn't been given, generating the initial curve
     if (q_n1 == (-1, -1)) {
@@ -389,26 +396,29 @@ fn gen_bezier_curve(
                 + q_n.0 as f64
                 + buffer as f64
                 + (length / 2) as f64),
-            (point_mod_1.1 * q_n.1 as f64 * 2.0 - q_n.1 as f64)
-                .clamp(q_n.1 as f64 - buffer as f64, height as f64),
+            (point_mod_1.1 * q_n.1 as f64 * 2.0 - q_n.1 as f64),
+            // .clamp(q_n.1 as f64 + buffer as f64, height as f64),
         );
+        p1 = (temp_point.0 as i32, temp_point.1 as i32);
 
         group_of_points =
             gen_cubic_bezier_curve_points((q_n.0 as f64, q_n.1 as f64), temp_point, p2, p3);
     } else {
-        group_of_points = extend_cubic_bezier_curve(
+        let tup = extend_cubic_bezier_curve(
             (q_n.0 as f64, q_n.1 as f64),
             (q_n1.0 as f64, q_n1.1 as f64),
             p2,
             p3,
         ); //might need to swap p0 and p1
+        group_of_points = tup.0;
+        p1 = tup.1;
     }
 
     return (
         group_of_points,
         ([
             q_n,
-            q_n1,
+            p1,
             (p2.0 as i32, p2.1 as i32),
             (p3.0 as i32, p3.1 as i32),
         ]),
@@ -428,15 +438,18 @@ pub fn gen_cubic_bezier_curve_points(
     p2: (f64, f64),
     p3: (f64, f64),
 ) -> Vec<(i32, i32)> {
-    let mut points: Vec<(i32, i32)> = vec![(-1, -1)];
+    let mut points: Vec<(i32, i32)> = Vec::new();
 
     for t in 0..CAM_W as usize {
         let point = t as f64;
         //points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / 32.0);
-        points.insert(
-            t,
-            cubic_bezier_curve_point(p0, p1, p2, p3, point / CAM_W as f64),
-        );
+        points.push(cubic_bezier_curve_point(
+            p0,
+            p1,
+            p2,
+            p3,
+            point / CAM_W as f64,
+        ));
     }
     return points;
 }
