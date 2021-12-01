@@ -185,14 +185,24 @@ impl ProceduralGen {
     ) -> TerrainSegment {
         let mut rng = rand::thread_rng();
 
+        // Generate TerrainSegment's type
+        let terrain_type = choose_terrain_type(10);
+
+        let _is_flat = match (terrain_type) {
+            TerrainType::Water => true,
+            _ => _is_flat,
+        };
+
         let flat_mod: f64 = 0.25;
         let cliff_min_mod: f64 = 2.0;
         let cliff_max_mod: f64 = 5.0;
 
         let freq = rng.gen_range(32.0..256.0);
         let amp: f64 = if _is_flat {
+            // Make terrain flatter
             rng.gen::<f64>() * flat_mod
         } else if _is_cliff {
+            // Make terrain more drastic
             rng.gen::<f64>() * cliff_max_mod.clamp(cliff_min_mod, cliff_max_mod)
         } else {
             rng.gen::<f64>()
@@ -257,6 +267,7 @@ impl ProceduralGen {
 
         let prev_points = prev_seg.get_ctrl_points();
 
+        // Set p0 or previous curve's end control point
         let q_n = if _is_pit || _is_cliff {
             (
                 prev_points[prev_points.len() - 1].0,
@@ -266,7 +277,15 @@ impl ProceduralGen {
             prev_points[prev_points.len() - 1]
         };
 
-        let q_n1 = prev_points[prev_points.len() - 2];
+        // Set q_n-1 or second to last control point of previous curve
+        let q_n1 = if _is_pit || _is_cliff {
+            (
+                prev_points[prev_points.len() - 2].0,
+                prev_points[prev_points.len() - 2].1 + 100,
+            )
+        } else {
+            prev_points[prev_points.len() - 2]
+        };
 
         // Extract x and y point from last terrain segment
         let mut curve_points = gen_bezier_curve(
@@ -290,7 +309,6 @@ impl ProceduralGen {
             10
         );
         let angle_from_last = 0.0; // ?
-        let terrain_type = choose_terrain_type(10);
         let color = match (terrain_type) {
             TerrainType::Asphalt => Color::RGB(19, 10, 6),
             TerrainType::Sand => Color::RGB(194, 178, 128),
