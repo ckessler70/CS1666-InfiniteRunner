@@ -241,7 +241,7 @@ impl Game for Runner {
             rect!(0, CAM_H as i32 * 2 / 3, CAM_W, CAM_H as i32 * 2 / 3),
             init_curve_1,
             0.0,
-            TerrainType::Water,
+            TerrainType::Grass,
             Color::GREEN,
         );
         let mut init_curve_2: Vec<(i32, i32)> = vec![(CAM_W as i32, CAM_H as i32 * 2 / 3)];
@@ -252,7 +252,7 @@ impl Game for Runner {
             rect!(CAM_W, CAM_H as i32 * 2 / 3, CAM_W, CAM_H as i32 * 2 / 3),
             init_curve_2,
             0.0,
-            TerrainType::Water,
+            TerrainType::Grass,
             Color::BLUE,
         );
         all_terrain.push(init_terrain_1);
@@ -483,12 +483,12 @@ impl Game for Runner {
                 player.flip();
 
                 //DEBUG PLAYER (Plz dont delete, just comment out)
-                println!("A-> vx:{} ax:{}, vy:{} ay:{}",player.vel_x(),player.accel_x(),player.vel_y(),player.accel_y());
+                //println!("A-> vx:{} ax:{}, vy:{} ay:{}",player.vel_x(),player.accel_x(),player.vel_y(),player.accel_y());
                 
                 player.reset_accel();
 
                 //DEBUG PLAYER (Plz dont delete, just comment out)
-                println!("B-> vx:{} ax:{}, vy:{} ay:{}",player.vel_x(),player.vel_y(),player.accel_x(),player.accel_y());
+                //println!("B-> vx:{} ax:{}, vy:{} ay:{}",player.vel_x(),player.vel_y(),player.accel_x(),player.accel_y());
 
                 // apply forces to obstacles
                 for o in all_obstacles.iter_mut() {
@@ -726,7 +726,7 @@ impl Game for Runner {
                         rect!(last_x + 1, last_y, CAM_W, CAM_H * 2 / 3),
                         new_curve,
                         0.0,
-                        TerrainType::Water,
+                        TerrainType::Grass,
                         Color::GREEN,
                     );
                     all_terrain.push(new_terrain);

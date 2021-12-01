@@ -411,7 +411,6 @@ impl<'a> Player<'a> {
                         // For ease of calculation, just set omega = alpha
 
                         /***************************************************/
-
                         // Move obstacle
                         obstacle.collided = true;
                         obstacle.hard_set_vel((o_vx_f, o_vy_f));
@@ -426,7 +425,7 @@ impl<'a> Player<'a> {
                         true
                     }
                 }
-                // For spring, do nothing upon SIDE collision
+                // For Balloon, do nothing upon SIDE collision
                 ObstacleType::Balloon => false,
             }
         }
@@ -444,6 +443,7 @@ impl<'a> Player<'a> {
                     self.lock_jump_time = false;
                     self.apply_force((0.0, self.mass()));
                     self.omega = 0.0;
+                    obstacle.collided = true;
 
                     if self.theta() < OMEGA * 6.0 || self.theta() > 360.0 - OMEGA * 6.0 {
                         self.theta = 0.0;
