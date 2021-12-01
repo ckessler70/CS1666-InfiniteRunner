@@ -319,7 +319,7 @@ impl Game for TestBezier {
                 }
             } else {
                 let group_of_points: Vec<(i32, i32)> =
-                    proceduralgen::extend_cubic_bezier_curve(prev_p3, prev_p2, p2, p3);
+                    proceduralgen::extend_cubic_bezier_curve(prev_p3, prev_p2, p2, p3).0;
 
                 //DRAW
                 for t in 0..CAM_W as usize {

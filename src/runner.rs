@@ -194,7 +194,7 @@ impl Game for Runner {
         // Object spawning vars
         let mut spawn_timer: i32 = 500; // Can spawn a new object when it reaches 0
 
-        /*~~~~~~~~ Stuff for background sine waves ~~~~~~~~~~~~~~*/
+        /* ~~~~~~~~ Stuff for background sine waves ~~~~~~~~~~~~~~ */
         // Background & sine wave vars
         let mut bg_buff = 0;
         let mut bg_tick = 0;
@@ -221,7 +221,7 @@ impl Game for Runner {
             background_curves[IND_BACKGROUND_BACK][i] =
                 proceduralgen::gen_perlin_hill_point((i + buff_2), freq, amp_2, 1.0, 820.0);
         }
-        /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+        /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
         // Perlin Noise init
         let mut random: [[(i32, i32); 256]; 256] = [[(0, 0); 256]; 256];
@@ -237,23 +237,37 @@ impl Game for Runner {
         for i in 1..CAM_W {
             init_curve_1.push((i as i32, CAM_H as i32 * 2 / 3));
         }
+        let cp_1 = [
+            init_curve_1[0],
+            init_curve_1[init_curve_1.len() / 3],
+            init_curve_1[init_curve_1.len() * 2 / 3],
+            init_curve_1[init_curve_1.len() - 1],
+        ];
         let init_terrain_1 = TerrainSegment::new(
-            rect!(0, CAM_H as i32 * 2 / 3, CAM_W, CAM_H as i32 * 2 / 3),
+            rect!(0, CAM_H as i32 * 2 / 3, CAM_W, CAM_H as i32 * 1 / 3),
             init_curve_1,
             0.0,
             TerrainType::Grass,
             Color::GREEN,
+            cp_1,
         );
         let mut init_curve_2: Vec<(i32, i32)> = vec![(CAM_W as i32, CAM_H as i32 * 2 / 3)];
         for i in (CAM_W + 1)..(CAM_W * 2) {
             init_curve_2.push((i as i32, CAM_H as i32 * 2 / 3));
         }
+        let cp_2 = [
+            init_curve_2[0],
+            init_curve_2[init_curve_2.len() / 3],
+            init_curve_2[init_curve_2.len() * 2 / 3],
+            init_curve_2[init_curve_2.len() - 1],
+        ];
         let init_terrain_2 = TerrainSegment::new(
-            rect!(CAM_W, CAM_H as i32 * 2 / 3, CAM_W, CAM_H as i32 * 2 / 3),
+            rect!(CAM_W, CAM_H as i32 * 2 / 3, CAM_W, CAM_H as i32 * 1 / 3),
             init_curve_2,
             0.0,
             TerrainType::Grass,
             Color::BLUE,
+            cp_2,
         );
         all_terrain.push(init_terrain_1);
         all_terrain.push(init_terrain_2);
@@ -336,12 +350,14 @@ impl Game for Runner {
                 }
 
                 //  Get ground point at player and TILE_SIZE ahead of player
-                let curr_ground_point: Point = get_ground_coord(&all_terrain, PLAYER_X);
-                let next_ground_point: Point =
-                    get_ground_coord(&all_terrain, PLAYER_X + TILE_SIZE as i32);
-                let angle = ((next_ground_point.y() as f64 - curr_ground_point.y() as f64)
+                let left_ground_point: Point = get_ground_coord(&all_terrain, PLAYER_X); // left of player
+                let curr_ground_point: Point =
+                    get_ground_coord(&all_terrain, PLAYER_X + (TILE_SIZE as i32) / 2); // middle of player
+                let right_ground_point: Point =
+                    get_ground_coord(&all_terrain, PLAYER_X + TILE_SIZE as i32); // right of player
+                let angle = ((right_ground_point.y() as f64 - left_ground_point.y() as f64)
                     / (TILE_SIZE as f64))
-                    .atan();
+                    .atan(); // slope between left and right of player
 
                 /* ~~~~~~ Handle Input ~~~~~~ */
                 let mut keypress_moment: SystemTime = SystemTime::now();
@@ -431,7 +447,8 @@ impl Game for Runner {
                                                           // coins value
 
                             last_coin_val = c.value();
-                            coin_timer = 60; // Time to show last_coin_val on screen
+                            coin_timer = 60; // Time to show last_coin_val on
+                                             // screen
                         }
                         continue;
                     }
@@ -479,7 +496,6 @@ impl Game for Runner {
                     // Propel forward
                     Physics::apply_skate_force(&mut player, angle, curr_ground_point);
                 }
-
                 //update player attributes
                 player.update_vel(game_over);
                 player.update_pos(curr_ground_point, angle, game_over);
@@ -497,7 +513,8 @@ impl Game for Runner {
                 for o in all_obstacles.iter_mut() {
                     // Only actually apply forces after a collision occurs
                     if o.collided() {
-                        let object_ground = get_ground_coord(&all_terrain, o.x());
+                        let object_ground =
+                            get_ground_coord(&all_terrain, o.x() + (TILE_SIZE as i32) / 2);
                         let object_terrain_type = get_ground_type(&all_terrain, o.x());
                         // Very small friction coefficient because there's no
                         // "skate force" to counteract friction
@@ -605,7 +622,7 @@ impl Game for Runner {
                                 get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
                             let obstacle = Obstacle::new(
                                 rect!(
-                                    spawn_coord.x,
+                                    spawn_coord.x - (TILE_SIZE as i32) / 2,
                                     spawn_coord.y - TILE_SIZE as i32,
                                     TILE_SIZE,
                                     TILE_SIZE
@@ -621,7 +638,7 @@ impl Game for Runner {
                                 get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
                             let obstacle = Obstacle::new(
                                 rect!(
-                                    spawn_coord.x,
+                                    spawn_coord.x - (TILE_SIZE as i32) / 2,
                                     spawn_coord.y - TILE_SIZE as i32,
                                     TILE_SIZE,
                                     TILE_SIZE
@@ -637,7 +654,7 @@ impl Game for Runner {
                                 get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
                             let obstacle = Obstacle::new(
                                 rect!(
-                                    spawn_coord.x,
+                                    spawn_coord.x - (TILE_SIZE as i32) / 2,
                                     spawn_coord.y - TILE_SIZE as i32,
                                     TILE_SIZE,
                                     TILE_SIZE
@@ -653,7 +670,7 @@ impl Game for Runner {
                                 get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
                             let coin = Coin::new(
                                 rect!(
-                                    spawn_coord.x,
+                                    spawn_coord.x - (TILE_SIZE as i32) / 2,
                                     spawn_coord.y - TILE_SIZE as i32,
                                     TILE_SIZE,
                                     TILE_SIZE
@@ -668,7 +685,7 @@ impl Game for Runner {
                                 get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
                             let pow = Power::new(
                                 rect!(
-                                    spawn_coord.x,
+                                    spawn_coord.x - (TILE_SIZE as i32) / 2,
                                     spawn_coord.y - TILE_SIZE as i32,
                                     TILE_SIZE,
                                     TILE_SIZE
@@ -716,22 +733,22 @@ impl Game for Runner {
                 }
 
                 // Generate new ground when the last segment becomes visible
-                // All of this code is placeholder
                 let last_seg = all_terrain.get(all_terrain.len() - 1).unwrap();
                 if last_seg.x() < CAM_W as i32 {
-                    let last_x = last_seg.curve().get(last_seg.curve().len() - 1).unwrap().0;
-                    let last_y = last_seg.curve().get(last_seg.curve().len() - 1).unwrap().1;
-                    let mut new_curve: Vec<(i32, i32)> = vec![(last_x + 1, last_y)];
-                    for i in (last_x + 2)..(last_x + CAM_W as i32 + 1) {
-                        new_curve.push((i as i32, last_y));
-                    }
-                    let new_terrain = TerrainSegment::new(
-                        rect!(last_x + 1, last_y, CAM_W, CAM_H * 2 / 3),
-                        new_curve,
-                        0.0,
-                        TerrainType::Grass,
-                        Color::GREEN,
+                    /* Once bezier generation is done...
+                    new_terrain = proceduralgen::create_new_terrain(last_seg);
+                    */
+
+                    let new_terrain = proceduralgen::ProceduralGen::gen_terrain(
+                        &random,
+                        &last_seg,
+                        CAM_W as i32,
+                        CAM_H as i32,
+                        false,
+                        false,
+                        false,
                     );
+
                     all_terrain.push(new_terrain);
                 }
 
@@ -958,9 +975,32 @@ impl Game for Runner {
                 }
 
                 // Terrain
-                for ground in all_terrain.iter() {
-                    core.wincan.set_draw_color(ground.color());
-                    core.wincan.fill_rect(ground.pos())?;
+                for ground_seg in all_terrain.iter() {
+                    let curve = ground_seg.curve();
+                    for curve_ind in 0..ground_seg.w() {
+                        // Get Draw Coords
+                        let mut slice_x = curve[curve_ind as usize].0;
+                        let mut slice_y = curve[curve_ind as usize].1;
+
+                        // Don't draw in negative x
+                        if slice_x < 0 {
+                            continue;
+                        }
+                        // Stop drawing at CAM_W
+                        else if slice_x >= CAM_W as i32 {
+                            break;
+                        }
+                        // Normal drawing
+                        else {
+                            core.wincan.set_draw_color(ground_seg.color());
+                            core.wincan.fill_rect(rect!(
+                                slice_x,
+                                slice_y,
+                                1,
+                                CAM_H as i32 - slice_y
+                            ))?;
+                        }
+                    }
                 }
 
                 // Set player texture
