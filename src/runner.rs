@@ -749,20 +749,56 @@ impl Game for Runner {
                     // Begin placeholder code for infinite rects
                     let last_x = last_seg.get_ctrl_points()[3].0;
                     let last_y = last_seg.get_ctrl_points()[3].1;
+                    let prev_p2_x = last_seg.get_ctrl_points()[2].0;
+                    let prev_p2_y = last_seg.get_ctrl_points()[2].1;
+
+                    //
+                    //
+                    //control point placeholders. Perlin noise needs to do this somehow. The given
+                    // procgen perlin noise functions aren't adequate
+                    let control_point_p2: (f64, f64) = (-1.0, -1.0);
+                    let control_point_p3: (f64, f64) = (-1.0, -1.0);
+
+                    let mut new_curve: Vec<(i32, i32)> = vec![(last_x + 1, last_y)];
+
+                    //
+                    //
+                    //if the above control points are correct, then this should generate a bezier
+                    // curve
+                    let bez_extension: Vec<(i32, i32)> = proceduralgen::extend_cubic_bezier_curve(
+                        (last_x as f64, last_y as f64),
+                        (prev_p2_x as f64, prev_p2_y as f64),
+                        control_point_p2,
+                        control_point_p3,
+                    );
+
+                    //This attempting to imite calebs code which generated the line. I don't
+                    // understand how to generate curves off camera,
+                    // I tried, but it's not working.
+                    /*
+                    for i in (last_x + 2)..(last_x + bez_extension.len() as i32 + 1) {
+                        new_curve.push(bez_extension[i as usize]);
+                    }*/
+
+                    /*
+                    Calebs code
                     let mut new_curve: Vec<(i32, i32)> = vec![(last_x + 1, last_y)];
                     for i in (last_x + 2)..(last_x + CAM_W as i32 + 1) {
                         new_curve.push((i as i32, last_y));
                     }
+                    */
+                    let p1x: i32 = last_x + (last_x - prev_p2_x);
+                    let p1y: i32 = last_y + (last_y - prev_p2_y);
 
                     let cp_new = [
-                        new_curve[0],
-                        new_curve[new_curve.len() / 3],
-                        new_curve[new_curve.len() * 2 / 3],
-                        new_curve[new_curve.len() - 1],
+                        (last_x, last_y),
+                        (p1x, p1y),
+                        (control_point_p2.0 as i32, control_point_p2.1 as i32),
+                        (control_point_p3.0 as i32, control_point_p3.1 as i32),
                     ];
                     let new_terrain = TerrainSegment::new(
                         rect!(last_x + 1, last_y, CAM_W, CAM_H * 1 / 3),
-                        new_curve,
+                        bez_extension,
                         0.0,
                         TerrainType::Grass,
                         Color::GREEN,
