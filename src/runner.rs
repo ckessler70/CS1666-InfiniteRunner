@@ -194,7 +194,7 @@ impl Game for Runner {
         // Object spawning vars
         let mut spawn_timer: i32 = 500; // Can spawn a new object when it reaches 0
 
-        /*~~~~~~~~ Stuff for background sine waves ~~~~~~~~~~~~~~*/
+        /* ~~~~~~~~ Stuff for background sine waves ~~~~~~~~~~~~~~ */
         // Background & sine wave vars
         let mut bg_buff = 0;
         let mut bg_tick = 0;
@@ -221,7 +221,7 @@ impl Game for Runner {
             background_curves[IND_BACKGROUND_BACK][i] =
                 proceduralgen::gen_perlin_hill_point((i + buff_2), freq, amp_2, 1.0, 820.0);
         }
-        /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+        /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
         // Perlin Noise init
         let mut random: [[(i32, i32); 256]; 256] = [[(0, 0); 256]; 256];
@@ -237,23 +237,37 @@ impl Game for Runner {
         for i in 1..CAM_W {
             init_curve_1.push((i as i32, CAM_H as i32 * 2 / 3));
         }
+        let cp_1 = [
+            init_curve_1[0],
+            init_curve_1[init_curve_1.len() / 3],
+            init_curve_1[init_curve_1.len() * 2 / 3],
+            init_curve_1[init_curve_1.len() - 1],
+        ];
         let init_terrain_1 = TerrainSegment::new(
-            rect!(0, CAM_H as i32 * 2 / 3, CAM_W, CAM_H as i32 * 2 / 3),
+            rect!(0, CAM_H as i32 * 2 / 3, CAM_W, CAM_H as i32 * 1 / 3),
             init_curve_1,
             0.0,
             TerrainType::Grass,
             Color::GREEN,
+            cp_1,
         );
         let mut init_curve_2: Vec<(i32, i32)> = vec![(CAM_W as i32, CAM_H as i32 * 2 / 3)];
         for i in (CAM_W + 1)..(CAM_W * 2) {
             init_curve_2.push((i as i32, CAM_H as i32 * 2 / 3));
         }
+        let cp_2 = [
+            init_curve_2[0],
+            init_curve_2[init_curve_2.len() / 3],
+            init_curve_2[init_curve_2.len() * 2 / 3],
+            init_curve_2[init_curve_2.len() - 1],
+        ];
         let init_terrain_2 = TerrainSegment::new(
-            rect!(CAM_W, CAM_H as i32 * 2 / 3, CAM_W, CAM_H as i32 * 2 / 3),
+            rect!(CAM_W, CAM_H as i32 * 2 / 3, CAM_W, CAM_H as i32 * 1 / 3),
             init_curve_2,
             0.0,
             TerrainType::Grass,
             Color::BLUE,
+            cp_2,
         );
         all_terrain.push(init_terrain_1);
         all_terrain.push(init_terrain_2);
@@ -431,7 +445,8 @@ impl Game for Runner {
                                                           // coins value
 
                             last_coin_val = c.value();
-                            coin_timer = 60; // Time to show last_coin_val on screen
+                            coin_timer = 60; // Time to show last_coin_val on
+                                             // screen
                         }
                         continue;
                     }
@@ -716,22 +731,72 @@ impl Game for Runner {
                 }
 
                 // Generate new ground when the last segment becomes visible
-                // All of this code is placeholder
                 let last_seg = all_terrain.get(all_terrain.len() - 1).unwrap();
                 if last_seg.x() < CAM_W as i32 {
-                    let last_x = last_seg.curve().get(last_seg.curve().len() - 1).unwrap().0;
-                    let last_y = last_seg.curve().get(last_seg.curve().len() - 1).unwrap().1;
+                    /* Once bezier generation is done...
+                    new_terrain = proceduralgen::create_new_terrain(last_seg);
+                    */
+
+                    // Begin placeholder code for infinite rects
+                    let last_x = last_seg.get_ctrl_points()[3].0;
+                    let last_y = last_seg.get_ctrl_points()[3].1;
+                    let prev_p2_x = last_seg.get_ctrl_points()[2].0;
+                    let prev_p2_y = last_seg.get_ctrl_points()[2].1;
+
+                    //
+                    //
+                    //control point placeholders. Perlin noise needs to do this somehow. The given
+                    // procgen perlin noise functions aren't adequate
+                    let control_point_p2: (f64, f64) = (-1.0, -1.0);
+                    let control_point_p3: (f64, f64) = (-1.0, -1.0);
+
+                    let mut new_curve: Vec<(i32, i32)> = vec![(last_x + 1, last_y)];
+
+                    //
+                    //
+                    //if the above control points are correct, then this should generate a bezier
+                    // curve
+                    let bez_extension: Vec<(i32, i32)> = proceduralgen::extend_cubic_bezier_curve(
+                        (last_x as f64, last_y as f64),
+                        (prev_p2_x as f64, prev_p2_y as f64),
+                        control_point_p2,
+                        control_point_p3,
+                    );
+
+                    //This attempting to imite calebs code which generated the line. I don't
+                    // understand how to generate curves off camera,
+                    // I tried, but it's not working.
+                    /*
+                    for i in (last_x + 2)..(last_x + bez_extension.len() as i32 + 1) {
+                        new_curve.push(bez_extension[i as usize]);
+                    }*/
+
+                    /*
+                    Calebs code
                     let mut new_curve: Vec<(i32, i32)> = vec![(last_x + 1, last_y)];
                     for i in (last_x + 2)..(last_x + CAM_W as i32 + 1) {
                         new_curve.push((i as i32, last_y));
                     }
+                    */
+                    let p1x: i32 = last_x + (last_x - prev_p2_x);
+                    let p1y: i32 = last_y + (last_y - prev_p2_y);
+
+                    let cp_new = [
+                        (last_x, last_y),
+                        (p1x, p1y),
+                        (control_point_p2.0 as i32, control_point_p2.1 as i32),
+                        (control_point_p3.0 as i32, control_point_p3.1 as i32),
+                    ];
                     let new_terrain = TerrainSegment::new(
-                        rect!(last_x + 1, last_y, CAM_W, CAM_H * 2 / 3),
-                        new_curve,
+                        rect!(last_x + 1, last_y, CAM_W, CAM_H * 1 / 3),
+                        bez_extension,
                         0.0,
                         TerrainType::Grass,
                         Color::GREEN,
+                        cp_new,
                     );
+                    // End placeholder code for infinite rects
+
                     all_terrain.push(new_terrain);
                 }
 
@@ -958,9 +1023,32 @@ impl Game for Runner {
                 }
 
                 // Terrain
-                for ground in all_terrain.iter() {
-                    core.wincan.set_draw_color(ground.color());
-                    core.wincan.fill_rect(ground.pos())?;
+                for ground_seg in all_terrain.iter() {
+                    let curve = ground_seg.curve();
+                    for curve_ind in 0..ground_seg.w() {
+                        // Get Draw Coords
+                        let mut slice_x = curve[curve_ind as usize].0;
+                        let mut slice_y = curve[curve_ind as usize].1;
+
+                        // Don't draw in negative x
+                        if slice_x < 0 {
+                            continue;
+                        }
+                        // Stop drawing at CAM_W
+                        else if slice_x >= CAM_W as i32 {
+                            break;
+                        }
+                        // Normal drawing
+                        else {
+                            core.wincan.set_draw_color(ground_seg.color());
+                            core.wincan.fill_rect(rect!(
+                                slice_x,
+                                slice_y,
+                                1,
+                                CAM_H as i32 - slice_y
+                            ))?;
+                        }
+                    }
                 }
 
                 // Set player texture
