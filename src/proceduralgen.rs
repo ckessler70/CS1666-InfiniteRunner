@@ -147,14 +147,6 @@ impl ProceduralGen {
         Ok(ProceduralGen {})
     }
 
-    /*
-    pub fn init_terrain<'a>(cam_w: i32, cam_h: i32, texture: &'a Texture<'a>) /* -> TerrainSegment */
-    {
-        // TerrainSegment::new(rect!(0, cam_h * 2 / 3, cam_w, cam_h / 3),
-        // &texture)
-    }
-    */
-
     /*  Initilization of terrain segments
      *
      *  - Takes in `random` which is the array of random tuples of (i32, i32)
