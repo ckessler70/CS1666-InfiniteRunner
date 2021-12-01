@@ -475,7 +475,10 @@ impl Game for Runner {
                     curr_terrain_type,
                     current_power,
                 );
-                Physics::apply_skate_force(&mut player, angle, curr_ground_point); // Propel forward
+                if !game_over {
+                    // Propel forward
+                    Physics::apply_skate_force(&mut player, angle, curr_ground_point);
+                }
 
                 //update player attributes
                 player.update_vel(game_over);
@@ -484,7 +487,7 @@ impl Game for Runner {
 
                 //DEBUG PLAYER (Plz dont delete, just comment out)
                 //println!("A-> vx:{} ax:{}, vy:{} ay:{}",player.vel_x(),player.accel_x(),player.vel_y(),player.accel_y());
-                
+
                 player.reset_accel();
 
                 //DEBUG PLAYER (Plz dont delete, just comment out)
@@ -556,27 +559,27 @@ impl Game for Runner {
                     // Decreases to increase spawn rates based on total_score.
                     // These numbers could be terrible, we should mess around with it
                     let min_spawn_gap = if total_score > 100000 {
-                        300 // Cap
-                    } else if total_score > 90000 {
-                        320
-                    } else if total_score > 80000 {
-                        340
-                    } else if total_score > 70000 {
-                        360
-                    } else if total_score > 60000 {
-                        380
+                        50 // Cap
                     } else if total_score > 50000 {
-                        400
+                        75
                     } else if total_score > 40000 {
-                        420
+                        100
                     } else if total_score > 30000 {
-                        440
+                        125
                     } else if total_score > 20000 {
-                        460
+                        150
+                    } else if total_score > 15000 {
+                        175
                     } else if total_score > 10000 {
-                        480
+                        200
+                    } else if total_score > 7500 {
+                        225
+                    } else if total_score > 5000 {
+                        250
+                    } else if total_score > 2500 {
+                        275
                     } else {
-                        500 // Default
+                        300 // Default
                     };
 
                     // Choose new object to generate
@@ -639,7 +642,7 @@ impl Game for Runner {
                                     TILE_SIZE,
                                     TILE_SIZE
                                 ),
-                                1.0,
+                                50.0,
                                 &tex_chest,
                                 ObstacleType::Chest,
                             );
