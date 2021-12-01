@@ -377,13 +377,13 @@ fn gen_bezier_curve(
 
     let p2: (f64, f64) = (
         (point_mod_2.0 * (length / 2 - buffer) as f64 + q_n.0 as f64 + buffer as f64),
-        (point_mod_2.1 * q_n.1 as f64 * 2.0 - q_n.1 as f64),
+        (point_mod_2.1 * q_n.1 as f64 / 2.0 + q_n.1 as f64),
         // .clamp(q_n.1 as f64 + buffer as f64, height as f64),
     );
 
     let p3: (f64, f64) = (
         length as f64 + q_n.0 as f64,
-        point_mod_3.1 * (height / 3) as f64,
+        point_mod_3.1 * (height) as f64 + q_n.1 as f64,
     );
 
     let mut group_of_points: Vec<(i32, i32)> = Vec::new();
@@ -493,10 +493,7 @@ fn cubic_bezier_curve_point(
     p3: (f64, f64), // End point
     t: f64,
 ) -> (i32, i32) {
-    let x_value = (1.0 - t) * (1.0 - t) * (1.0 - t) * p0.0
-        + 3.0 * (1.0 - t) * (1.0 - t) * t * p1.0
-        + 3.0 * (1.0 - t) * t * t * p2.0
-        + t * t * t * p3.0;
+    let x_value = p0.0 + t * (1280.0) + 1.0;
     let y_value = (1.0 - t) * (1.0 - t) * (1.0 - t) * p0.1
         + 3.0 * (1.0 - t) * (1.0 - t) * t * p1.1
         + 3.0 * (1.0 - t) * t * t * p2.1

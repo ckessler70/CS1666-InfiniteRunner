@@ -490,32 +490,22 @@ impl Game for Runner {
                     curr_terrain_type,
                     current_power,
                 );
-                Physics::apply_skate_force(&mut player, angle, curr_ground_point); // Propel forward
-
+                if !game_over {
+                    // Propel forward
+                    Physics::apply_skate_force(&mut player, angle, curr_ground_point);
+                }
                 //update player attributes
                 player.update_vel(game_over);
                 player.update_pos(curr_ground_point, angle, game_over);
                 player.flip();
 
-                // //DEBUG PLAYER (Plz dont delete, just comment out)
-                // println!(
-                //     "A-> vx:{} ax:{}, vy:{} ay:{}",
-                //     player.vel_x(),
-                //     player.accel_x(),
-                //     player.vel_y(),
-                //     player.accel_y()
-                // );
+                //DEBUG PLAYER (Plz dont delete, just comment out)
+                //println!("A-> vx:{} ax:{}, vy:{} ay:{}",player.vel_x(),player.accel_x(),player.vel_y(),player.accel_y());
 
                 player.reset_accel();
 
-                // //DEBUG PLAYER (Plz dont delete, just comment out)
-                // println!(
-                //     "B-> vx:{} ax:{}, vy:{} ay:{}",
-                //     player.vel_x(),
-                //     player.vel_y(),
-                //     player.accel_x(),
-                //     player.accel_y()
-                // );
+                //DEBUG PLAYER (Plz dont delete, just comment out)
+                //println!("B-> vx:{} ax:{}, vy:{} ay:{}",player.vel_x(),player.vel_y(),player.accel_x(),player.accel_y());
 
                 // apply forces to obstacles
                 for o in all_obstacles.iter_mut() {
@@ -583,27 +573,27 @@ impl Game for Runner {
                     // Decreases to increase spawn rates based on total_score.
                     // These numbers could be terrible, we should mess around with it
                     let min_spawn_gap = if total_score > 100000 {
-                        300 // Cap
-                    } else if total_score > 90000 {
-                        320
-                    } else if total_score > 80000 {
-                        340
-                    } else if total_score > 70000 {
-                        360
-                    } else if total_score > 60000 {
-                        380
+                        50 // Cap
                     } else if total_score > 50000 {
-                        400
+                        75
                     } else if total_score > 40000 {
-                        420
+                        100
                     } else if total_score > 30000 {
-                        440
+                        125
                     } else if total_score > 20000 {
-                        460
+                        150
+                    } else if total_score > 15000 {
+                        175
                     } else if total_score > 10000 {
-                        480
+                        200
+                    } else if total_score > 7500 {
+                        225
+                    } else if total_score > 5000 {
+                        250
+                    } else if total_score > 2500 {
+                        275
                     } else {
-                        500 // Default
+                        300 // Default
                     };
 
                     // Choose new object to generate
@@ -666,7 +656,7 @@ impl Game for Runner {
                                     TILE_SIZE,
                                     TILE_SIZE
                                 ),
-                                1.0,
+                                50.0,
                                 &tex_chest,
                                 ObstacleType::Chest,
                             );
@@ -746,65 +736,15 @@ impl Game for Runner {
                     new_terrain = proceduralgen::create_new_terrain(last_seg);
                     */
 
-                    // Begin placeholder code for infinite rects
-                    let last_x = last_seg.get_ctrl_points()[3].0;
-                    let last_y = last_seg.get_ctrl_points()[3].1;
-                    let prev_p2_x = last_seg.get_ctrl_points()[2].0;
-                    let prev_p2_y = last_seg.get_ctrl_points()[2].1;
-
-                    //
-                    //
-                    //control point placeholders. Perlin noise needs to do this somehow. The given
-                    // procgen perlin noise functions aren't adequate
-                    let control_point_p2: (f64, f64) = (-1.0, -1.0);
-                    let control_point_p3: (f64, f64) = (-1.0, -1.0);
-
-                    let mut new_curve: Vec<(i32, i32)> = vec![(last_x + 1, last_y)];
-
-                    //
-                    //
-                    //if the above control points are correct, then this should generate a bezier
-                    // curve
-                    let bez_extension: Vec<(i32, i32)> = proceduralgen::extend_cubic_bezier_curve(
-                        (last_x as f64, last_y as f64),
-                        (prev_p2_x as f64, prev_p2_y as f64),
-                        control_point_p2,
-                        control_point_p3,
+                    let new_terrain = proceduralgen::ProceduralGen::gen_terrain(
+                        &random,
+                        &last_seg,
+                        CAM_W as i32,
+                        CAM_H as i32,
+                        false,
+                        false,
+                        false,
                     );
-
-                    //This attempting to imite calebs code which generated the line. I don't
-                    // understand how to generate curves off camera,
-                    // I tried, but it's not working.
-                    /*
-                    for i in (last_x + 2)..(last_x + bez_extension.len() as i32 + 1) {
-                        new_curve.push(bez_extension[i as usize]);
-                    }*/
-
-                    /*
-                    Calebs code
-                    let mut new_curve: Vec<(i32, i32)> = vec![(last_x + 1, last_y)];
-                    for i in (last_x + 2)..(last_x + CAM_W as i32 + 1) {
-                        new_curve.push((i as i32, last_y));
-                    }
-                    */
-                    let p1x: i32 = last_x + (last_x - prev_p2_x);
-                    let p1y: i32 = last_y + (last_y - prev_p2_y);
-
-                    let cp_new = [
-                        (last_x, last_y),
-                        (p1x, p1y),
-                        (control_point_p2.0 as i32, control_point_p2.1 as i32),
-                        (control_point_p3.0 as i32, control_point_p3.1 as i32),
-                    ];
-                    let new_terrain = TerrainSegment::new(
-                        rect!(last_x + 1, last_y, CAM_W, CAM_H * 1 / 3),
-                        bez_extension,
-                        0.0,
-                        TerrainType::Grass,
-                        Color::GREEN,
-                        cp_new,
-                    );
-                    // End placeholder code for infinite rects
 
                     all_terrain.push(new_terrain);
                 }
