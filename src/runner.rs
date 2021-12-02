@@ -85,6 +85,7 @@ impl Game for Runner {
         let tex_chest = texture_creator.load_texture("assets/obstacles/box.png")?;
         let tex_coin = texture_creator.load_texture("assets/obstacles/coin.png")?;
         let tex_powerup = texture_creator.load_texture("assets/obstacles/powerup.png")?;
+        let tex_bench = texture_creator.load_texture("assets/obstacles/bench.png")?;
 
         let tex_speed = texture_creator.load_texture("assets/powers/speed.png")?;
         let tex_multiplier = texture_creator.load_texture("assets/powers/multiplier.png")?;
@@ -686,6 +687,22 @@ impl Game for Runner {
                             );
                             all_powers.push(pow);
                         }
+                        Some(StaticObject::Bench) => {
+                            let spawn_coord: Point =
+                                get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
+                            let obstacle = Obstacle::new(
+                                rect!(
+                                    spawn_coord.x - (TILE_SIZE as i32) / 2,
+                                    spawn_coord.y - TILE_SIZE as i32,
+                                    TILE_SIZE,
+                                    TILE_SIZE/2
+                                ),
+                                50.0,
+                                &tex_bench,
+                                ObstacleType::Bench,
+                            );
+                            all_obstacles.push(obstacle);
+                        }
                         // Some(StaticObject::Chest) => {}
                         // ... Add any new types of objects here ...
                         _ => {}
@@ -989,6 +1006,19 @@ impl Game for Runner {
                             core.wincan.draw_rect(obs.hitbox())?;
                         }
                         ObstacleType::Chest => {
+                            core.wincan.copy_ex(
+                                obs.texture(),
+                                None,
+                                rect!(obs.x(), obs.y(), TILE_SIZE, TILE_SIZE),
+                                obs.theta(),
+                                None,
+                                false,
+                                false,
+                            )?;
+                            core.wincan.set_draw_color(Color::BLUE);
+                            core.wincan.draw_rect(obs.hitbox())?;
+                        }
+                        ObstacleType::Bench => {
                             core.wincan.copy_ex(
                                 obs.texture(),
                                 None,

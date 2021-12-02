@@ -427,7 +427,7 @@ impl<'a> Player<'a> {
             // Response to collision dependent on type of obstacle
             match obstacle.obstacle_type {
                 // For statue and chest, elastic collision
-                ObstacleType::Statue | ObstacleType::Chest => {
+                ObstacleType::Statue | ObstacleType::Chest | ObstacleType::Bench => {
                     if shielded || obstacle.collided() {
                         // If shielded or collision already happened, pretend nothing happened
                         false
@@ -477,7 +477,7 @@ impl<'a> Player<'a> {
         else if self.vel_y() < 0.0 {
             match obstacle.obstacle_type {
                 // On top collision with chest, treat the chest as if it's normal ground
-                ObstacleType::Chest => {
+                ObstacleType::Chest | ObstacleType::Bench => {
                     // obstacle.collided = true;
                     self.pos.1 = (obstacle.y() as f64 - 0.95 * (TILE_SIZE as f64));
                     self.align_hitbox_to_pos();
