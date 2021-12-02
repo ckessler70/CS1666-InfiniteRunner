@@ -257,7 +257,7 @@ impl Game for Runner {
             last_raw_time = Instant::now(); // FPS tracking
 
             // Score collected in a single iteration of the game loop
-            let mut curr_step_score: i32 = 0;
+            let mut curr_step_score: f64 = 0.0;
 
             /* ~~~~~~ Pausing Handler ~~~~~~ */
             if game_paused {
@@ -422,9 +422,9 @@ impl Game for Runner {
                     if Physics::check_collision(&mut player, c) {
                         if player.collide_coin(c) {
                             to_remove_ind = counter;
-                            curr_step_score += c.value(); //increments the
-                                                          // score based on the
-                                                          // coins value
+                            curr_step_score += c.value() as f64; //increments the
+                                                                 // score based on the
+                                                                 // coins value
 
                             last_coin_val = c.value();
                             coin_timer = 60; // Time to show last_coin_val on
@@ -698,11 +698,11 @@ impl Game for Runner {
                 // Poorly placed rn, should be after postion / hitbox / collision update
                 // but before drawing
                 if !game_over {
-                    curr_step_score += 1; // Hardcoded score increase per frame
+                    curr_step_score += (player.vel_x() / 1.5); // Increase score by factor of ammount moved that frame
                     if let Some(PowerType::ScoreMultiplier) = player.power_up() {
-                        curr_step_score *= 2; // Hardcoded power bonus
+                        curr_step_score *= 2.0; // Hardcoded power bonus
                     }
-                    total_score += curr_step_score;
+                    total_score += curr_step_score as i32;
                 }
 
                 /* Update ground / object positions to move player forward
