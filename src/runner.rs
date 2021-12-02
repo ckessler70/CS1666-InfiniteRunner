@@ -46,8 +46,7 @@ pub const TILE_SIZE: u32 = 100;
 // Background sine wave stuff
 const IND_BACKGROUND_MID: usize = 0;
 const IND_BACKGROUND_BACK: usize = 1;
-const BG_CURVES_SIZE: usize = CAM_W as usize / 10;
-// const BUFF_LENGTH: usize = CAM_W as usize / 4;
+const BG_CURVES_SIZE: usize = CAM_W as usize / 4;
 
 // Bounds to keep the player within
 // Used for camera postioning
@@ -693,9 +692,9 @@ impl Game for Runner {
                             let obstacle = Obstacle::new(
                                 rect!(
                                     spawn_coord.x - (TILE_SIZE as i32) / 2,
-                                    spawn_coord.y - TILE_SIZE as i32 / 2,
+                                    spawn_coord.y - TILE_SIZE as i32 * 2 / 3,
                                     TILE_SIZE,
-                                    TILE_SIZE / 2
+                                    TILE_SIZE * 2 / 3
                                 ),
                                 50.0,
                                 &tex_bench,
@@ -910,7 +909,7 @@ impl Game for Runner {
                 // Background perlin noise curves
                 for i in 0..background_curves[IND_BACKGROUND_MID].len() - 1 {
                     // Furthest back perlin noise curves
-                    core.wincan.set_draw_color(Color::RGBA(128, 51, 6, 255));
+                    core.wincan.set_draw_color(Color::RGBA(81, 65, 67, 255));
                     core.wincan.fill_rect(rect!(
                         i * CAM_W as usize / BG_CURVES_SIZE + CAM_W as usize / BG_CURVES_SIZE / 2,
                         CAM_H as i16 - background_curves[IND_BACKGROUND_BACK][i],
@@ -919,7 +918,7 @@ impl Game for Runner {
                     ))?;
 
                     // Midground perlin noise curves
-                    core.wincan.set_draw_color(Color::RGBA(96, 161, 152, 255));
+                    core.wincan.set_draw_color(Color::RGBA(195, 133, 96, 255));
                     core.wincan.fill_rect(rect!(
                         i * CAM_W as usize / BG_CURVES_SIZE + CAM_W as usize / BG_CURVES_SIZE / 2,
                         CAM_H as i16 - background_curves[IND_BACKGROUND_MID][i],
@@ -1022,7 +1021,12 @@ impl Game for Runner {
                             core.wincan.copy_ex(
                                 obs.texture(),
                                 None,
-                                rect!(obs.x(), obs.y(), TILE_SIZE, TILE_SIZE / 2),
+                                rect!(
+                                    obs.x(),
+                                    obs.y() - (TILE_SIZE as i32 - TILE_SIZE as i32 * 2 / 3),
+                                    TILE_SIZE,
+                                    TILE_SIZE
+                                ),
                                 obs.theta(),
                                 None,
                                 false,
