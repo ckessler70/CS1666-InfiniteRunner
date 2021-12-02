@@ -304,7 +304,7 @@ impl ProceduralGen {
         let color = match (terrain_type) {
             TerrainType::Asphalt => Color::RGB(19, 10, 6),
             TerrainType::Sand => Color::RGB(194, 178, 128),
-            TerrainType::Water => Color::RGB(212, 241, 249),
+            TerrainType::Water => Color::RGB(116, 204, 244),
             TerrainType::Grass => Color::RGB(86, 125, 70),
         };
 
