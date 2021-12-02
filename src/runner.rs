@@ -172,8 +172,6 @@ impl Game for Runner {
         // Score of an entire run
         let mut total_score: i32 = 0;
 
-        // let mut test_stepper = 0;
-
         let mut game_paused: bool = false;
         let mut initial_pause: bool = false;
         let mut game_over: bool = false;
