@@ -191,7 +191,7 @@ impl Game for Runner {
         let mut next_status = GameStatus::Main;
 
         // Object spawning vars
-        let mut spawn_timer: i32 = 500; // Can spawn a new object when it reaches 0
+        let mut spawn_timer: f64 = 500.0; // Can spawn a new object when it reaches 0
 
         /* ~~~~~~~~ Stuff for background sine waves ~~~~~~~~~~~~~~ */
         // Background & sine wave vars
@@ -567,27 +567,27 @@ impl Game for Runner {
                     // Decreases to increase spawn rates based on total_score.
                     // These numbers could be terrible, we should mess around with it
                     let min_spawn_gap = if total_score > 100000 {
-                        50 // Cap
+                        300 // Cap
                     } else if total_score > 50000 {
-                        75
+                        350
                     } else if total_score > 40000 {
-                        100
+                        400
                     } else if total_score > 30000 {
-                        125
+                        450
                     } else if total_score > 20000 {
-                        150
+                        500
                     } else if total_score > 15000 {
-                        175
+                        625
                     } else if total_score > 10000 {
-                        200
+                        550
                     } else if total_score > 7500 {
-                        225
+                        600
                     } else if total_score > 5000 {
-                        250
+                        650
                     } else if total_score > 2500 {
-                        275
+                        700
                     } else {
-                        300 // Default
+                        750 // Default
                     };
 
                     // Choose new object to generate
@@ -595,15 +595,15 @@ impl Game for Runner {
                     let curr_num_objects = all_obstacles.len() + all_coins.len() + all_powers.len();
                     let spawn_trigger = rng.gen_range(0..MAX_NUM_OBJECTS);
 
-                    if spawn_timer > 0 {
-                        spawn_timer -= 1;
+                    if spawn_timer > 0.0 {
+                        spawn_timer -= player.vel_x() / 2.5;
                     } else if spawn_trigger >= curr_num_objects as i32 {
                         new_object = Some(proceduralgen::choose_static_object());
-                        spawn_timer = min_spawn_gap;
+                        spawn_timer = min_spawn_gap as f64;
                     } else if spawn_trigger < curr_num_objects as i32 {
                         // Min spawn gap can be replaced with basically any value for this random
                         // range. Smaller values will spawn objects more often
-                        spawn_timer = rng.gen_range(0..min_spawn_gap);
+                        spawn_timer = rng.gen_range(0.0..min_spawn_gap as f64);
                     }
 
                     // Spawn new object
@@ -701,6 +701,7 @@ impl Game for Runner {
                     curr_step_score += (player.vel_x() / 1.5); // Increase score by factor of ammount moved that frame
                     if let Some(PowerType::ScoreMultiplier) = player.power_up() {
                         curr_step_score *= 2.0; // Hardcoded power bonus
+                        last_coin_val = 2000;
                     }
                     total_score += curr_step_score as i32;
                 }
@@ -1137,6 +1138,9 @@ impl Game for Runner {
                     // the given x, which it must be above
                     if ground.x() <= screen_x {
                         let point_ind: usize = (screen_x - ground.x()) as usize;
+                        if point_ind >= ground.curve().len() {
+                            println!("{:?} {:?}", ground.x(), screen_x);
+                        }
                         return Point::new(
                             ground.curve().get(point_ind).unwrap().0,
                             ground.curve().get(point_ind).unwrap().1,
