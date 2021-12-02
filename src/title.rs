@@ -120,15 +120,15 @@ impl Game for Title {
                         keycode: Some(k), ..
                     } => match k {
                         Keycode::P | Keycode::Space => {
-                            next_status = Some(GameStatus::Game);
+                            let next_status = Some(GameStatus::Game);
                             break 'gameloop;
                         }
                         Keycode::C => {
-                            next_status = Some(GameStatus::Credits);
+                            let next_status = Some(GameStatus::Credits);
                             break 'gameloop;
                         }
                         Keycode::B => {
-                            next_status = Some(GameStatus::BezierSim);
+                            let next_status = Some(GameStatus::BezierSim);
                             break 'gameloop;
                         }
                         _ => {}

@@ -360,7 +360,7 @@ impl Game for Runner {
                     .atan(); // slope between left and right of player
 
                 /* ~~~~~~ Handle Input ~~~~~~ */
-                let mut keypress_moment: SystemTime = SystemTime::now();
+                let keypress_moment: SystemTime = SystemTime::now();
                 for event in core.event_pump.poll_iter() {
                     match event {
                         Event::Quit { .. } => break 'gameloop,
@@ -372,7 +372,7 @@ impl Game for Runner {
                                     player.resume_flipping();
                                 } else {
                                     if !player.jumpmoment_lock() {
-                                        keypress_moment = SystemTime::now();
+                                        let keypress_moment = SystemTime::now();
                                         player.set_jumpmoment(keypress_moment);
                                     }
                                 }
@@ -387,7 +387,7 @@ impl Game for Runner {
                             keycode: Some(k), ..
                         } => match k {
                             Keycode::W | Keycode::Up | Keycode::Space => {
-                                let mut jump_moment: SystemTime = player.jump_moment();
+                                let jump_moment: SystemTime = player.jump_moment();
                                 player.jump(
                                     curr_ground_point,
                                     SystemTime::now().duration_since(jump_moment).unwrap(),
@@ -979,8 +979,8 @@ impl Game for Runner {
                     let curve = ground_seg.curve();
                     for curve_ind in 0..ground_seg.w() {
                         // Get Draw Coords
-                        let mut slice_x = curve[curve_ind as usize].0;
-                        let mut slice_y = curve[curve_ind as usize].1;
+                        let slice_x = curve[curve_ind as usize].0;
+                        let slice_y = curve[curve_ind as usize].1;
 
                         // Don't draw in negative x
                         if slice_x < 0 {
