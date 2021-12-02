@@ -331,7 +331,7 @@ pub fn extend_cubic_bezier_curve(
     //no p0 or p1, above data structures work instead
     p2: (f64, f64),
     p3: (f64, f64),
-) -> (Vec<(i32, i32)>, (f64, f64)) {
+) -> (Vec<(i32, i32)>, (i32, i32)) {
     let mut points: Vec<(i32, i32)> = Vec::new();
 
     //Calculate p1
@@ -352,7 +352,7 @@ pub fn extend_cubic_bezier_curve(
         ));
     }
 
-    return (points, p1);
+    return (points, (p1.0 as i32, p1.1 as i32));
 }
 
 /* ~~~~~~     Bezier primary functions      ~~~~~~ */
@@ -397,12 +397,12 @@ fn gen_bezier_curve(
         ((1.0 - point_mod_3.1) * (q_n.1 as f64 * 2.25)),
     );
 
-    let group_of_points: Vec<(i32, i32)> = Vec::new();
-    let p1: (f64, f64) = (-1.0, -1.0);
+    let mut group_of_points: Vec<(i32, i32)> = Vec::new();
+    let mut p1 = (-1, -1);
 
     //if p1 value hasn't been given, generating the initial curve
     if (q_n1 == (-1, -1)) {
-        let p1: (f64, f64) = (
+        let temp_point: (f64, f64) = (
             (point_mod_1.0 * (length / 2 + buffer) as f64
                 + q_n.0 as f64
                 + buffer as f64
@@ -410,9 +410,10 @@ fn gen_bezier_curve(
             (point_mod_1.1 * q_n.1 as f64 * 2.0 - q_n.1 as f64)
                 .clamp(q_n.1 as f64 + buffer as f64, height as f64),
         );
+        p1 = (temp_point.0 as i32, temp_point.1 as i32);
 
-        let group_of_points =
-            gen_cubic_bezier_curve_points((q_n.0 as f64, q_n.1 as f64), p1, p2, p3);
+        group_of_points =
+            gen_cubic_bezier_curve_points((q_n.0 as f64, q_n.1 as f64), temp_point, p2, p3);
     } else {
         let tup = extend_cubic_bezier_curve(
             (q_n.0 as f64, q_n.1 as f64),
@@ -420,15 +421,15 @@ fn gen_bezier_curve(
             p2,
             p3,
         ); //might need to swap p0 and p1
-        let group_of_points = tup.0;
-        let p1 = tup.1;
+        group_of_points = tup.0;
+        p1 = tup.1;
     }
 
     return (
         group_of_points,
         ([
             q_n,
-            (p1.0 as i32, p1.1 as i32),
+            p1,
             (p2.0 as i32, p2.1 as i32),
             (p3.0 as i32, p3.1 as i32),
         ]),
