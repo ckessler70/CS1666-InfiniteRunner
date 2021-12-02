@@ -272,10 +272,10 @@ impl Game for Runner {
                             next_status = GameStatus::Credits;
                             break 'gameloop;
                         }
-                        Event::KeyDown | Keycode::Space
+                        Event::KeyDown {
                             keycode: Some(k), ..
                         } => match k {
-                            Keycode::Escape => {
+                            Keycode::Escape | Keycode::Space => {
                                 game_paused = false;
                             }
                             Keycode::R => {
@@ -340,28 +340,25 @@ impl Game for Runner {
                         Event::KeyDown {
                             keycode: Some(k), ..
                         } => match k {
-                                Keycode::W | Keycode::Up | Keycode::Space => {
-                                    if player.is_jumping() {
-                                        player.resume_flipping();
-                                    } else {
-                                        player.jump(
-                                            current_ground,
-                                        );
-                                    }
+                            Keycode::W | Keycode::Up | Keycode::Space => {
+                                if player.is_jumping() {
+                                    player.resume_flipping();
+                                } else {
+                                    player.jump(curr_ground_point);
                                 }
-                                Keycode::Escape => {
-                                    game_paused = true;
-                                    initial_pause = true;
-                                }
-                                _ => {}
-                            },
-                            Event::KeyUp {
-                                keycode: Some(k), ..
-                            } => match k {
-                                Keycode::W | Keycode::Up | Keycode::Space => {
-                                    //let mut jump_moment: SystemTime = player.jump_moment();
-                                    player.stop_flipping();
-                                }
+                            }
+                            Keycode::Escape => {
+                                game_paused = true;
+                                initial_pause = true;
+                            }
+                            _ => {}
+                        },
+                        Event::KeyUp {
+                            keycode: Some(k), ..
+                        } => match k {
+                            Keycode::W | Keycode::Up | Keycode::Space => {
+                                player.stop_flipping();
+                            }
                             _ => {}
                         },
                         _ => {}
@@ -380,7 +377,7 @@ impl Game for Runner {
                 // Effectively just repeated jumps, independent of player input
                 if let Some(PowerType::BouncyShoes) = player.power_up() {
                     if !player.is_jumping() {
-                        player.jump(curr_ground_point, Duration::new(1111, 0));
+                        player.jump(curr_ground_point);
                     }
                 }
 
