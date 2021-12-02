@@ -1,43 +1,95 @@
-use crate::rect;
-// use crate::Physics;
+use inf_runner::PowerType;
+use inf_runner::StaticObject;
+use inf_runner::TerrainType;
 
+use crate::physics::Power;
+use crate::rect;
+
+use rand::distributions::Distribution;
+use rand::distributions::Standard;
+use rand::Rng;
+
+use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::Texture;
 
-use rand::{
-    distributions::{Distribution, Standard},
-    Rng,
-};
-
 const CAM_W: u32 = 1280;
-// Ensure that SIZE is not a decimal
-// 1, 2, 4, 5, 8, 10, 16, 20, 32, 40, 64, 80, 128, 160, 256, 320, 640
-const SIZE: usize = CAM_W as usize / 10;
-const BUFF_LENGTH: usize = CAM_W as usize / 4;
 
+// BG_CURVES_SIZE relates to the length of the background hills array.
+// Used to convert width of drawn rectangles to fill up the screen.
+// Reason for it being 1/10th width is that it was the highest resolution we
+// could get with previous iterations of that array and still have good
+// performance
+const BG_CURVES_SIZE: usize = CAM_W as usize / 10; // 1/10 of screen for good performance
+
+// Similar to BG_CURVES_SIZE, the length of the ground_buffer array.
+// Reason for it being 1/4th width is arbitrary. As long as it is consistent,
+// can be any length const CAM_W: usize = CAM_W as usize / 4; // Why 1/4 of
+// screen width specifically?
+
+// Where all the math is done?
 pub struct ProceduralGen;
 
-#[allow(dead_code)]
-pub struct TerrainSegment<'a> {
-    pos: Rect,
-    // curve: Bezier Curve,
-    texture: &'a Texture<'a>,
+// Representation of a single bezier curve
+pub struct TerrainSegment {
+    pos: Rect,              // Bounding box
+    curve: Vec<(i32, i32)>, // Dynamic array of points defining the bezier curve
+    angle_from_last: f64,   /* Angle between previous segment and this segment,
+                             * should trend
+                             * downward on average */
+    terrain_type: TerrainType,
+    color: Color,
+    control_points: [(i32, i32); 4],
 }
 
-pub enum StaticObject {
-    Coin,
-    Statue,
-    Power,
-    Spring,
-    Chest,
-}
-
-#[allow(dead_code)]
-impl<'a> TerrainSegment<'a> {
-    pub fn new(pos: Rect, texture: &'a Texture<'a>) -> TerrainSegment {
-        TerrainSegment { pos, texture }
+// Terrain Segment Definitions
+impl TerrainSegment {
+    pub fn new(
+        pos: Rect,
+        curve: Vec<(i32, i32)>,
+        angle_from_last: f64,
+        terrain_type: TerrainType,
+        color: Color,
+        control_points: [(i32, i32); 4],
+    ) -> TerrainSegment {
+        // Set defaults, should probably be different than this
+        TerrainSegment {
+            pos: pos,
+            curve: curve,
+            angle_from_last: angle_from_last,
+            terrain_type: terrain_type,
+            color: color,
+            control_points: control_points,
+        }
     }
 
+    // Mutators
+    // Adjusts terrain postion in runner.rs based on camera_adj_x & camera_adj_y
+    pub fn camera_adj(&mut self, x_adj: i32, y_adj: i32) {
+        self.pos.set_x(self.pos.x() + x_adj);
+        self.pos.set_y(self.pos.y() + y_adj);
+        for tuple in self.curve.iter_mut() {
+            tuple.0 += x_adj;
+            tuple.1 += y_adj;
+        }
+        for tuple in self.control_points.iter_mut() {
+            tuple.0 += x_adj;
+            tuple.1 += y_adj;
+        }
+    }
+
+    // Shifts terrain left so player can "move forward"
+    pub fn travel_update(&mut self, travel_adj: i32) {
+        self.pos.set_x(self.pos.x() - travel_adj);
+        for tuple in self.curve.iter_mut() {
+            tuple.0 -= travel_adj;
+        }
+        for tuple in self.control_points.iter_mut() {
+            tuple.0 -= travel_adj;
+        }
+    }
+
+    // Accessors
     pub fn x(&self) -> i32 {
         self.pos.x()
     }
@@ -54,47 +106,84 @@ impl<'a> TerrainSegment<'a> {
         self.pos.height() as i32
     }
 
-    pub fn pos(&self) -> &Rect {
-        &self.pos
+    pub fn pos(&self) -> Rect {
+        self.pos
     }
 
-    pub fn texture(&self) -> &Texture {
-        &self.texture
+    pub fn angle_from_last(&self) -> f64 {
+        self.angle_from_last
     }
 
-    pub fn update_pos(&mut self, x_adj: i32, y_adj: i32) {
-        self.pos.set_x(self.pos.x() + x_adj);
-        self.pos.set_y(self.pos.y() + y_adj);
+    pub fn get_type(&self) -> &TerrainType {
+        &self.terrain_type
+    }
+
+    pub fn color(&self) -> Color {
+        self.color
+    }
+
+    pub fn curve(&self) -> &Vec<(i32, i32)> {
+        &(self.curve)
+    }
+
+    pub fn get_ctrl_points(&self) -> [(i32, i32); 4] {
+        self.control_points
     }
 }
 
+impl PartialEq for TerrainSegment {
+    fn eq(&self, other: &Self) -> bool {
+        self.pos == other.pos
+    }
+}
+
+/*  I don't understand a lot of what's going on in this impl,
+ *  but it needs cleaning
+ *
+ */
 #[allow(dead_code)]
 impl ProceduralGen {
     pub fn init() -> Result<Self, String> {
         Ok(ProceduralGen {})
     }
 
-    pub fn init_terrain<'a>(
-        cam_w: i32,
-        cam_h: i32,
-        texture: &'a Texture<'a>,
-    ) -> TerrainSegment<'a> {
-        TerrainSegment::new(rect!(0, cam_h * 2 / 3, cam_w, cam_h / 3), &texture)
-    }
-
-    pub fn gen_land<'a>(
+    /*  Initilization of terrain segments
+     *
+     *  - Takes in `random` which is the array of random tuples of (i32, i32)
+     *    Needs to be the same values on each run for porper noise output
+     *    Represents the gradient value for points. Passed into gen_point_mod
+     *  - Takes in `prev_point` which is the x (assumes 0) and y of the last part
+     *    of generated terrain
+     *  - Takes in `cam_w` which is the width of the camera (1280)
+     *  - Takes in `cam_h` which is the height of the camera (720)
+     *  - Takes in `_is_pit` boolean which will generate a pit within this land
+     *    segment *NOT IMPLEMENTED YET*
+     *  - Takes in `_is_flat` boolean which will make the generated control point
+     *    modifiers around the same y and thus, curves should be relatively flat
+     *    for the next land segment
+     *  - Takes in `_is_cliff` boolean which will make a cliff within the next
+     *    land segment *NOT IMPLEMENTED YET*
+     *
+     *  - Returns array of tuples associated with the output curve.
+     */
+    pub fn gen_terrain(
         random: &[[(i32, i32); 256]; 256],
-        prev_segment: &TerrainSegment,
+        prev_seg: &TerrainSegment,
         cam_w: i32,
         cam_h: i32,
         _is_pit: bool,
         _is_flat: bool,
         _is_cliff: bool,
-        texture: &'a Texture<'a>,
-    ) -> TerrainSegment<'a> {
-        //TODO
-
+    ) -> TerrainSegment {
         let mut rng = rand::thread_rng();
+
+        // Generate TerrainSegment's type
+        let terrain_type = choose_terrain_type(10);
+
+        let _is_flat = match (terrain_type) {
+            TerrainType::Water => true,
+            _ => _is_flat,
+        };
 
         let flat_mod: f64 = 0.25;
         let cliff_min_mod: f64 = 2.0;
@@ -102,106 +191,14 @@ impl ProceduralGen {
 
         let freq = rng.gen_range(32.0..256.0);
         let amp: f64 = if _is_flat {
+            // Make terrain flatter
             rng.gen::<f64>() * flat_mod
         } else if _is_cliff {
+            // Make terrain more drastic
             rng.gen::<f64>() * cliff_max_mod.clamp(cliff_min_mod, cliff_max_mod)
         } else {
             rng.gen::<f64>()
         };
-
-        // //Generates perlin noise map each terrain
-        // let perlin_noise: [[f64; 128]; 128] = gen_perlin_noise(freq, amp);
-
-        // // As mod is closer to 1, it should be higher. As it is closer to 0, it
-        // should be lower let point_mod: f64 = perlin_noise
-        //     [((rng.gen::<f64>() * (perlin_noise.len() - 1) as f64).floor()) as usize]
-        //     [((rng.gen::<f64>() * (perlin_noise.len() - 1) as f64).floor()) as
-        // usize];
-
-        // Generates perlin noise for random point instead of whole map
-        let map_size = 128;
-        let point_mod_1a: f64 = gen_point_mod(
-            &random,
-            (
-                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-            ),
-            freq,
-            amp,
-        );
-        let point_mod_1b: f64 = gen_point_mod(
-            &random,
-            (
-                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-            ),
-            freq,
-            amp,
-        );
-        let point_mod_2: f64 = gen_point_mod(
-            &random,
-            (
-                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-                (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-            ),
-            freq,
-            amp,
-        );
-
-        // Extract x and y point from last terrain segment
-        // let curve = gen_bezier_curve((x, y), cam_w, cam_h, (point_mod_1a,
-        // point_mod_1b), point_mod_2, 100);
-
-        //prev_point - Last point of the previouly generated bit of land
-        //length - length of next batch of generated land
-        //is_pit - binary tick, next batch of land will have a pit in it
-        //is_flat - binary tick, next batch of land will be flat or mostly flat
-        // (shallow curve) is_cliff - binary tick, next batch of land
-        // will have a point where it drops down into a cliff face
-        TerrainSegment::new(
-            rect!(
-                prev_segment.x() + prev_segment.w(),
-                prev_segment.y(),
-                cam_w,
-                cam_h / 3
-            ),
-            &texture,
-        )
-    }
-
-    pub fn gen_bezier_land(
-        random: &[[(i32, i32); 256]; 256],
-        mut prev_point: (f64, f64),
-        cam_w: i32,
-        cam_h: i32,
-        _is_pit: bool,
-        _is_flat: bool,
-        _is_cliff: bool,
-    ) -> [(f64, f64); BUFF_LENGTH + 1] {
-        //last point will act as bouncy flag.
-        let mut rng = rand::thread_rng();
-
-        let flat_mod: f64 = 0.25;
-        let cliff_min_mod: f64 = 2.0;
-        let cliff_max_mod: f64 = 5.0;
-
-        let freq = rng.gen_range(32.0..256.0);
-        let amp: f64 = if _is_flat {
-            rng.gen::<f64>() * flat_mod
-        } else if _is_cliff {
-            rng.gen::<f64>() * cliff_max_mod.clamp(cliff_min_mod, cliff_max_mod)
-        } else {
-            rng.gen::<f64>()
-        };
-
-        // //Generates perlin noise map each terrain
-        // let perlin_noise: [[f64; 128]; 128] = gen_perlin_noise(freq, amp);
-
-        // // As mod is closer to 1, it should be higher. As it is closer to 0, it
-        // should be lower let point_mod: f64 = perlin_noise
-        //     [((rng.gen::<f64>() * (perlin_noise.len() - 1) as f64).floor()) as usize]
-        //     [((rng.gen::<f64>() * (perlin_noise.len() - 1) as f64).floor()) as
-        // usize];
 
         // Generates perlin noise for random point instead of whole map
         let map_size = 128;
@@ -260,15 +257,32 @@ impl ProceduralGen {
             amp,
         );
 
-        prev_point = if _is_pit {
-            (prev_point.0, prev_point.1 + 100.0)
+        let prev_points = prev_seg.get_ctrl_points();
+
+        // Set p0 or previous curve's end control point
+        let q_n = if _is_pit || _is_cliff {
+            (
+                prev_points[prev_points.len() - 1].0,
+                prev_points[prev_points.len() - 1].1 + 100,
+            )
         } else {
-            prev_point
+            prev_points[prev_points.len() - 1]
+        };
+
+        // Set q_n-1 or second to last control point of previous curve
+        let q_n1 = if _is_pit || _is_cliff {
+            (
+                prev_points[prev_points.len() - 2].0,
+                prev_points[prev_points.len() - 2].1 + 100,
+            )
+        } else {
+            prev_points[prev_points.len() - 2]
         };
 
         // Extract x and y point from last terrain segment
-        let mut curve = gen_bezier_curve(
-            prev_point,
+        let curve_points = gen_bezier_curve(
+            q_n,
+            q_n1,
             cam_w,
             cam_h,
             (point_mod_1a, point_mod_1b),
@@ -277,49 +291,401 @@ impl ProceduralGen {
             100,
         );
 
-        let is_bouncy = rng.gen_range(0.0..1.0);
+        // Due to weird rust semantics, need to make a var to hold curve length
+        let curve_len = curve_points.0.len();
 
-        if (is_bouncy < 0.5) {
-            curve[curve.len() - 1] = (1.0, 1.0); //True value
-        } else {
-            curve[curve.len() - 1] = (0.0, 0.0); //False value
-        }
+        let rect = rect!(
+            prev_seg.curve().get(prev_seg.curve().len() - 1).unwrap().0 + 1,
+            prev_seg.curve().get(prev_seg.curve().len() - 1).unwrap().1,
+            curve_points.0.len(),
+            10
+        );
+        let angle_from_last = 0.0; // ?
+        let color = match (terrain_type) {
+            TerrainType::Asphalt => Color::RGB(19, 10, 6),
+            TerrainType::Sand => Color::RGB(194, 178, 128),
+            TerrainType::Water => Color::RGB(116, 204, 244),
+            TerrainType::Grass => Color::RGB(86, 125, 70),
+        };
 
-        return (curve);
-    }
-
-    pub fn spawn_object(
-        random: &[[(i32, i32); 256]; 256],
-        min_length: i32,
-        max_length: i32,
-    ) -> (Option<StaticObject>, usize) {
-        let mut rng = rand::thread_rng();
-
-        let freq = rng.gen::<f64>() * 256.0 + 32.0;
-        let amp = rng.gen::<f64>();
-
-        let map_size = 128;
-        let point_mod: f64 = gen_point_mod(
-            &random,
-            (
-                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
-                ((rng.gen::<f64>() * (map_size - 1) as f64).floor()) as i32,
-            ),
-            freq,
-            amp,
+        let terrain = TerrainSegment::new(
+            rect,
+            curve_points.0,
+            angle_from_last,
+            terrain_type,
+            color,
+            curve_points.1,
         );
 
-        let object = rand::random();
-
-        let length = (point_mod * max_length as f64 + min_length as f64)
-            .clamp(min_length as f64, max_length as f64)
-            .floor() as usize;
-
-        (Some(object), length)
+        return terrain;
     }
 }
 
-// Test function used freq = 64.0 and amp = 1.0
+/*  Function for extending a cubic bezier curve while keeping the chained
+ *  curve smooth. Works similarly to gen_cubic_bezier_curve_points()
+ *      http://www.inf.ed.ac.uk/teaching/courses/cg/d3/bezierJoin.html
+ */
+pub fn extend_cubic_bezier_curve(
+    prev_pn: (f64, f64),
+    prev_pn_minus_1: (f64, f64),
+    //no p0 or p1, above data structures work instead
+    p2: (f64, f64),
+    p3: (f64, f64),
+) -> (Vec<(i32, i32)>, (i32, i32)) {
+    let mut points: Vec<(i32, i32)> = Vec::new();
+
+    //Calculate p1
+    let mut p1: (f64, f64) = (0.0, 0.0);
+
+    p1.0 = prev_pn.0 + (prev_pn.0 - prev_pn_minus_1.0);
+    p1.1 = prev_pn.1 + (prev_pn.1 - prev_pn_minus_1.1);
+
+    for t in 0..CAM_W as usize {
+        let point = t as f64;
+        //points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / 32.0);
+        points.push(cubic_bezier_curve_point(
+            prev_pn,
+            p1,
+            p2,
+            p3,
+            point / CAM_W as f64,
+        ));
+    }
+
+    return (points, (p1.0 as i32, p1.1 as i32));
+}
+
+/* ~~~~~~     Bezier primary functions      ~~~~~~ */
+
+/*  Handler for getting either quadratic or cubic bezier curve representation
+ *
+ *  - Takes in `p0` which is the last place the previously generated land
+ *    ended
+ *  - Takes in `length` which is a control parameter
+ *  - Takes in `height` which is a control parameter
+ *  - Takes in `point_mod_x` which are the Perlin Noise Modifiers to help
+ *    generate control points
+ *  - Takes in `buffer` which is a control parameter saying how close control
+ *    points can be in the x direction
+ *
+ *  - Returns Bezier Curve representation
+ */
+fn gen_bezier_curve(
+    q_n: (i32, i32),
+    q_n1: (i32, i32),
+    length: i32, // Needs to be static which is stupid so 1280
+    height: i32,
+    point_mod_1: (f64, f64),
+    point_mod_2: (f64, f64),
+    point_mod_3: (f64, f64),
+    buffer: i32,
+) -> (Vec<(i32, i32)>, [(i32, i32); 4]) {
+    //TODO - CONTROL POINT LOGIC NEEDS TO BE REFINED
+    //Bezier curve
+
+    //Cubic
+    let p1_x = q_n.0 + (q_n.0 - q_n1.0);
+
+    let p2: (f64, f64) = (
+        (point_mod_2.0 * (length - buffer) as f64 + (p1_x + buffer) as f64)
+            .clamp((p1_x + buffer) as f64, (length + q_n.0 - buffer) as f64),
+        ((1.0 - point_mod_2.1) * (q_n.1 as f64 * 2.1)),
+    );
+
+    let p3: (f64, f64) = (
+        length as f64 + q_n.0 as f64,
+        ((1.0 - point_mod_3.1) * (q_n.1 as f64 * 2.25)),
+    );
+
+    let mut group_of_points: Vec<(i32, i32)> = Vec::new();
+    let mut p1 = (-1, -1);
+
+    //if p1 value hasn't been given, generating the initial curve
+    if (q_n1 == (-1, -1)) {
+        let temp_point: (f64, f64) = (
+            (point_mod_1.0 * (length / 2 + buffer) as f64
+                + q_n.0 as f64
+                + buffer as f64
+                + (length / 2) as f64),
+            (point_mod_1.1 * q_n.1 as f64 * 2.0 - q_n.1 as f64)
+                .clamp(q_n.1 as f64 + buffer as f64, height as f64),
+        );
+        p1 = (temp_point.0 as i32, temp_point.1 as i32);
+
+        group_of_points =
+            gen_cubic_bezier_curve_points((q_n.0 as f64, q_n.1 as f64), temp_point, p2, p3);
+    } else {
+        let tup = extend_cubic_bezier_curve(
+            (q_n.0 as f64, q_n.1 as f64),
+            (q_n1.0 as f64, q_n1.1 as f64),
+            p2,
+            p3,
+        ); //might need to swap p0 and p1
+        group_of_points = tup.0;
+        p1 = tup.1;
+    }
+
+    return (
+        group_of_points,
+        ([
+            q_n,
+            p1,
+            (p2.0 as i32, p2.1 as i32),
+            (p3.0 as i32, p3.1 as i32),
+        ]),
+    );
+}
+
+/*
+ *
+ *
+ *
+ *
+ */
+// Returns an array of the points' (x,y) values
+pub fn gen_cubic_bezier_curve_points(
+    p0: (f64, f64),
+    p1: (f64, f64),
+    p2: (f64, f64),
+    p3: (f64, f64),
+) -> Vec<(i32, i32)> {
+    let mut points: Vec<(i32, i32)> = Vec::new();
+
+    for t in 0..CAM_W as usize {
+        let point = t as f64;
+        //points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / 32.0);
+        points.push(cubic_bezier_curve_point(
+            p0,
+            p1,
+            p2,
+            p3,
+            point / CAM_W as f64,
+        ));
+    }
+    return points;
+}
+
+/*
+ *
+ *
+ *
+ *
+ */
+// Returns an array of the points' (x,y) values
+pub fn gen_quadratic_bezier_curve_points(
+    p0: (f64, f64), // Start point
+    p1: (f64, f64), // Mid point
+    p2: (f64, f64), // End point
+) -> Vec<(i32, i32)> {
+    let mut points: Vec<(i32, i32)> = vec![(-1, -1)];
+    for t in 0..CAM_W as usize {
+        let point = t as f64;
+        //points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / 32.0);
+        points.insert(
+            t,
+            quadratic_bezier_curve_point(p0, p1, p2, point / CAM_W as f64),
+        );
+    }
+    return points;
+}
+
+/******      Bezier helper functions      ***** */
+
+/*
+ *
+ *
+ *
+ *
+ */
+fn cubic_bezier_curve_point(
+    p0: (f64, f64), // Start point
+    p1: (f64, f64), // Mid_0 point
+    p2: (f64, f64), // Mid_1 point
+    p3: (f64, f64), // End point
+    t: f64,
+) -> (i32, i32) {
+    let x_value = p0.0 + t * (1280.0) + 1.0;
+    let y_value = (1.0 - t) * (1.0 - t) * (1.0 - t) * p0.1
+        + 3.0 * (1.0 - t) * (1.0 - t) * t * p1.1
+        + 3.0 * (1.0 - t) * t * t * p2.1
+        + t * t * t * p3.1;
+
+    return (x_value as i32, y_value as i32);
+}
+
+/*
+ *
+ *
+ *
+ *
+ */
+fn quadratic_bezier_curve_point(
+    // Point args obtained from perlin
+    p0: (f64, f64), // Start point
+    p1: (f64, f64), // Mid point
+    p2: (f64, f64), // End point
+    t: f64,         // t = Point range 0-1 of the curve
+) -> (i32, i32) {
+    let x_value = (1.0 - t) * ((1.0 - t) * p0.0 + t * p1.0) + t * ((1.0 - t) * p1.0 + t * p2.0);
+    let y_value = (1.0 - t) * ((1.0 - t) * p0.1 + t * p1.1) + t * ((1.0 - t) * p1.1 + t * p2.1);
+    return (x_value as i32, y_value as i32);
+}
+
+/*******************************************
+ *
+ * NEW FUNCTIONS THAT CAN ACTUALLY BE USED
+ *
+ * Call from runner.rs not other procgen functions
+ *
+ */
+pub fn gen_control_points(
+    p0: (f64, f64),
+    random: &[[(i32, i32); 256]; 256],
+    cam_w: i32,
+    cam_h: i32,
+    buffer: i32,
+) -> Vec<(i32, i32)> {
+    let mut points: Vec<(i32, i32)> = vec![(-1, -1)];
+
+    let mut rng = rand::thread_rng();
+
+    //let flat_mod: f64 = 0.25;
+    //let cliff_min_mod: f64 = 2.0;
+    //let cliff_max_mod: f64 = 5.0;
+
+    let freq = rng.gen_range(32.0..256.0);
+    let amp: f64 = rng.gen::<f64>();
+
+    // Generates perlin noise for random point instead of whole map
+    let map_size = 128;
+    let point_mod_1a: f64 = gen_point_mod(
+        &random,
+        (
+            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+        ),
+        freq,
+        amp,
+    );
+    let point_mod_1b: f64 = gen_point_mod(
+        &random,
+        (
+            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+        ),
+        freq,
+        amp,
+    );
+    let point_mod_2a: f64 = gen_point_mod(
+        &random,
+        (
+            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+        ),
+        freq,
+        amp,
+    );
+    let point_mod_2b: f64 = gen_point_mod(
+        &random,
+        (
+            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+        ),
+        freq,
+        amp,
+    );
+    let point_mod_3a: f64 = gen_point_mod(
+        &random,
+        (
+            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+        ),
+        freq,
+        amp,
+    );
+    let point_mod_3b: f64 = gen_point_mod(
+        &random,
+        (
+            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
+        ),
+        freq,
+        amp,
+    );
+
+    let length: i32 = cam_w;
+    let height: i32 = cam_h;
+
+    let p1: (f64, f64) = (
+        (point_mod_1a * (length / 2 + buffer) as f64 + p0.0 + buffer as f64 + (length / 2) as f64)
+            .clamp(
+                p0.0 + buffer as f64 + (length / 2) as f64,
+                (length - buffer) as f64,
+            ),
+        (point_mod_1b * p0.1 * 2.0 - p0.1).clamp(p0.1 - buffer as f64, height as f64),
+    );
+
+    let p2: (f64, f64) = (
+        (point_mod_2a * (length / 2 - buffer) as f64 + p0.0 + buffer as f64)
+            .clamp(p0.0 + buffer as f64, (length / 2 - buffer) as f64),
+        (point_mod_2b * p0.1 * 2.0 - p0.1).clamp(p0.1 - buffer as f64, height as f64),
+    );
+
+    let p3: (f64, f64) = (length as f64 + p0.0, point_mod_3b * (height / 3) as f64);
+
+    points.insert(0, (p0.0 as i32, p0.1 as i32));
+    points.insert(1, (p1.0 as i32, p1.1 as i32));
+    points.insert(2, (p2.0 as i32, p2.1 as i32));
+    points.insert(3, (p3.0 as i32, p3.1 as i32));
+
+    return points;
+}
+
+/******      Perlin primary functions      ***** */
+
+/*  Generates a single value from the 1d perlin noise
+ *
+ *  - Takes in point `i` which is the x value we want to get the y of
+ *  - Takes in `freq` which is a control value on the cord
+ *  - Takes in `amp` which is a control value on the noise_1d outputs
+ *  - Takes in `mul` which is a control value on the entire augmented
+ *    noise_1d outputs
+ *
+ *  - Returns the y position associated witht the output of the augmented
+ *    outputs
+ */
+pub fn gen_perlin_hill_point(i: usize, freq: f32, amp: f32, modifier: f32, mul: f32) -> i16 {
+    for j in 0..720 {
+        let cord = (i, j);
+
+        let n = modifier
+            * (noise_1d(cord.0 as f32 * (1.0 / freq)) * amp
+                + noise_1d(cord.0 as f32 * (1.0 / freq / 2.0)) * amp / 2.0
+                + noise_1d(cord.0 as f32 * (1.0 / freq / 4.0)) * amp / 4.0
+                + noise_1d(cord.0 as f32 * (1.0 / freq / 8.0)) * amp / 8.0);
+
+        let y = 2.0 * (cord.1 as f32 / mul) - 1.0;
+
+        if n > y {
+        } else {
+            return j as i16;
+        }
+    }
+    return 720 as i16;
+}
+
+/*  Not currently utilized...Can probably be removed
+ *  Generates entire perlin map of 128x128
+ *
+ *  - Takes in `random` which is the array of random tuples of (i32, i32)
+ *    Needs to be the same values on each run for porper noise output
+ *    Represents the gradient value for points. Passed into noise_2d each
+ *    time it is called
+ *  - Takes in `freq` which is a control value on the cord
+ *  - Takes in `amp` which is a control value on the noise_2d outputs
+ *
+ *  - Returns the entire 128x128 perlin noise map values
+ */
 fn gen_perlin_noise(random: &[[(i32, i32); 256]; 256], freq: f64, amp: f64) -> [[f64; 128]; 128] {
     let mut out = [[0.0; 128]; 128];
 
@@ -346,6 +712,20 @@ fn gen_perlin_noise(random: &[[(i32, i32); 256]; 256], freq: f64, amp: f64) -> [
     return out;
 }
 
+/*  Generates the advanced perlin noise value for a single point.
+ *  Calls noise_2d 4 times to make output more "interesting"
+ *
+ *  - Takes in `random` which is the array of random tuples of (i32, i32)
+ *    Needs to be the same values on each run for porper noise output
+ *    Represents the gradient value for points. Passed into noise_2d each
+ *    time it is called
+ *  - Takes in point values `cord` to get the noise values of
+ *  - Takes in `freq` which is a control value on the cord
+ *  - Takes in `amp` which is a control value on the noise_2d outputs
+ *
+ *  - Returns the advanced perlin noise value for given point augmented by
+ *    control values
+ */
 fn gen_point_mod(random: &[[(i32, i32); 256]; 256], cord: (i32, i32), freq: f64, amp: f64) -> f64 {
     let n = noise_2d(&random, (cord.0 as f64 / (freq), cord.1 as f64 / (freq))) * (amp)
         + noise_2d(
@@ -364,12 +744,30 @@ fn gen_point_mod(random: &[[(i32, i32); 256]; 256], cord: (i32, i32), freq: f64,
     return modifier;
 }
 
-//Perlin Noise helper function
-fn fade_2d(t: f64) -> f64 {
+/******      Perlin helper functions      ***** */
+// Implementation adapted from https://gpfault.net/posts/perlin-noise.txt.html
+
+/*  Smoothing the input value so the result isn't as "sharp"
+ *  Used for interpolation step of Perlin Noise Algorithm.
+ *  Interchangeable between 1d and 2d implementation
+ *
+ *  - Takes in value `t` to apply fade upon
+ *
+ *  - Returns smoothed value
+ */
+fn fade(t: f64) -> f64 {
     return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
 }
 
-//Perlin Noise helper function
+/*  Determine gradient value for given point p
+ *
+ *  - Takes in `random` which is the array of random tuples of (i32, i32)
+ *    Needs to be the same values on each run for porper noise output
+ *    Represents the gradient value for points
+ *  - Takes in point `p` to determine gradient of
+ *
+ *  - Returns unit vector of gradient vector
+ */
 fn grad_2d(random: &[[(i32, i32); 256]; 256], p: (f64, f64)) -> (f64, f64) {
     let pre_v = random[p.0 as usize % 256][p.1 as usize % 256];
 
@@ -384,7 +782,15 @@ fn grad_2d(random: &[[(i32, i32); 256]; 256], p: (f64, f64)) -> (f64, f64) {
     return unit;
 }
 
-//Perlin Noise helper function
+/*  Putting everything together for making the 2d noise
+ *
+ *  - Takes in `random` which is the array of random tuples of (i32, i32)
+ *    Needs to be the same values on each run for porper noise output
+ *    Represents the gradient value for points. Passed into grad_2d
+ *  - Takes in point values `p` to give noise output on
+ *
+ *  - Returns noise output for given values
+ */
 pub fn noise_2d(random: &[[(i32, i32); 256]; 256], p: (f64, f64)) -> f64 {
     let p0 = (p.0.floor(), p.1.floor());
     let p1 = (p0.0 + 1.0, p0.1);
@@ -397,10 +803,10 @@ pub fn noise_2d(random: &[[(i32, i32); 256]; 256], p: (f64, f64)) -> f64 {
     let g3 = grad_2d(&random, p3);
 
     let t0 = p.0 - p0.0;
-    let fade_t0 = fade_2d(t0);
+    let fade_t0 = fade(t0);
 
     let t1 = p.1 - p0.1;
-    let fade_t1 = fade_2d(t1);
+    let fade_t1 = fade(t1);
 
     let p_minus_p0 = (p.0 - p0.0, p.1 - p0.1);
     let p_minus_p1 = (p.0 - p1.0, p.1 - p1.1);
@@ -420,201 +826,33 @@ pub fn noise_2d(random: &[[(i32, i32); 256]; 256], p: (f64, f64)) -> f64 {
     return result;
 }
 
-//Not sure the use of this
-fn gen_bezier_curve(
-    p0: (f64, f64),
-    length: i32, // Needs to be static which is stupid so 1280
-    height: i32,
-    point_mod_1: (f64, f64),
-    point_mod_2: (f64, f64),
-    point_mod_3: (f64, f64),
-    buffer: i32,
-) -> [(f64, f64); BUFF_LENGTH + 1] {
-    //TODO
-    //Bezier curve
-
-    let mut rng = rand::thread_rng();
-
-    if rng.gen::<f64>() < 0.5 {
-        //Quadratic
-        let p1: (f64, f64) = (
-            (point_mod_1.0 * (length - buffer) as f64 + p0.0 + buffer as f64)
-                .clamp(p0.0 + buffer as f64, (length - buffer) as f64),
-            (point_mod_1.1 * p0.1 - p0.1).clamp(p0.1 - buffer as f64, height as f64),
-        );
-
-        let p2: (f64, f64) = (length as f64 + p0.0, point_mod_2.1 * (height / 3) as f64);
-
-        println!("Quadratic");
-
-        let group_of_points: [(f64, f64); BUFF_LENGTH + 1] =
-            gen_quadratic_bezier_curve_points(p0, p1, p2);
-
-        return group_of_points;
-    } else {
-        //Cubic
-        let p1: (f64, f64) = (
-            (point_mod_1.0 * (length / 2 + buffer) as f64
-                + p0.0
-                + buffer as f64
-                + (length / 2) as f64)
-                .clamp(
-                    p0.0 + buffer as f64 + (length / 2) as f64,
-                    (length - buffer) as f64,
-                ),
-            (point_mod_1.1 * p0.1 * 2.0 - p0.1).clamp(p0.1 - buffer as f64, height as f64),
-        );
-
-        let p2: (f64, f64) = (
-            (point_mod_2.0 * (length / 2 - buffer) as f64 + p0.0 + buffer as f64)
-                .clamp(p0.0 + buffer as f64, (length / 2 - buffer) as f64),
-            (point_mod_2.1 * p0.1 * 2.0 - p0.1).clamp(p0.1 - buffer as f64, height as f64),
-        );
-
-        let p3: (f64, f64) = (length as f64 + p0.0, point_mod_3.1 * (height / 3) as f64);
-
-        println!("Cubic");
-
-        let group_of_points: [(f64, f64); BUFF_LENGTH + 1] =
-            gen_cubic_bezier_curve_points(p0, p1, p2, p3);
-
-        return group_of_points;
-    }
-}
-
-//p0 is start point, p1 is the mid point, p2 is the end Point
-//Returns an array of tuples that represent the x and y values (x,y) of the
-// points
-pub fn gen_quadratic_bezier_curve_points(
-    p0: (f64, f64),
-    p1: (f64, f64),
-    p2: (f64, f64),
-) -> [(f64, f64); BUFF_LENGTH + 1] {
-    let mut points: [(f64, f64); BUFF_LENGTH + 1] = [(-1.0, -1.0); BUFF_LENGTH + 1];
-
-    for t in 0..BUFF_LENGTH {
-        let point = t as f64;
-        //points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / 32.0);
-        points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / BUFF_LENGTH as f64);
-    }
-    return points;
-}
-
-//Get p's from perlin
-//T = Point range 0-1 of the curve
-//first value is x, second value is y
-fn quadratic_bezier_curve_point(
-    p0: (f64, f64),
-    p1: (f64, f64),
-    p2: (f64, f64),
-    t: f64,
-) -> (f64, f64) {
-    let x_value = (1.0 - t) * ((1.0 - t) * p0.0 + t * p1.0) + t * ((1.0 - t) * p1.0 + t * p2.0);
-
-    let y_value = (1.0 - t) * ((1.0 - t) * p0.1 + t * p1.1) + t * ((1.0 - t) * p1.1 + t * p2.1);
-
-    return (x_value, y_value);
-}
-
-pub fn gen_cubic_bezier_curve_points(
-    p0: (f64, f64),
-    p1: (f64, f64),
-    p2: (f64, f64),
-    p3: (f64, f64),
-) -> [(f64, f64); BUFF_LENGTH + 1] {
-    let mut points: [(f64, f64); BUFF_LENGTH + 1] = [(-1.0, -1.0); BUFF_LENGTH + 1];
-
-    for t in 0..BUFF_LENGTH {
-        let point = t as f64;
-        //points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / 32.0);
-        points[t] = cubic_bezier_curve_point(p0, p1, p2, p3, point / BUFF_LENGTH as f64);
-    }
-    return points;
-}
-
-fn cubic_bezier_curve_point(
-    p0: (f64, f64),
-    p1: (f64, f64),
-    p2: (f64, f64),
-    p3: (f64, f64),
-    t: f64,
-) -> (f64, f64) {
-    let x_value = (1.0 - t) * (1.0 - t) * (1.0 - t) * p0.0
-        + 3.0 * (1.0 - t) * (1.0 - t) * t * p1.0
-        + 3.0 * (1.0 - t) * t * t * p2.0
-        + t * t * t * p3.0;
-    let y_value = (1.0 - t) * (1.0 - t) * (1.0 - t) * p0.1
-        + 3.0 * (1.0 - t) * (1.0 - t) * t * p1.1
-        + 3.0 * (1.0 - t) * t * t * p2.1
-        + t * t * t * p3.1;
-
-    return (x_value, y_value);
-}
-
-//
-//Function for extending a cubic bezier curve while keeping the chained curve
-// smooth. Works similarly to gen_cubic_bezier_curve_points()
-// http://www.inf.ed.ac.uk/teaching/courses/cg/d3/bezierJoin.html
-//
-pub fn extend_cubic_bezier_curve(
-    prev_pn: (f64, f64),
-    prev_pn_minus_1: (f64, f64),
-    //no p0 or p1, above data structures work instead
-    p2: (f64, f64),
-    p3: (f64, f64),
-) -> [(f64, f64); BUFF_LENGTH + 1] {
-    let mut points: [(f64, f64); BUFF_LENGTH + 1] = [(-1.0, -1.0); BUFF_LENGTH + 1];
-
-    //Calculate p1
-    let mut p1: (f64, f64) = (0.0, 0.0);
-
-    p1.0 = prev_pn.0 + (prev_pn.0 - prev_pn_minus_1.0);
-    p1.1 = prev_pn.1 + (prev_pn.1 - prev_pn_minus_1.1);
-
-    for t in 0..BUFF_LENGTH {
-        let point = t as f64;
-        //points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / 32.0);
-        points[t] = cubic_bezier_curve_point(prev_pn, p1, p2, p3, point / BUFF_LENGTH as f64);
-    }
-    return points;
-}
-
-pub fn gen_perlin_hill_point(i: usize, freq: f32, amp: f32, modifier: f32, mul: f32) -> i16 {
-    for j in 0..720 {
-        let cord = (i, j);
-
-        let n = modifier
-            * (noise_1d(cord.0 as f32 * (1.0 / freq)) * amp
-                + noise_1d(cord.0 as f32 * (1.0 / freq / 2.0)) * amp / 2.0
-                + noise_1d(cord.0 as f32 * (1.0 / freq / 4.0)) * amp / 4.0
-                + noise_1d(cord.0 as f32 * (1.0 / freq / 8.0)) * amp / 8.0);
-
-        let y = 2.0 * (cord.1 as f32 / mul) - 1.0;
-
-        if n > y {
-        } else {
-            return j as i16;
-        }
-    }
-    return 720 as i16;
-}
-
-fn fade_1d(t: f32) -> f32 {
-    return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
-}
-
+/*  Determine gradient value for given value p
+ *  *NOTE*: Some wierdness taking in the random values array but
+ *    setting value to consistently output either -1 always or 1 always
+ *    gives expected output
+ *
+ *  - Takes in point `p` to determine gradient of
+ *
+ *  - Returns binary output (-1 or 1)
+ */
 fn grad_1d(p: f32) -> f32 {
     let v: f32 = 0.0;
 
     return if v > 0.5 { 1.0 } else { -1.0 };
 }
 
+/*  Putting everything together for making the 1d noise
+ *
+ *  - Takes in point value `p` to give noise output on
+ *
+ *  - Returns noise output for given value
+ */
 fn noise_1d(p: f32) -> f32 {
     let p0 = p.floor();
     let p1 = p0 + 1.0;
 
     let t = p - p0;
-    let ft = fade_1d(t);
+    let ft = fade(t as f64) as f32;
 
     let g0 = grad_1d(p0);
     let g1 = grad_1d(p1);
@@ -622,16 +860,56 @@ fn noise_1d(p: f32) -> f32 {
     return ((1.0 - ft) * g0 * (p - p0) + ft * g1 * (p - p1));
 }
 
-impl Distribution<StaticObject> for Standard {
-    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> StaticObject {
-        // match rng.gen_range(0, 3) { // rand 0.5, 0.6, 0.7
-        match rng.gen_range(0..=4) {
-            // rand 0.8
-            0 => StaticObject::Coin,
-            1 => StaticObject::Statue,
-            2 => StaticObject::Spring,
-            3 => StaticObject::Chest,
-            _ => StaticObject::Power,
-        }
+/* ~~~~~~ Random Distributions ~~~~~~ */
+
+/* Randomly choose a TerrainType. Heavily weighted to pick Grass.
+ *  - Takes in `upper` which is the top of of the gen_range. Should be >= 3.
+ *    Higher it is, more weighted to choose Grass
+ *
+ *  - Returns a random TerrainType
+ */
+// Renamed from get_random_terrain
+fn choose_terrain_type(upper: i32) -> TerrainType {
+    let mut rng = rand::thread_rng();
+
+    let upper = upper.clamp(3, i32::MAX);
+
+    match rng.gen_range(0..=upper) {
+        0 => TerrainType::Asphalt,
+        1 => TerrainType::Sand,
+        2 => TerrainType::Water,
+        _ => TerrainType::Grass,
+    }
+}
+
+/*  Randomly choose a StaticObject
+ *
+ *  - Returns a random StaticObject
+ */
+pub fn choose_static_object() -> StaticObject {
+    let mut rng = rand::thread_rng();
+    match rng.gen_range(0..=4) {
+        0 => StaticObject::Statue,
+        1 => StaticObject::Balloon,
+        2 => StaticObject::Chest,
+        3 => StaticObject::Coin,
+        _ => StaticObject::Power,
+    }
+}
+
+/*  Randomly choose a PowerUp
+ *
+ *  - Returns a random PowerUp
+ */
+// Probably shouldn't be pub when call is moved to procgen.rs
+pub fn choose_power_up() -> PowerType {
+    let mut rng = rand::thread_rng();
+    match rng.gen_range(0..=4) {
+        // rand 0.8
+        0 => PowerType::SpeedBoost,
+        1 => PowerType::ScoreMultiplier,
+        2 => PowerType::BouncyShoes,
+        3 => PowerType::LowerGravity,
+        _ => PowerType::Shield,
     }
 }

@@ -18,7 +18,42 @@ pub enum GameStatus {
     Game,
     Credits,
     BezierSim,
-    PerlinSim,
+}
+
+// Contains all types of terrain
+#[derive(Debug)]
+pub enum TerrainType {
+    Grass,
+    Asphalt,
+    Sand,
+    Water,
+}
+
+// Contains all types of objects generated on terrain
+pub enum StaticObject {
+    Coin,    // Collectable
+    Power,   // Collectable
+    Statue,  // Obstacle
+    Balloon, // Obstacle
+    Chest,   // Obstacle
+}
+
+// Contains all types of power ups
+#[derive(Copy, Clone)]
+pub enum PowerType {
+    SpeedBoost,
+    ScoreMultiplier,
+    BouncyShoes,
+    LowerGravity,
+    Shield,
+}
+
+// Contains all types of obstacles
+#[derive(Copy, Clone)]
+pub enum ObstacleType {
+    Statue,
+    Balloon,
+    Chest,
 }
 
 #[allow(dead_code)]

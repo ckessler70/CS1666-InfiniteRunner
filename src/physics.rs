@@ -1,4 +1,6 @@
-// use crate::rect;
+use inf_runner::ObstacleType;
+use inf_runner::PowerType;
+use inf_runner::TerrainType;
 use sdl2::rect::Point;
 use sdl2::rect::Rect;
 use sdl2::render::Texture;
@@ -9,7 +11,7 @@ use crate::runner::TILE_SIZE as InitTILE_SIZE;
 use std::f64::consts::PI;
 
 const LOWER_SPEED: f64 = -5.0;
-const UPPER_SPEED: f64 = 5.0;
+const UPPER_SPEED: f64 = 10.0;
 const OMEGA: f64 = PI / 18.0;
 const TILE_SIZE: f64 = InitTILE_SIZE as f64;
 
@@ -42,14 +44,36 @@ impl Physics {
         body: &mut impl Body<'a>,
         angle: f64,
         ground: Point,
-        coeff: f64,
+        terrain_type: &TerrainType,
         power_up: Option<PowerType>,
     ) {
-        // Acceleration of gravity
-        let mut g: f64 = 1.0;
+        // Set Gravity & Friction Strength From TerrainType
+        let mut fric_coeff: f64;
+        let mut g: f64 = 1.5;
+        //As of now, all conds lead to +accel on flat ground (we could change this)
+        match terrain_type {
+            TerrainType::Asphalt => {
+                //quick accel to max on flat
+                fric_coeff = 0.075;
+            }
+            TerrainType::Grass => {
+                //moderate accel to max on flat
+                fric_coeff = 0.1;
+            }
+            TerrainType::Sand => {
+                //v slow accel to max on flat & short jumps
+                fric_coeff = 0.085; //less friction is more bc higher gravity
+                g = 2.0;
+            }
+            TerrainType::Water => {
+                //NOT YET CONFIGURED
+                fric_coeff = 0.2;
+            }
+        }
+
+        // Lower gravity if power is low gravity
         if let Some(PowerType::LowerGravity) = power_up {
-            // Lower gravity if power is low gravity
-            g = 2.0 / 3.0;
+            g = g * 2.0 / 3.0;
         }
 
         // Gravity: mg
@@ -78,6 +102,7 @@ impl Physics {
             body.apply_force((body.mass() * g * angle.sin(), body.mass() * g * angle.cos()));
 
             // If body is on ground AND moving, apply KINETIC FRICTION
+            let pre_friction_direction = (body.vel_x() + body.accel_x()).signum();
             if body.vel_x().abs() + body.vel_y().abs() > 0.0 {
                 // Friction: µmg, on an incline, perpendicular to normal
                 // (-x, -y) on an uphill
@@ -85,9 +110,15 @@ impl Physics {
                 // make negative if object is moving backwards
                 let direction_adjust = body.vel_x().signum();
                 body.apply_force((
-                    -coeff * body.mass() * g * angle.cos() * direction_adjust,
-                    coeff * body.mass() * g * angle.sin() * direction_adjust,
+                    -fric_coeff * body.mass() * g * angle.cos() * direction_adjust,
+                    fric_coeff * body.mass() * g * angle.sin() * direction_adjust,
                 ));
+            }
+            let post_friction_direction = (body.vel_x() + body.accel_x()).signum();
+
+            if pre_friction_direction != post_friction_direction {
+                body.hard_set_vel((0.0, 0.0));
+                body.reset_accel();
             }
             // Else if body is on ground and STILL, apply STATIC FRICTION
             // NOTE: This might be unnecessary
@@ -108,7 +139,7 @@ impl Physics {
     // Returns: None
     pub fn apply_skate_force(player: &mut Player, angle: f64, ground: Point) {
         // Skate force
-        let mut skate_force = 1.0 / 8.0 * player.mass();
+        let mut skate_force = 1.0 / 6.0 * player.mass();
         if let Some(PowerType::SpeedBoost) = player.power_up() {
             // Speed up with powerup
             skate_force *= 2.0;
@@ -184,6 +215,9 @@ pub trait Entity<'a> {
     fn hitbox(&self) -> Rect;
     fn align_hitbox_to_pos(&mut self); // After the pos is set with f64s, this method moves hitbox
                                        // to proper SDL coordinates using i32s
+
+    // Adjusts terrain postion in runner.rs based on camera_adj_x & camera_adj_y
+    fn camera_adj(&mut self, x_adj: i32, y_adj: i32);
 }
 
 pub trait Body<'a>: Entity<'a> {
@@ -225,13 +259,13 @@ pub struct Player<'a> {
     pub pos: (f64, f64),
     velocity: (f64, f64),
     accel: (f64, f64),
-    pub hitbox: Rect,
+    hitbox: Rect,
 
     theta: f64, // angle of rotation, in radians
     omega: f64, // angular speed
 
     mass: f64,
-    texture: Texture<'a>,
+    texture: &'a Texture<'a>,
     power_up: Option<PowerType>,
 
     jump_time: SystemTime,
@@ -243,7 +277,7 @@ pub struct Player<'a> {
 }
 
 impl<'a> Player<'a> {
-    pub fn new(hitbox: Rect, mass: f64, texture: Texture<'a>) -> Player {
+    pub fn new(hitbox: Rect, mass: f64, texture: &'a Texture<'a>) -> Player<'a> {
         Player {
             pos: (hitbox.x() as f64, hitbox.y() as f64),
             velocity: (0.0, 0.0),
@@ -399,7 +433,6 @@ impl<'a> Player<'a> {
                         // For ease of calculation, just set omega = alpha
 
                         /***************************************************/
-
                         // Move obstacle
                         obstacle.collided = true;
                         obstacle.hard_set_vel((o_vx_f, o_vy_f));
@@ -414,8 +447,8 @@ impl<'a> Player<'a> {
                         true
                     }
                 }
-                // For spring, do nothing upon SIDE collision
-                ObstacleType::Spring => false,
+                // For Balloon, do nothing upon SIDE collision
+                ObstacleType::Balloon => false,
             }
         }
         // if the collision box is wider than it is tall, the player hit the top of the object
@@ -432,6 +465,7 @@ impl<'a> Player<'a> {
                     self.lock_jump_time = false;
                     self.apply_force((0.0, self.mass()));
                     self.omega = 0.0;
+                    obstacle.collided = true;
 
                     if self.theta() < OMEGA * 6.0 || self.theta() > 360.0 - OMEGA * 6.0 {
                         self.theta = 0.0;
@@ -447,7 +481,7 @@ impl<'a> Player<'a> {
                     true
                 }
                 // For spring, bounce off with Hooke's law force
-                ObstacleType::Spring => {
+                ObstacleType::Balloon => {
                     Physics::apply_bounce(self, obstacle);
                     false
                 }
@@ -485,7 +519,7 @@ impl<'a> Player<'a> {
 
 impl<'a> Entity<'a> for Player<'a> {
     fn texture(&self) -> &Texture<'a> {
-        &self.texture
+        self.texture
     }
 
     fn hitbox(&self) -> Rect {
@@ -496,6 +530,14 @@ impl<'a> Entity<'a> for Player<'a> {
         self.hitbox.set_x(self.pos.0 as i32);
         self.hitbox.set_y(self.pos.1 as i32);
     }
+
+    // Adjusts terrain postion in runner.rs based on camera_adj_x & camera_adj_y
+    fn camera_adj(&mut self, x_adj: i32, y_adj: i32) {
+        self.pos.0 += (x_adj as f64);
+        self.pos.1 += (y_adj as f64);
+
+        self.align_hitbox_to_pos();
+    }
 }
 
 impl<'a> Body<'a> for Player<'a> {
@@ -504,11 +546,17 @@ impl<'a> Body<'a> for Player<'a> {
     }
 
     fn update_pos(&mut self, ground: Point, angle: f64, game_over: bool) {
+        if self.hitbox.contains_point(ground) {
+            self.theta = angle;
+        }
+
+        /*
         // TEMPORARY: Player's x position is fixed until camera freezes on game ending
         // Will change when camera follows player
         if game_over {
             self.pos.0 += self.vel_x();
         }
+        */
         self.pos.1 -= self.vel_y();
 
         // Match the angle of the ground if on ground
@@ -538,14 +586,18 @@ impl<'a> Body<'a> for Player<'a> {
     }
 
     fn update_vel(&mut self, game_over: bool) {
+        let mut upper_x_speed = UPPER_SPEED;
+        if let Some(PowerType::SpeedBoost) = self.power_up() {
+            upper_x_speed *= 2.0;
+        }
         if game_over {
-            self.velocity.0 = (self.velocity.0 + self.accel.0).clamp(LOWER_SPEED, UPPER_SPEED);
+            self.velocity.0 = (self.velocity.0 + self.accel.0).clamp(-upper_x_speed, upper_x_speed);
         } else {
-            self.velocity.0 = (self.velocity.0 + self.accel.0).clamp(1.0, UPPER_SPEED);
+            self.velocity.0 = (self.velocity.0 + self.accel.0).clamp(2.0, upper_x_speed);
         }
 
         self.velocity.1 =
-            (self.velocity.1 + self.accel.1).clamp(2.0 * LOWER_SPEED, 5.0 * UPPER_SPEED);
+            (self.velocity.1 + self.accel.1).clamp(3.0 * LOWER_SPEED, 4.0 * UPPER_SPEED);
     }
 
     fn hard_set_vel(&mut self, vel: (f64, f64)) {
@@ -591,10 +643,10 @@ pub struct Obstacle<'a> {
     pub pos: (f64, f64),
     velocity: (f64, f64),
     accel: (f64, f64),
-    pub hitbox: Rect,
+    hitbox: Rect,
 
     mass: f64,
-    texture: Texture<'a>,
+    texture: &'a Texture<'a>,
     obstacle_type: ObstacleType,
 
     theta: f64,
@@ -605,20 +657,13 @@ pub struct Obstacle<'a> {
     pub delete_me: bool,
 }
 
-#[derive(Copy, Clone)]
-pub enum ObstacleType {
-    Statue,
-    Spring,
-    Chest,
-}
-
 impl<'a> Obstacle<'a> {
     pub fn new(
         hitbox: Rect,
         mass: f64,
-        texture: Texture<'a>,
+        texture: &'a Texture<'a>,
         obstacle_type: ObstacleType,
-    ) -> Obstacle {
+    ) -> Obstacle<'a> {
         Obstacle {
             pos: (hitbox.x() as f64, hitbox.y() as f64),
             velocity: (0.0, 0.0),
@@ -645,11 +690,16 @@ impl<'a> Obstacle<'a> {
     pub fn collided(&self) -> bool {
         self.collided
     }
+
+    // Shifts objects left with the terrain in runner.rs
+    pub fn travel_update(&mut self, travel_adj: i32) {
+        self.pos.0 -= (travel_adj as f64);
+    }
 }
 
 impl<'a> Entity<'a> for Obstacle<'a> {
     fn texture(&self) -> &Texture<'a> {
-        &self.texture
+        self.texture
     }
 
     fn hitbox(&self) -> Rect {
@@ -659,6 +709,14 @@ impl<'a> Entity<'a> for Obstacle<'a> {
     fn align_hitbox_to_pos(&mut self) {
         self.hitbox.set_x(self.pos.0 as i32);
         self.hitbox.set_y(self.pos.1 as i32);
+    }
+
+    // Adjusts terrain postion in runner.rs based on camera_adj_x & camera_adj_y
+    fn camera_adj(&mut self, x_adj: i32, y_adj: i32) {
+        self.pos.0 += (x_adj as f64);
+        self.pos.1 += (y_adj as f64);
+
+        self.align_hitbox_to_pos();
     }
 }
 
@@ -736,14 +794,14 @@ impl<'a> Body<'a> for Obstacle<'a> {
 
 pub struct Coin<'a> {
     pub pos: (i32, i32),
-    pub hitbox: Rect,
-    texture: Texture<'a>,
+    hitbox: Rect,
+    texture: &'a Texture<'a>,
     value: i32,
     collected: bool,
 }
 
 impl<'a> Coin<'a> {
-    pub fn new(hitbox: Rect, texture: Texture<'a>, value: i32) -> Coin {
+    pub fn new(hitbox: Rect, texture: &'a Texture<'a>, value: i32) -> Coin<'a> {
         Coin {
             pos: (hitbox.x(), hitbox.y()),
             texture,
@@ -756,11 +814,16 @@ impl<'a> Coin<'a> {
     pub fn value(&self) -> i32 {
         self.value
     }
+
+    // Shifts objects left with the terrain in runner.rs
+    pub fn travel_update(&mut self, travel_adj: i32) {
+        self.pos.0 -= travel_adj;
+    }
 }
 
 impl<'a> Entity<'a> for Coin<'a> {
     fn texture(&self) -> &Texture<'a> {
-        &self.texture
+        self.texture
     }
 
     fn hitbox(&self) -> Rect {
@@ -770,6 +833,14 @@ impl<'a> Entity<'a> for Coin<'a> {
     fn align_hitbox_to_pos(&mut self) {
         self.hitbox.set_x(self.pos.0);
         self.hitbox.set_y(self.pos.1);
+    }
+
+    // Adjusts terrain postion in runner.rs based on camera_adj_x & camera_adj_y
+    fn camera_adj(&mut self, x_adj: i32, y_adj: i32) {
+        self.pos.0 += x_adj;
+        self.pos.1 += y_adj;
+
+        self.align_hitbox_to_pos();
     }
 }
 
@@ -794,40 +865,36 @@ impl<'a> Collectible<'a> for Coin<'a> {
 
 pub struct Power<'a> {
     pub pos: (i32, i32),
-    pub hitbox: Rect,
-    texture: Texture<'a>,
+    hitbox: Rect,
+    texture: &'a Texture<'a>,
     power_type: PowerType,
     collected: bool,
 }
 
-#[derive(Copy, Clone)]
-pub enum PowerType {
-    SpeedBoost,
-    ScoreMultiplier,
-    BouncyShoes,
-    LowerGravity,
-    Shield,
-}
-
 impl<'a> Power<'a> {
-    pub fn new(hitbox: Rect, texture: Texture<'a>, power_type: PowerType) -> Power {
+    pub fn new(hitbox: Rect, texture: &'a Texture<'a>, power_type: PowerType) -> Power<'a> {
         Power {
             pos: (hitbox.x(), hitbox.y()),
             hitbox,
             texture,
-            power_type,
             collected: false,
+            power_type,
         }
     }
 
     pub fn power_type(&self) -> PowerType {
         self.power_type
     }
+
+    // Shifts objects left with the terrain in runner.rs
+    pub fn travel_update(&mut self, travel_adj: i32) {
+        self.pos.0 -= travel_adj;
+    }
 }
 
 impl<'a> Entity<'a> for Power<'a> {
     fn texture(&self) -> &Texture<'a> {
-        &self.texture
+        self.texture
     }
 
     fn hitbox(&self) -> Rect {
@@ -837,6 +904,14 @@ impl<'a> Entity<'a> for Power<'a> {
     fn align_hitbox_to_pos(&mut self) {
         self.hitbox.set_x(self.pos.0 as i32);
         self.hitbox.set_y(self.pos.1 as i32);
+    }
+
+    // Adjusts terrain postion in runner.rs based on camera_adj_x & camera_adj_y
+    fn camera_adj(&mut self, x_adj: i32, y_adj: i32) {
+        self.pos.0 += x_adj;
+        self.pos.1 += y_adj;
+
+        self.align_hitbox_to_pos();
     }
 }
 
