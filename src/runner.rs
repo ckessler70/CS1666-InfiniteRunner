@@ -656,6 +656,22 @@ impl Game for Runner {
                             );
                             all_obstacles.push(obstacle);
                         }
+                        Some(StaticObject::Bench) => {
+                            let spawn_coord: Point =
+                                get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
+                            let obstacle = Obstacle::new(
+                                rect!(
+                                    spawn_coord.x - (TILE_SIZE as i32) / 2,
+                                    spawn_coord.y - TILE_SIZE as i32 * 2 / 3,
+                                    TILE_SIZE,
+                                    TILE_SIZE * 2 / 3
+                                ),
+                                50.0,
+                                &tex_bench,
+                                ObstacleType::Bench,
+                            );
+                            all_obstacles.push(obstacle);
+                        }
                         Some(StaticObject::Coin) => {
                             let spawn_coord: Point =
                                 get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
@@ -686,23 +702,6 @@ impl Game for Runner {
                             );
                             all_powers.push(pow);
                         }
-                        Some(StaticObject::Bench) => {
-                            let spawn_coord: Point =
-                                get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
-                            let obstacle = Obstacle::new(
-                                rect!(
-                                    spawn_coord.x - (TILE_SIZE as i32) / 2,
-                                    spawn_coord.y - TILE_SIZE as i32 * 2 / 3,
-                                    TILE_SIZE,
-                                    TILE_SIZE * 2 / 3
-                                ),
-                                50.0,
-                                &tex_bench,
-                                ObstacleType::Bench,
-                            );
-                            all_obstacles.push(obstacle);
-                        }
-                        // Some(StaticObject::Chest) => {}
                         // ... Add any new types of objects here ...
                         _ => {}
                     }
