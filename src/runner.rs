@@ -147,7 +147,7 @@ impl Game for Runner {
         let mut player = Player::new(
             rect!(
                 PLAYER_X,
-                TERRAIN_UPPER_BOUND + TILE_SIZE as i32,
+                TERRAIN_UPPER_BOUND, // + TILE_SIZE as i32,
                 TILE_SIZE,
                 TILE_SIZE
             ),
@@ -233,9 +233,9 @@ impl Game for Runner {
 
         // Initialize the starting terrain segments
         // Rectangles
-        let mut init_curve_1: Vec<(i32, i32)> = vec![(0, CAM_H as i32 * 2 / 3)];
+        let mut init_curve_1: Vec<(i32, i32)> = vec![(0, TERRAIN_UPPER_BOUND + TILE_SIZE as i32)];
         for i in 1..CAM_W {
-            init_curve_1.push((i as i32, CAM_H as i32 * 2 / 3));
+            init_curve_1.push((i as i32, TERRAIN_UPPER_BOUND + TILE_SIZE as i32));
         }
         let cp_1 = [
             init_curve_1[0],
@@ -244,33 +244,14 @@ impl Game for Runner {
             init_curve_1[init_curve_1.len() - 1],
         ];
         let init_terrain_1 = TerrainSegment::new(
-            rect!(0, CAM_H as i32 * 2 / 3, CAM_W, CAM_H as i32 * 1 / 3),
+            rect!(0, TERRAIN_UPPER_BOUND + TILE_SIZE as i32, CAM_W, CAM_H),
             init_curve_1,
             0.0,
             TerrainType::Grass,
-            Color::GREEN,
+            Color::RGB(86, 125, 70),
             cp_1,
         );
-        let mut init_curve_2: Vec<(i32, i32)> = vec![(CAM_W as i32, CAM_H as i32 * 2 / 3)];
-        for i in (CAM_W + 1)..(CAM_W * 2) {
-            init_curve_2.push((i as i32, CAM_H as i32 * 2 / 3));
-        }
-        let cp_2 = [
-            init_curve_2[0],
-            init_curve_2[init_curve_2.len() / 3],
-            init_curve_2[init_curve_2.len() * 2 / 3],
-            init_curve_2[init_curve_2.len() - 1],
-        ];
-        let init_terrain_2 = TerrainSegment::new(
-            rect!(CAM_W, CAM_H as i32 * 2 / 3, CAM_W, CAM_H as i32 * 1 / 3),
-            init_curve_2,
-            0.0,
-            TerrainType::Grass,
-            Color::BLUE,
-            cp_2,
-        );
         all_terrain.push(init_terrain_1);
-        all_terrain.push(init_terrain_2);
 
         /* ~~~~~~ Main Game Loop ~~~~~~ */
         'gameloop: loop {
@@ -502,12 +483,14 @@ impl Game for Runner {
                 player.flip();
 
                 //DEBUG PLAYER (Plz dont delete, just comment out)
-                //println!("A-> vx:{} ax:{}, vy:{} ay:{}",player.vel_x(),player.accel_x(),player.vel_y(),player.accel_y());
+                //println!("A-> vx:{} ax:{}, vy:{}
+                // ay:{}",player.vel_x(),player.accel_x(),player.vel_y(),player.accel_y());
 
                 player.reset_accel();
 
                 //DEBUG PLAYER (Plz dont delete, just comment out)
-                //println!("B-> vx:{} ax:{}, vy:{} ay:{}",player.vel_x(),player.vel_y(),player.accel_x(),player.accel_y());
+                //println!("B-> vx:{} ax:{}, vy:{}
+                // ay:{}",player.vel_x(),player.vel_y(),player.accel_x(),player.accel_y());
 
                 // apply forces to obstacles
                 for o in all_obstacles.iter_mut() {
@@ -735,10 +718,6 @@ impl Game for Runner {
                 // Generate new ground when the last segment becomes visible
                 let last_seg = all_terrain.get(all_terrain.len() - 1).unwrap();
                 if last_seg.x() < CAM_W as i32 {
-                    /* Once bezier generation is done...
-                    new_terrain = proceduralgen::create_new_terrain(last_seg);
-                    */
-
                     let new_terrain = proceduralgen::ProceduralGen::gen_terrain(
                         &random,
                         &last_seg,
@@ -748,7 +727,6 @@ impl Game for Runner {
                         false,
                         false,
                     );
-
                     all_terrain.push(new_terrain);
                 }
 
