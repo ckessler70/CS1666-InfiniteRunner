@@ -272,7 +272,7 @@ impl Game for Runner {
                             next_status = GameStatus::Credits;
                             break 'gameloop;
                         }
-                        Event::KeyDown {
+                        Event::KeyDown | Keycode::Space
                             keycode: Some(k), ..
                         } => match k {
                             Keycode::Escape => {
@@ -285,14 +285,6 @@ impl Game for Runner {
                             Keycode::M => {
                                 next_status = GameStatus::Main;
                                 break 'gameloop;
-                            }
-                            _ => {}
-                        },
-                        Event::KeyUp {
-                            keycode: Some(k), ..
-                        } => match k {
-                            Keycode::Space => {
-                                game_paused = false;
                             }
                             _ => {}
                         },
@@ -348,33 +340,28 @@ impl Game for Runner {
                         Event::KeyDown {
                             keycode: Some(k), ..
                         } => match k {
-                            Keycode::W | Keycode::Up | Keycode::Space => {
-                                if player.is_jumping() {
-                                    player.resume_flipping();
-                                } else {
-                                    if !player.jumpmoment_lock() {
-                                        let keypress_moment = SystemTime::now();
-                                        player.set_jumpmoment(keypress_moment);
+                                Keycode::W | Keycode::Up | Keycode::Space => {
+                                    if player.is_jumping() {
+                                        player.resume_flipping();
+                                    } else {
+                                        player.jump(
+                                            current_ground,
+                                        );
                                     }
                                 }
-                            }
-                            Keycode::Escape => {
-                                game_paused = true;
-                                initial_pause = true;
-                            }
-                            _ => {}
-                        },
-                        Event::KeyUp {
-                            keycode: Some(k), ..
-                        } => match k {
-                            Keycode::W | Keycode::Up | Keycode::Space => {
-                                let jump_moment: SystemTime = player.jump_moment();
-                                player.jump(
-                                    curr_ground_point,
-                                    SystemTime::now().duration_since(jump_moment).unwrap(),
-                                );
-                                player.stop_flipping();
-                            }
+                                Keycode::Escape => {
+                                    game_paused = true;
+                                    initial_pause = true;
+                                }
+                                _ => {}
+                            },
+                            Event::KeyUp {
+                                keycode: Some(k), ..
+                            } => match k {
+                                Keycode::W | Keycode::Up | Keycode::Space => {
+                                    //let mut jump_moment: SystemTime = player.jump_moment();
+                                    player.stop_flipping();
+                                }
                             _ => {}
                         },
                         _ => {}
