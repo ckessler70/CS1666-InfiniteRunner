@@ -313,7 +313,7 @@ impl Game for Runner {
                 // This conditional statement is here so that the game will go on for a few more frames without player input once the player has died. The reason for this is to demonstrate collisions even though the camera does not follow the player.
                 // NOTE: Once the camera properly follows the player, this conditional should be removed.
                 if !game_over {
-                    let mut keypress_moment: SystemTime = SystemTime::now();
+                    //let mut keypress_moment: SystemTime = SystemTime::now();
                     for event in core.event_pump.poll_iter() {
                         match event {
                             Event::Quit { .. } => break 'gameloop,
@@ -324,13 +324,9 @@ impl Game for Runner {
                                     if player.is_jumping() {
                                         player.resume_flipping();
                                     } else {
-                                        //player.jump(current_ground);
-                                        if (!player.jumpmoment_lock()) {
-                                            keypress_moment = SystemTime::now();
-                                            player.set_jumpmoment(keypress_moment);
-                                        }
-                                        //keypress_moment = SystemTime::now();
-                                        //player.set_jumpmoment(keypress_moment);
+                                        player.jump(
+                                            current_ground,
+                                        );
                                     }
                                 }
                                 Keycode::Escape => {
@@ -343,11 +339,7 @@ impl Game for Runner {
                                 keycode: Some(k), ..
                             } => match k {
                                 Keycode::W | Keycode::Up | Keycode::Space => {
-                                    let mut jump_moment: SystemTime = player.jump_moment();
-                                    player.jump(
-                                        current_ground,
-                                        SystemTime::now().duration_since(jump_moment).unwrap(),
-                                    );
+                                    //let mut jump_moment: SystemTime = player.jump_moment();
                                     player.stop_flipping();
                                 }
                                 _ => {}
@@ -371,7 +363,7 @@ impl Game for Runner {
                 // Effectively just repeated jumps, independent of player input
                 if let Some(PowerType::BouncyShoes) = player.power_up() {
                     if !player.is_jumping() {
-                        player.jump(current_ground, Duration::new(1111, 0));
+                        player.jump(current_ground);
                     }
                 }
 

@@ -315,21 +315,13 @@ impl<'a> Player<'a> {
     }
 
     // Returns true if a jump was initiated
-    pub fn jump(&mut self, ground: Point, duration: Duration) -> bool {
+    pub fn jump(&mut self, ground: Point) -> bool {
         if self.hitbox().contains_point(ground) {
             // Starting from the position of the ground
             self.hard_set_pos((self.pos.0, ground.y() as f64 - TILE_SIZE));
             self.align_hitbox_to_pos();
             // Apply upward force
-            let duration_millis: u128 = duration.as_millis();
-            if duration_millis <= Duration::new(0, 100000000).as_millis() {
-                self.apply_force((0.0, 60.0));
-            } else if duration_millis <= Duration::new(0, 200000000).as_millis() {
-                self.apply_force((0.0, 80.0));
-            } else {
-                self.apply_force((0.0, 100.0));
-            }
-            //self.apply_force((0.0, 100.0));
+            self.apply_force((0.0, 100.0));
             self.jumping = true;
             true
         } else {
@@ -343,6 +335,8 @@ impl<'a> Player<'a> {
         }
         else if self.was_flipping() {
             //allows for momentum when player stops flipping
+            //to adjust rate of angular velocity decrease,
+            //change the value being subtracted from omega
             if (self.omega - 0.003) != 0.0{
                 self.omega = self.omega - 0.003;
             }
