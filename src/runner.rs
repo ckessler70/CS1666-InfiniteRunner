@@ -384,7 +384,7 @@ impl Game for Runner {
                 //Power handling
                 if power_timer == 0 {
                     power_timer -= 1;
-                    player.set_power_up(None);
+                    player.set_power_up(None, &tex_shield); // Texture doesn't matter as power-up is None
                 } else if power_timer > 0 {
                     power_timer -= 1;
                 }
@@ -445,7 +445,16 @@ impl Game for Runner {
                 let mut counter = 0;
                 for p in all_powers.iter_mut() {
                     if Physics::check_collision(&mut player, p) {
-                        if player.collide_power(p) {
+                        // Get associated powerup for given p.power_type()
+                        let p_tex = match (Some(p.power_type())) {
+                            Some(PowerType::SpeedBoost) => &tex_speed,
+                            Some(PowerType::ScoreMultiplier) => &tex_multiplier,
+                            Some(PowerType::BouncyShoes) => &tex_bouncy,
+                            Some(PowerType::LowerGravity) => &tex_floaty,
+                            Some(PowerType::Shield) => &tex_shield,
+                            _ => &tex_shield, // Default needed but None should never happen here
+                        };
+                        if player.collide_power(p, p_tex) {
                             to_remove_ind = counter;
                             power_timer = 360;
                         }
@@ -904,44 +913,11 @@ impl Game for Runner {
 
                 // Active Power HUD Display
                 if player.power_up().is_some() {
-                    match player.power_up() {
-                        Some(PowerType::SpeedBoost) => {
-                            core.wincan.copy(
-                                &tex_speed,
-                                None,
-                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                            )?;
-                        }
-                        Some(PowerType::ScoreMultiplier) => {
-                            core.wincan.copy(
-                                &tex_multiplier,
-                                None,
-                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                            )?;
-                        }
-                        Some(PowerType::BouncyShoes) => {
-                            core.wincan.copy(
-                                &tex_bouncy,
-                                None,
-                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                            )?;
-                        }
-                        Some(PowerType::LowerGravity) => {
-                            core.wincan.copy(
-                                &tex_floaty,
-                                None,
-                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                            )?;
-                        }
-                        Some(PowerType::Shield) => {
-                            core.wincan.copy(
-                                &tex_shield,
-                                None,
-                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                            )?;
-                        }
-                        _ => {}
-                    }
+                    core.wincan.copy(
+                        player.power_up_tex(),
+                        None,
+                        rect!(10, 100, TILE_SIZE, TILE_SIZE),
+                    )?;
 
                     // Power duration bar
                     let m = power_timer as f64 / 360.0;
