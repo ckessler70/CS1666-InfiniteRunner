@@ -692,10 +692,10 @@ impl Game for Runner {
                                 get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
                             let obstacle = Obstacle::new(
                                 rect!(
-                                    spawn_coord.x - (TILE_SIZE as i32) / 2,
-                                    spawn_coord.y - TILE_SIZE as i32,
+                                    spawn_coord.x - (TILE_SIZE as i32),
+                                    spawn_coord.y - TILE_SIZE as i32 / 2,
                                     TILE_SIZE,
-                                    TILE_SIZE/2
+                                    TILE_SIZE / 2
                                 ),
                                 50.0,
                                 &tex_bench,
@@ -1022,7 +1022,7 @@ impl Game for Runner {
                             core.wincan.copy_ex(
                                 obs.texture(),
                                 None,
-                                rect!(obs.x(), obs.y(), TILE_SIZE, TILE_SIZE),
+                                rect!(obs.x(), obs.y(), TILE_SIZE, TILE_SIZE / 2),
                                 obs.theta(),
                                 None,
                                 false,
