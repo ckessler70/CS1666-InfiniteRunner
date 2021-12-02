@@ -233,9 +233,9 @@ impl Game for Runner {
 
         // Initialize the starting terrain segments
         // Rectangles
-        let mut init_curve_1: Vec<(i32, i32)> = vec![(0, TERRAIN_UPPER_BOUND + TILE_SIZE as i32)];
+        let mut init_curve_1: Vec<(i32, i32)> = vec![(0, TERRAIN_LOWER_BOUND + TILE_SIZE as i32)];
         for i in 1..CAM_W {
-            init_curve_1.push((i as i32, TERRAIN_UPPER_BOUND + TILE_SIZE as i32));
+            init_curve_1.push((i as i32, TERRAIN_LOWER_BOUND + TILE_SIZE as i32));
         }
         let cp_1 = [
             init_curve_1[0],
@@ -244,7 +244,7 @@ impl Game for Runner {
             init_curve_1[init_curve_1.len() - 1],
         ];
         let init_terrain_1 = TerrainSegment::new(
-            rect!(0, TERRAIN_UPPER_BOUND + TILE_SIZE as i32, CAM_W, CAM_H),
+            rect!(0, TERRAIN_LOWER_BOUND + TILE_SIZE as i32, CAM_W, CAM_H),
             init_curve_1,
             0.0,
             TerrainType::Grass,
@@ -981,34 +981,6 @@ impl Game for Runner {
                     }
                 }
 
-                // Set player texture
-                let tex_player = match player.power_up() {
-                    Some(PowerType::Shield) => &tex_shielded,
-                    Some(PowerType::LowerGravity) => &tex_winged,
-                    Some(PowerType::BouncyShoes) => &tex_springed,
-                    Some(PowerType::SpeedBoost) => &tex_fast,
-                    // ... Add more types of powered player textures here ...
-                    _ => player.texture(),
-                };
-
-                // Assert player.x() == PLAYER_X here
-
-                // Player
-                core.wincan.copy_ex(
-                    tex_player,
-                    rect!(0, 0, TILE_SIZE, TILE_SIZE),
-                    rect!(player.x(), player.y(), TILE_SIZE, TILE_SIZE),
-                    player.theta() * 180.0 / std::f64::consts::PI,
-                    None,
-                    false,
-                    false,
-                )?;
-
-                core.wincan.set_draw_color(Color::BLACK);
-
-                // Player's hitbox
-                core.wincan.draw_rect(player.hitbox())?;
-
                 // Obstacles
                 for obs in all_obstacles.iter() {
                     // Collapse this match to just one ... all this code is repeated
@@ -1085,6 +1057,34 @@ impl Game for Runner {
                     core.wincan.set_draw_color(Color::YELLOW);
                     core.wincan.draw_rect(power.hitbox())?;
                 }
+
+                // Set player texture
+                let tex_player = match player.power_up() {
+                    Some(PowerType::Shield) => &tex_shielded,
+                    Some(PowerType::LowerGravity) => &tex_winged,
+                    Some(PowerType::BouncyShoes) => &tex_springed,
+                    Some(PowerType::SpeedBoost) => &tex_fast,
+                    // ... Add more types of powered player textures here ...
+                    _ => player.texture(),
+                };
+
+                // Assert player.x() == PLAYER_X here
+
+                // Player
+                core.wincan.copy_ex(
+                    tex_player,
+                    rect!(0, 0, TILE_SIZE, TILE_SIZE),
+                    rect!(player.x(), player.y(), TILE_SIZE, TILE_SIZE),
+                    player.theta() * 180.0 / std::f64::consts::PI,
+                    None,
+                    false,
+                    false,
+                )?;
+
+                core.wincan.set_draw_color(Color::BLACK);
+
+                // Player's hitbox
+                core.wincan.draw_rect(player.hitbox())?;
 
                 // Setup for the text of the total_score to be displayed
                 let tex_score = font
