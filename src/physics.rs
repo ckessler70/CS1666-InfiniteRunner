@@ -361,6 +361,7 @@ impl<'a> Player<'a> {
     // Brings player's rotational velocity to a stop
     pub fn stop_flipping(&mut self) {
         self.flipping = false;
+        self.was_flipping = false;
         //self.omega = 0.0;
     }
 
@@ -398,15 +399,13 @@ impl<'a> Player<'a> {
     pub fn flip(&mut self) {
         if self.is_flipping() {
             self.rotate();
-        }
-        else if self.was_flipping() {
+        } else if self.was_flipping() {
             //allows for momentum when player stops flipping
             //to adjust rate of angular velocity decrease,
             //change the value being subtracted from omega
-            if (self.omega - 0.003) != 0.0{
+            if (self.omega - 0.003) != 0.0 {
                 self.omega = self.omega - 0.003;
-            }
-            else {
+            } else {
                 self.omega = 0.0;
             }
             self.rotate();
