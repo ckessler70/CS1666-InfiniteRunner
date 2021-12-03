@@ -255,6 +255,31 @@ pub trait Collectible<'a>: Entity<'a> {
 
 /****************************** PLAYER ********************************/
 
+// Holds the player's current power and texture associated
+pub struct PlayerPower<'a> {
+    power_up: Option<PowerType>,
+    texture: &'a Texture<'a>,
+}
+
+impl<'a> PlayerPower<'a> {
+    pub fn new(power_up: Option<PowerType>, tex: &'a Texture<'a>) -> PlayerPower<'a> {
+        PlayerPower {
+            power_up: power_up,
+            texture: tex,
+        }
+    }
+
+    // Return set power-up or None if set to None
+    fn power_up(&self) -> Option<PowerType> {
+        self.power_up
+    }
+
+    // Return texture associated.
+    fn texture(&self) -> &Texture<'a> {
+        self.texture
+    }
+}
+
 pub struct Player<'a> {
     pub pos: (f64, f64),
     velocity: (f64, f64),
@@ -266,7 +291,7 @@ pub struct Player<'a> {
 
     mass: f64,
     texture: &'a Texture<'a>,
-    power_up: Option<PowerType>,
+    power_up_stuct: PlayerPower<'a>,
 
     jump_time: SystemTime,
     lock_jump_time: bool,
@@ -278,6 +303,7 @@ pub struct Player<'a> {
 
 impl<'a> Player<'a> {
     pub fn new(hitbox: Rect, mass: f64, texture: &'a Texture<'a>) -> Player<'a> {
+        let empty_player = PlayerPower::new(None, texture); // Inital texture doesn't matter
         Player {
             pos: (hitbox.x() as f64, hitbox.y() as f64),
             velocity: (0.0, 0.0),
@@ -289,7 +315,7 @@ impl<'a> Player<'a> {
 
             texture,
             mass,
-            power_up: None,
+            power_up_stuct: empty_player,
 
             jump_time: SystemTime::now(),
             lock_jump_time: false,
@@ -318,17 +344,24 @@ impl<'a> Player<'a> {
 
     // Returns specific power-up player has, or None if player hasn't collected a power-up
     pub fn power_up(&self) -> Option<PowerType> {
-        self.power_up
+        self.power_up_stuct.power_up
+    }
+
+    // Returns specific power-up texture. Should only be called after a check if player has a power-up
+    pub fn power_up_tex(&self) -> &Texture<'a> {
+        self.power_up_stuct.texture
     }
 
     // Setter for power-up
-    pub fn set_power_up(&mut self, power_up: Option<PowerType>) {
-        self.power_up = power_up;
+    pub fn set_power_up(&mut self, power_up: Option<PowerType>, texture: &'a Texture<'a>) {
+        let power_struct = PlayerPower::new(power_up, texture);
+        self.power_up_stuct = power_struct;
     }
 
     // Brings player's rotational velocity to a stop
     pub fn stop_flipping(&mut self) {
         self.flipping = false;
+        self.was_flipping = false;
         //self.omega = 0.0;
     }
 
@@ -366,15 +399,13 @@ impl<'a> Player<'a> {
     pub fn flip(&mut self) {
         if self.is_flipping() {
             self.rotate();
-        }
-        else if self.was_flipping() {
+        } else if self.was_flipping() {
             //allows for momentum when player stops flipping
             //to adjust rate of angular velocity decrease,
             //change the value being subtracted from omega
-            if (self.omega - 0.003) != 0.0{
+            if (self.omega - 0.003) != 0.0 {
                 self.omega = self.omega - 0.003;
-            }
-            else {
+            } else {
                 self.omega = 0.0;
             }
             self.rotate();
@@ -406,7 +437,7 @@ impl<'a> Player<'a> {
             // Response to collision dependent on type of obstacle
             match obstacle.obstacle_type {
                 // For statue and chest, elastic collision
-                ObstacleType::Statue | ObstacleType::Chest => {
+                ObstacleType::Statue | ObstacleType::Chest | ObstacleType::Bench => {
                     if shielded || obstacle.collided() {
                         // If shielded or collision already happened, pretend nothing happened
                         false
@@ -456,7 +487,7 @@ impl<'a> Player<'a> {
         else if self.vel_y() < 0.0 {
             match obstacle.obstacle_type {
                 // On top collision with chest, treat the chest as if it's normal ground
-                ObstacleType::Chest => {
+                ObstacleType::Chest | ObstacleType::Bench => {
                     // obstacle.collided = true;
                     self.pos.1 = (obstacle.y() as f64 - 0.95 * (TILE_SIZE as f64));
                     self.align_hitbox_to_pos();
@@ -506,9 +537,9 @@ impl<'a> Player<'a> {
     // Receives new power-up
     // Params: power to use
     // Returns:
-    pub fn collide_power(&mut self, power: &mut Power) -> bool {
+    pub fn collide_power(&mut self, power: &mut Power, texture: &'a Texture<'a>) -> bool {
         if !power.collected() {
-            self.set_power_up(Some(power.power_type()));
+            self.set_power_up(Some(power.power_type()), texture);
             power.collect();
             true
         } else {

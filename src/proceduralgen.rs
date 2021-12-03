@@ -888,12 +888,13 @@ fn choose_terrain_type(upper: i32) -> TerrainType {
  */
 pub fn choose_static_object() -> StaticObject {
     let mut rng = rand::thread_rng();
-    match rng.gen_range(0..=4) {
+    match rng.gen_range(0..=5) {
         0 => StaticObject::Statue,
         1 => StaticObject::Balloon,
         2 => StaticObject::Chest,
         3 => StaticObject::Coin,
-        _ => StaticObject::Power,
+        4 => StaticObject::Power,
+        _ => StaticObject::Bench,
     }
 }
 
