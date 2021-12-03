@@ -46,8 +46,7 @@ pub const TILE_SIZE: u32 = 100;
 // Background sine wave stuff
 const IND_BACKGROUND_MID: usize = 0;
 const IND_BACKGROUND_BACK: usize = 1;
-const BG_CURVES_SIZE: usize = CAM_W as usize / 10;
-// const BUFF_LENGTH: usize = CAM_W as usize / 4;
+const BG_CURVES_SIZE: usize = CAM_W as usize / 4;
 
 // Bounds to keep the player within
 // Used for camera postioning
@@ -85,6 +84,7 @@ impl Game for Runner {
         let tex_chest = texture_creator.load_texture("assets/obstacles/box.png")?;
         let tex_coin = texture_creator.load_texture("assets/obstacles/coin.png")?;
         let tex_powerup = texture_creator.load_texture("assets/obstacles/powerup.png")?;
+        let tex_bench = texture_creator.load_texture("assets/obstacles/bench.png")?;
 
         let tex_speed = texture_creator.load_texture("assets/powers/speed.png")?;
         let tex_multiplier = texture_creator.load_texture("assets/powers/multiplier.png")?;
@@ -97,6 +97,7 @@ impl Game for Runner {
         let tex_winged = texture_creator.load_texture("assets/player/winged_player.png")?;
         let tex_springed = texture_creator.load_texture("assets/player/bouncy_player.png")?;
         let tex_fast = texture_creator.load_texture("assets/player/speed_player.png")?;
+        let tex_rich = texture_creator.load_texture("assets/player/multiplier_player.png")?;
 
         let tex_resume = texture_creator
             .create_texture_from_surface(
@@ -172,8 +173,6 @@ impl Game for Runner {
         // Score of an entire run
         let mut total_score: i32 = 0;
 
-        // let mut test_stepper = 0;
-
         let mut game_paused: bool = false;
         let mut initial_pause: bool = false;
         let mut game_over: bool = false;
@@ -192,7 +191,7 @@ impl Game for Runner {
         let mut next_status = GameStatus::Main;
 
         // Object spawning vars
-        let mut spawn_timer: i32 = 500; // Can spawn a new object when it reaches 0
+        let mut spawn_timer: f64 = 500.0; // Can spawn a new object when it reaches 0
 
         /* ~~~~~~~~ Stuff for background sine waves ~~~~~~~~~~~~~~ */
         // Background & sine wave vars
@@ -258,7 +257,7 @@ impl Game for Runner {
             last_raw_time = Instant::now(); // FPS tracking
 
             // Score collected in a single iteration of the game loop
-            let mut curr_step_score: i32 = 0;
+            let mut curr_step_score: f64 = 0.0;
 
             /* ~~~~~~ Pausing Handler ~~~~~~ */
             if game_paused {
@@ -345,7 +344,7 @@ impl Game for Runner {
                                     player.resume_flipping();
                                 } else {
                                     player.jump(curr_ground_point);
-                                }
+                                 }
                             }
                             Keycode::Escape => {
                                 game_paused = true;
@@ -368,7 +367,7 @@ impl Game for Runner {
                 //Power handling
                 if power_timer == 0 {
                     power_timer -= 1;
-                    player.set_power_up(None);
+                    player.set_power_up(None, &tex_shield); // Texture doesn't matter as power-up is None
                 } else if power_timer > 0 {
                     power_timer -= 1;
                 }
@@ -407,9 +406,9 @@ impl Game for Runner {
                     if Physics::check_collision(&mut player, c) {
                         if player.collide_coin(c) {
                             to_remove_ind = counter;
-                            curr_step_score += c.value(); //increments the
-                                                          // score based on the
-                                                          // coins value
+                            curr_step_score += c.value() as f64; //increments the
+                                                                 // score based on the
+                                                                 // coins value
 
                             last_coin_val = c.value();
                             coin_timer = 60; // Time to show last_coin_val on
@@ -429,7 +428,16 @@ impl Game for Runner {
                 let mut counter = 0;
                 for p in all_powers.iter_mut() {
                     if Physics::check_collision(&mut player, p) {
-                        if player.collide_power(p) {
+                        // Get associated powerup for given p.power_type()
+                        let p_tex = match (Some(p.power_type())) {
+                            Some(PowerType::SpeedBoost) => &tex_speed,
+                            Some(PowerType::ScoreMultiplier) => &tex_multiplier,
+                            Some(PowerType::BouncyShoes) => &tex_bouncy,
+                            Some(PowerType::LowerGravity) => &tex_floaty,
+                            Some(PowerType::Shield) => &tex_shield,
+                            _ => &tex_shield, // Default needed but None should never happen here
+                        };
+                        if player.collide_power(p, p_tex) {
                             to_remove_ind = counter;
                             power_timer = 360;
                         }
@@ -543,27 +551,27 @@ impl Game for Runner {
                     // Decreases to increase spawn rates based on total_score.
                     // These numbers could be terrible, we should mess around with it
                     let min_spawn_gap = if total_score > 100000 {
-                        50 // Cap
+                        300 // Cap
                     } else if total_score > 50000 {
-                        75
+                        350
                     } else if total_score > 40000 {
-                        100
+                        400
                     } else if total_score > 30000 {
-                        125
+                        450
                     } else if total_score > 20000 {
-                        150
+                        500
                     } else if total_score > 15000 {
-                        175
+                        625
                     } else if total_score > 10000 {
-                        200
+                        550
                     } else if total_score > 7500 {
-                        225
+                        600
                     } else if total_score > 5000 {
-                        250
+                        650
                     } else if total_score > 2500 {
-                        275
+                        700
                     } else {
-                        300 // Default
+                        750 // Default
                     };
 
                     // Choose new object to generate
@@ -571,15 +579,15 @@ impl Game for Runner {
                     let curr_num_objects = all_obstacles.len() + all_coins.len() + all_powers.len();
                     let spawn_trigger = rng.gen_range(0..MAX_NUM_OBJECTS);
 
-                    if spawn_timer > 0 {
-                        spawn_timer -= 1;
+                    if spawn_timer > 0.0 {
+                        spawn_timer -= player.vel_x() / 2.5;
                     } else if spawn_trigger >= curr_num_objects as i32 {
                         new_object = Some(proceduralgen::choose_static_object());
-                        spawn_timer = min_spawn_gap;
+                        spawn_timer = min_spawn_gap as f64;
                     } else if spawn_trigger < curr_num_objects as i32 {
                         // Min spawn gap can be replaced with basically any value for this random
                         // range. Smaller values will spawn objects more often
-                        spawn_timer = rng.gen_range(0..min_spawn_gap);
+                        spawn_timer = rng.gen_range(0.0..min_spawn_gap as f64);
                     }
 
                     // Spawn new object
@@ -632,6 +640,22 @@ impl Game for Runner {
                             );
                             all_obstacles.push(obstacle);
                         }
+                        Some(StaticObject::Bench) => {
+                            let spawn_coord: Point =
+                                get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
+                            let obstacle = Obstacle::new(
+                                rect!(
+                                    spawn_coord.x - (TILE_SIZE as i32) / 2,
+                                    spawn_coord.y - TILE_SIZE as i32 * 2 / 3,
+                                    TILE_SIZE,
+                                    TILE_SIZE * 2 / 3
+                                ),
+                                50.0,
+                                &tex_bench,
+                                ObstacleType::Bench,
+                            );
+                            all_obstacles.push(obstacle);
+                        }
                         Some(StaticObject::Coin) => {
                             let spawn_coord: Point =
                                 get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
@@ -662,7 +686,6 @@ impl Game for Runner {
                             );
                             all_powers.push(pow);
                         }
-                        // Some(StaticObject::Chest) => {}
                         // ... Add any new types of objects here ...
                         _ => {}
                     }
@@ -674,11 +697,12 @@ impl Game for Runner {
                 // Poorly placed rn, should be after postion / hitbox / collision update
                 // but before drawing
                 if !game_over {
-                    curr_step_score += 1; // Hardcoded score increase per frame
+                    curr_step_score += (player.vel_x() / 1.5); // Increase score by factor of ammount moved that frame
                     if let Some(PowerType::ScoreMultiplier) = player.power_up() {
-                        curr_step_score *= 2; // Hardcoded power bonus
+                        curr_step_score *= 2.0; // Hardcoded power bonus
+                        last_coin_val = 2000;
                     }
-                    total_score += curr_step_score;
+                    total_score += curr_step_score as i32;
                 }
 
                 /* Update ground / object positions to move player forward
@@ -868,7 +892,7 @@ impl Game for Runner {
                 // Background perlin noise curves
                 for i in 0..background_curves[IND_BACKGROUND_MID].len() - 1 {
                     // Furthest back perlin noise curves
-                    core.wincan.set_draw_color(Color::RGBA(128, 51, 6, 255));
+                    core.wincan.set_draw_color(Color::RGBA(81, 65, 67, 255));
                     core.wincan.fill_rect(rect!(
                         i * CAM_W as usize / BG_CURVES_SIZE + CAM_W as usize / BG_CURVES_SIZE / 2,
                         CAM_H as i16 - background_curves[IND_BACKGROUND_BACK][i],
@@ -877,7 +901,7 @@ impl Game for Runner {
                     ))?;
 
                     // Midground perlin noise curves
-                    core.wincan.set_draw_color(Color::RGBA(96, 161, 152, 255));
+                    core.wincan.set_draw_color(Color::RGBA(195, 133, 96, 255));
                     core.wincan.fill_rect(rect!(
                         i * CAM_W as usize / BG_CURVES_SIZE + CAM_W as usize / BG_CURVES_SIZE / 2,
                         CAM_H as i16 - background_curves[IND_BACKGROUND_MID][i],
@@ -888,44 +912,11 @@ impl Game for Runner {
 
                 // Active Power HUD Display
                 if player.power_up().is_some() {
-                    match player.power_up() {
-                        Some(PowerType::SpeedBoost) => {
-                            core.wincan.copy(
-                                &tex_speed,
-                                None,
-                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                            )?;
-                        }
-                        Some(PowerType::ScoreMultiplier) => {
-                            core.wincan.copy(
-                                &tex_multiplier,
-                                None,
-                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                            )?;
-                        }
-                        Some(PowerType::BouncyShoes) => {
-                            core.wincan.copy(
-                                &tex_bouncy,
-                                None,
-                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                            )?;
-                        }
-                        Some(PowerType::LowerGravity) => {
-                            core.wincan.copy(
-                                &tex_floaty,
-                                None,
-                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                            )?;
-                        }
-                        Some(PowerType::Shield) => {
-                            core.wincan.copy(
-                                &tex_shield,
-                                None,
-                                rect!(10, 100, TILE_SIZE, TILE_SIZE),
-                            )?;
-                        }
-                        _ => {}
-                    }
+                    core.wincan.copy(
+                        player.power_up_tex(),
+                        None,
+                        rect!(10, 100, TILE_SIZE, TILE_SIZE),
+                    )?;
 
                     // Power duration bar
                     let m = power_timer as f64 / 360.0;
@@ -1009,6 +1000,24 @@ impl Game for Runner {
                             core.wincan.set_draw_color(Color::BLUE);
                             core.wincan.draw_rect(obs.hitbox())?;
                         }
+                        ObstacleType::Bench => {
+                            core.wincan.copy_ex(
+                                obs.texture(),
+                                None,
+                                rect!(
+                                    obs.x(),
+                                    obs.y() - (TILE_SIZE as i32 - TILE_SIZE as i32 * 2 / 3),
+                                    TILE_SIZE,
+                                    TILE_SIZE
+                                ),
+                                obs.theta(),
+                                None,
+                                false,
+                                false,
+                            )?;
+                            core.wincan.set_draw_color(Color::BLUE);
+                            core.wincan.draw_rect(obs.hitbox())?;
+                        }
                     }
                 }
 
@@ -1048,6 +1057,7 @@ impl Game for Runner {
                     Some(PowerType::LowerGravity) => &tex_winged,
                     Some(PowerType::BouncyShoes) => &tex_springed,
                     Some(PowerType::SpeedBoost) => &tex_fast,
+                    Some(PowerType::ScoreMultiplier) => &tex_rich,
                     // ... Add more types of powered player textures here ...
                     _ => player.texture(),
                 };
@@ -1145,6 +1155,9 @@ impl Game for Runner {
                     // the given x, which it must be above
                     if ground.x() <= screen_x {
                         let point_ind: usize = (screen_x - ground.x()) as usize;
+                        if point_ind >= ground.curve().len() {
+                            println!("{:?} {:?}", ground.x(), screen_x);
+                        }
                         return Point::new(
                             ground.curve().get(point_ind).unwrap().0,
                             ground.curve().get(point_ind).unwrap().1,
