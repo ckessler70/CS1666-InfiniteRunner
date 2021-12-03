@@ -340,11 +340,13 @@ impl Game for Runner {
                             keycode: Some(k), ..
                         } => match k {
                             Keycode::W | Keycode::Up | Keycode::Space => {
-                                if player.is_jumping() {
-                                    player.resume_flipping();
-                                } else {
-                                    player.jump(curr_ground_point);
-                                 }
+                                if !game_over {
+                                    if player.is_jumping() {
+                                        player.resume_flipping();
+                                    } else {
+                                        player.jump(curr_ground_point);
+                                    }
+                                }
                             }
                             Keycode::Escape => {
                                 game_paused = true;
@@ -356,7 +358,9 @@ impl Game for Runner {
                             keycode: Some(k), ..
                         } => match k {
                             Keycode::W | Keycode::Up | Keycode::Space => {
-                                player.stop_flipping();
+                                if !game_over {
+                                    player.stop_flipping();
+                                }
                             }
                             _ => {}
                         },
@@ -597,7 +601,7 @@ impl Game for Runner {
                                 get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
                             let obstacle = Obstacle::new(
                                 rect!(
-                                    spawn_coord.x - (TILE_SIZE as i32) / 2,
+                                    spawn_coord.x - (TILE_SIZE as i32),
                                     spawn_coord.y - TILE_SIZE as i32,
                                     TILE_SIZE,
                                     TILE_SIZE
@@ -613,7 +617,7 @@ impl Game for Runner {
                                 get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
                             let obstacle = Obstacle::new(
                                 rect!(
-                                    spawn_coord.x - (TILE_SIZE as i32) / 2,
+                                    spawn_coord.x,
                                     spawn_coord.y - TILE_SIZE as i32,
                                     TILE_SIZE,
                                     TILE_SIZE
@@ -629,7 +633,7 @@ impl Game for Runner {
                                 get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
                             let obstacle = Obstacle::new(
                                 rect!(
-                                    spawn_coord.x - (TILE_SIZE as i32) / 2,
+                                    spawn_coord.x,
                                     spawn_coord.y - TILE_SIZE as i32,
                                     TILE_SIZE,
                                     TILE_SIZE
@@ -645,7 +649,7 @@ impl Game for Runner {
                                 get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
                             let obstacle = Obstacle::new(
                                 rect!(
-                                    spawn_coord.x - (TILE_SIZE as i32) / 2,
+                                    spawn_coord.x,
                                     spawn_coord.y - TILE_SIZE as i32 * 2 / 3,
                                     TILE_SIZE,
                                     TILE_SIZE * 2 / 3
@@ -661,7 +665,7 @@ impl Game for Runner {
                                 get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
                             let coin = Coin::new(
                                 rect!(
-                                    spawn_coord.x - (TILE_SIZE as i32) / 2,
+                                    spawn_coord.x,
                                     spawn_coord.y - TILE_SIZE as i32,
                                     TILE_SIZE,
                                     TILE_SIZE
@@ -676,7 +680,7 @@ impl Game for Runner {
                                 get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
                             let pow = Power::new(
                                 rect!(
-                                    spawn_coord.x - (TILE_SIZE as i32) / 2,
+                                    spawn_coord.x,
                                     spawn_coord.y - TILE_SIZE as i32,
                                     TILE_SIZE,
                                     TILE_SIZE
@@ -786,7 +790,7 @@ impl Game for Runner {
                 // Terrain
                 for ground in all_terrain.iter() {
                     ind += 1;
-                    if ground.x() + ground.w() <= -1 * TILE_SIZE as i32 {
+                    if ground.x() + ground.w() <= -1 * CAM_W as i32 {
                         remove_inds.push(ind);
                     }
                 }
@@ -799,7 +803,9 @@ impl Game for Runner {
                 ind = -1;
                 for obs in all_obstacles.iter() {
                     ind += 1;
-                    if obs.x() + TILE_SIZE as i32 <= -1 * TILE_SIZE as i32 {
+                    if obs.x() + TILE_SIZE as i32 <= -1 * TILE_SIZE as i32
+                        || obs.x() >= (CAM_W as f64 * 1.5) as i32
+                    {
                         remove_inds.push(ind);
                     }
                 }
