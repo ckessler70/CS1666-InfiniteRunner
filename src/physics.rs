@@ -297,6 +297,7 @@ pub struct Player<'a> {
     lock_jump_time: bool,
     jumping: bool,
     flipping: bool,
+    was_flipping: bool,
     second_jump: bool,
 }
 
@@ -320,6 +321,7 @@ impl<'a> Player<'a> {
             lock_jump_time: false,
             jumping: true,
             flipping: false,
+            was_flipping: false,
             second_jump: false,
         }
     }
@@ -334,6 +336,10 @@ impl<'a> Player<'a> {
 
     pub fn is_flipping(&self) -> bool {
         self.flipping
+    }
+
+    pub fn was_flipping(&self) -> bool {
+        self.was_flipping
     }
 
     // Returns specific power-up player has, or None if player hasn't collected a power-up
@@ -355,12 +361,13 @@ impl<'a> Player<'a> {
     // Brings player's rotational velocity to a stop
     pub fn stop_flipping(&mut self) {
         self.flipping = false;
-        self.omega = 0.0;
+        //self.omega = 0.0;
     }
 
     // Gives player rotational velocity
     pub fn resume_flipping(&mut self) {
         self.flipping = true;
+        self.was_flipping = true;
         self.omega = OMEGA;
     }
 
@@ -374,21 +381,13 @@ impl<'a> Player<'a> {
     }
 
     // Returns true if a jump was initiated
-    pub fn jump(&mut self, ground: Point, duration: Duration) -> bool {
+    pub fn jump(&mut self, ground: Point) -> bool {
         if self.hitbox().contains_point(ground) {
             // Starting from the position of the ground
             self.hard_set_pos((self.pos.0, ground.y() as f64 - TILE_SIZE));
             self.align_hitbox_to_pos();
             // Apply upward force
-            let duration_millis: u128 = duration.as_millis();
-            if duration_millis <= Duration::new(0, 100000000).as_millis() {
-                self.apply_force((0.0, 60.0));
-            } else if duration_millis <= Duration::new(0, 200000000).as_millis() {
-                self.apply_force((0.0, 80.0));
-            } else {
-                self.apply_force((0.0, 100.0));
-            }
-            //self.apply_force((0.0, 100.0));
+            self.apply_force((0.0, 100.0));
             self.jumping = true;
             true
         } else {
@@ -398,6 +397,18 @@ impl<'a> Player<'a> {
 
     pub fn flip(&mut self) {
         if self.is_flipping() {
+            self.rotate();
+        }
+        else if self.was_flipping() {
+            //allows for momentum when player stops flipping
+            //to adjust rate of angular velocity decrease,
+            //change the value being subtracted from omega
+            if (self.omega - 0.003) != 0.0{
+                self.omega = self.omega - 0.003;
+            }
+            else {
+                self.omega = 0.0;
+            }
             self.rotate();
         }
     }
@@ -586,6 +597,7 @@ impl<'a> Body<'a> for Player<'a> {
             if self.jumping {
                 self.jumping = false;
                 self.lock_jump_time = false;
+                self.was_flipping = false;
             }
         }
 
