@@ -369,6 +369,11 @@ pub fn extend_cubic_bezier_curve(
     return (points, (p1.0 as i32, p1.1 as i32));
 }
 
+/*  Function for extending a cubic bezier curve while keeping the chained
+ *  curve smooth. Works similarly to gen_cubic_bezier_curve_points()
+ *      http://www.inf.ed.ac.uk/teaching/courses/cg/d3/bezierJoin.html
+ */
+
 /* ~~~~~~     Bezier primary functions      ~~~~~~ */
 
 /*  Handler for getting either quadratic or cubic bezier curve representation

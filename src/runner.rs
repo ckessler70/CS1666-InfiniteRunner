@@ -733,24 +733,30 @@ impl Game for Runner {
                 let last_seg = all_terrain.get(all_terrain.len() - 1).unwrap();
                 if last_seg.x() < CAM_W as i32 {
                     let mut rng = rand::thread_rng();
-                    let num = rng.gen_range(0..100);
+                    let mut num = rng.gen_range(0..100);
 
                     let mut is_flat: bool = false;
+                    let mut is_pit: bool = false;
 
                     //5% chance of generating a flat terrain chunk
                     if (num < 5) {
                         is_flat = true;
-                    } else {
-                        is_flat = false;
                     }
-                    println!("is flat: {}", is_flat);
+
+                    let mut num = rng.gen_range(0..100);
+                    //20% chance of generating a terrain chunk with a pit in it
+                    if (num < 20) {
+                        //pit
+                        is_pit = true;
+                    }
+                    println!("is pit: {}", is_pit);
 
                     let new_terrain = proceduralgen::ProceduralGen::gen_terrain(
                         &random,
                         &last_seg,
                         CAM_W as i32,
                         CAM_H as i32,
-                        false,
+                        is_pit,
                         is_flat,
                         false,
                     );
