@@ -597,11 +597,13 @@ impl Game for Runner {
                     // Spawn new object
                     match new_object {
                         Some(StaticObject::Statue) => {
-                            let spawn_coord: Point =
-                                get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
+                            let spawn_coord: Point = get_ground_coord(
+                                &all_terrain,
+                                (CAM_W as i32 + TILE_SIZE as i32 * 2),
+                            );
                             let obstacle = Obstacle::new(
                                 rect!(
-                                    spawn_coord.x - (TILE_SIZE as i32),
+                                    spawn_coord.x - TILE_SIZE as i32 / 2,
                                     spawn_coord.y - TILE_SIZE as i32,
                                     TILE_SIZE,
                                     TILE_SIZE
@@ -617,7 +619,7 @@ impl Game for Runner {
                                 get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
                             let obstacle = Obstacle::new(
                                 rect!(
-                                    spawn_coord.x,
+                                    spawn_coord.x - TILE_SIZE as i32 / 2,
                                     spawn_coord.y - TILE_SIZE as i32,
                                     TILE_SIZE,
                                     TILE_SIZE
@@ -633,7 +635,7 @@ impl Game for Runner {
                                 get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
                             let obstacle = Obstacle::new(
                                 rect!(
-                                    spawn_coord.x,
+                                    spawn_coord.x - TILE_SIZE as i32 / 2,
                                     spawn_coord.y - TILE_SIZE as i32,
                                     TILE_SIZE,
                                     TILE_SIZE
@@ -649,7 +651,7 @@ impl Game for Runner {
                                 get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
                             let obstacle = Obstacle::new(
                                 rect!(
-                                    spawn_coord.x,
+                                    spawn_coord.x - TILE_SIZE as i32 / 2,
                                     spawn_coord.y - TILE_SIZE as i32 * 2 / 3,
                                     TILE_SIZE,
                                     TILE_SIZE * 2 / 3
@@ -665,7 +667,7 @@ impl Game for Runner {
                                 get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
                             let coin = Coin::new(
                                 rect!(
-                                    spawn_coord.x,
+                                    spawn_coord.x - TILE_SIZE as i32 / 2,
                                     spawn_coord.y - TILE_SIZE as i32,
                                     TILE_SIZE,
                                     TILE_SIZE
@@ -680,7 +682,7 @@ impl Game for Runner {
                                 get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
                             let pow = Power::new(
                                 rect!(
-                                    spawn_coord.x,
+                                    spawn_coord.x - TILE_SIZE as i32 / 2,
                                     spawn_coord.y - TILE_SIZE as i32,
                                     TILE_SIZE,
                                     TILE_SIZE
