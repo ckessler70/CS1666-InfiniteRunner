@@ -732,33 +732,14 @@ impl Game for Runner {
                 // Generate new ground when the last segment becomes visible
                 let last_seg = all_terrain.get(all_terrain.len() - 1).unwrap();
                 if last_seg.x() < CAM_W as i32 {
-                    let mut rng = rand::thread_rng();
-                    let mut num = rng.gen_range(0..100);
-
-                    let mut is_flat: bool = false;
-                    let mut is_pit: bool = false;
-
-                    //5% chance of generating a flat terrain chunk
-                    if (num < 5) {
-                        is_flat = true;
-                    }
-
-                    let mut num = rng.gen_range(0..100);
-                    //20% chance of generating a terrain chunk with a pit in it
-                    if (num < 20) {
-                        //pit
-                        is_pit = true;
-                    }
-                    println!("is pit: {}", is_pit);
-
                     let new_terrain = proceduralgen::ProceduralGen::gen_terrain(
                         &random,
                         &last_seg,
                         CAM_W as i32,
                         CAM_H as i32,
-                        is_pit,
-                        is_flat,
-                        false,
+                        false, //rng.gen_range(0..100) < 20, Pits have weird interaction with camera comp
+                        rng.gen_range(0..100) < 5,
+                        rng.gen_range(0..100) < 5,
                     );
                     all_terrain.push(new_terrain);
                 }
