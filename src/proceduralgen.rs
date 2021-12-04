@@ -279,8 +279,8 @@ impl ProceduralGen {
             prev_points[prev_points.len() - 2]
         };
 
-        // Extract x and y point from last terrain segment
-        let curve_points = gen_bezier_curve(
+        //instantiation
+        let mut curve_points = gen_bezier_curve(
             q_n,
             q_n1,
             cam_w,
@@ -290,6 +290,20 @@ impl ProceduralGen {
             (point_mod_3a, point_mod_3b),
             100,
         );
+
+        //overwrite
+        if (_is_flat) {
+            curve_points = gen_flat_bezier_curve(
+                q_n,
+                q_n1,
+                cam_w,
+                cam_h,
+                (point_mod_1a, point_mod_1b),
+                (point_mod_2a, point_mod_2b),
+                (point_mod_3a, point_mod_3b),
+                100,
+            );
+        }
 
         // Due to weird rust semantics, need to make a var to hold curve length
         let curve_len = curve_points.0.len();
@@ -436,6 +450,74 @@ fn gen_bezier_curve(
     );
 }
 
+fn gen_flat_bezier_curve(
+    q_n: (i32, i32),
+    q_n1: (i32, i32),
+    length: i32, // Needs to be static which is stupid so 1280
+    height: i32,
+    point_mod_1: (f64, f64),
+    point_mod_2: (f64, f64),
+    point_mod_3: (f64, f64),
+    buffer: i32,
+) -> (Vec<(i32, i32)>, [(i32, i32); 4]) {
+    //TODO - CONTROL POINT LOGIC NEEDS TO BE REFINED
+    //Bezier curve
+
+    //Cubic
+    let p1_x = q_n.0 + (q_n.0 - q_n1.0);
+
+    let mut p2: (f64, f64) = (
+        (point_mod_2.0 * (length - buffer) as f64 + (p1_x + buffer) as f64)
+            .clamp((p1_x + buffer) as f64, (length + q_n.0 - buffer) as f64),
+        ((1.0 - point_mod_2.1) * (q_n.1 as f64 * 2.1)),
+    );
+
+    let mut p3: (f64, f64) = (
+        length as f64 + q_n.0 as f64,
+        ((1.0 - point_mod_3.1) * (q_n.1 as f64 * 2.25)),
+    );
+
+    let mut group_of_points: Vec<(i32, i32)> = Vec::new();
+    let mut p1 = (-1, -1);
+
+    //if p1 value hasn't been given, generating the initial curve
+    if (q_n1 == (-1, -1)) {
+        let temp_point: (f64, f64) = (
+            (point_mod_1.0 * (length / 2 + buffer) as f64
+                + q_n.0 as f64
+                + buffer as f64
+                + (length / 2) as f64),
+            (point_mod_1.1 * q_n.1 as f64 * 2.0 - q_n.1 as f64)
+                .clamp(q_n.1 as f64 + buffer as f64, height as f64),
+        );
+        p1 = (temp_point.0 as i32, temp_point.1 as i32);
+
+        group_of_points =
+            gen_cubic_bezier_curve_points((q_n.0 as f64, q_n.1 as f64), temp_point, p2, p3);
+    } else {
+        p2.1 = q_n.1 as f64 + (q_n.1 as f64 - q_n1.1 as f64);
+        p3.1 = q_n.1 as f64 + (q_n.1 as f64 - q_n1.1 as f64);
+        let tup = extend_cubic_bezier_curve(
+            (q_n.0 as f64, q_n.1 as f64),
+            (q_n1.0 as f64, q_n1.1 as f64),
+            p2,
+            p3,
+        ); //might need to swap p0 and p1
+        group_of_points = tup.0;
+        p1 = tup.1;
+    }
+
+    return (
+        group_of_points,
+        ([
+            q_n,
+            p1,
+            (p2.0 as i32, p2.1 as i32),
+            (p3.0 as i32, p3.1 as i32),
+        ]),
+    );
+}
+
 /*
  *
  *
@@ -529,116 +611,6 @@ fn quadratic_bezier_curve_point(
     let x_value = (1.0 - t) * ((1.0 - t) * p0.0 + t * p1.0) + t * ((1.0 - t) * p1.0 + t * p2.0);
     let y_value = (1.0 - t) * ((1.0 - t) * p0.1 + t * p1.1) + t * ((1.0 - t) * p1.1 + t * p2.1);
     return (x_value as i32, y_value as i32);
-}
-
-/*******************************************
- *
- * NEW FUNCTIONS THAT CAN ACTUALLY BE USED
- *
- * Call from runner.rs not other procgen functions
- *
- */
-pub fn gen_control_points(
-    p0: (f64, f64),
-    random: &[[(i32, i32); 256]; 256],
-    cam_w: i32,
-    cam_h: i32,
-    buffer: i32,
-) -> Vec<(i32, i32)> {
-    let mut points: Vec<(i32, i32)> = vec![(-1, -1)];
-
-    let mut rng = rand::thread_rng();
-
-    //let flat_mod: f64 = 0.25;
-    //let cliff_min_mod: f64 = 2.0;
-    //let cliff_max_mod: f64 = 5.0;
-
-    let freq = rng.gen_range(32.0..256.0);
-    let amp: f64 = rng.gen::<f64>();
-
-    // Generates perlin noise for random point instead of whole map
-    let map_size = 128;
-    let point_mod_1a: f64 = gen_point_mod(
-        &random,
-        (
-            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-        ),
-        freq,
-        amp,
-    );
-    let point_mod_1b: f64 = gen_point_mod(
-        &random,
-        (
-            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-        ),
-        freq,
-        amp,
-    );
-    let point_mod_2a: f64 = gen_point_mod(
-        &random,
-        (
-            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-        ),
-        freq,
-        amp,
-    );
-    let point_mod_2b: f64 = gen_point_mod(
-        &random,
-        (
-            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-        ),
-        freq,
-        amp,
-    );
-    let point_mod_3a: f64 = gen_point_mod(
-        &random,
-        (
-            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-        ),
-        freq,
-        amp,
-    );
-    let point_mod_3b: f64 = gen_point_mod(
-        &random,
-        (
-            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-            (rng.gen_range(0.0..(map_size - 1) as f64).floor()) as i32,
-        ),
-        freq,
-        amp,
-    );
-
-    let length: i32 = cam_w;
-    let height: i32 = cam_h;
-
-    let p1: (f64, f64) = (
-        (point_mod_1a * (length / 2 + buffer) as f64 + p0.0 + buffer as f64 + (length / 2) as f64)
-            .clamp(
-                p0.0 + buffer as f64 + (length / 2) as f64,
-                (length - buffer) as f64,
-            ),
-        (point_mod_1b * p0.1 * 2.0 - p0.1).clamp(p0.1 - buffer as f64, height as f64),
-    );
-
-    let p2: (f64, f64) = (
-        (point_mod_2a * (length / 2 - buffer) as f64 + p0.0 + buffer as f64)
-            .clamp(p0.0 + buffer as f64, (length / 2 - buffer) as f64),
-        (point_mod_2b * p0.1 * 2.0 - p0.1).clamp(p0.1 - buffer as f64, height as f64),
-    );
-
-    let p3: (f64, f64) = (length as f64 + p0.0, point_mod_3b * (height / 3) as f64);
-
-    points.insert(0, (p0.0 as i32, p0.1 as i32));
-    points.insert(1, (p1.0 as i32, p1.1 as i32));
-    points.insert(2, (p2.0 as i32, p2.1 as i32));
-    points.insert(3, (p3.0 as i32, p3.1 as i32));
-
-    return points;
 }
 
 /******      Perlin primary functions      ***** */

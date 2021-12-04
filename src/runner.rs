@@ -371,7 +371,9 @@ impl Game for Runner {
                 //Power handling
                 if power_timer == 0 {
                     power_timer -= 1;
-                    player.set_power_up(None, &tex_shield); // Texture doesn't matter as power-up is None
+                    player.set_power_up(None, &tex_shield); // Texture doesn't
+                                                            // matter as power-up
+                                                            // is None
                 } else if power_timer > 0 {
                     power_timer -= 1;
                 }
@@ -730,13 +732,26 @@ impl Game for Runner {
                 // Generate new ground when the last segment becomes visible
                 let last_seg = all_terrain.get(all_terrain.len() - 1).unwrap();
                 if last_seg.x() < CAM_W as i32 {
+                    let mut rng = rand::thread_rng();
+                    let num = rng.gen_range(0..100);
+
+                    let mut is_flat: bool = false;
+
+                    //5% chance of generating a flat terrain chunk
+                    if (num < 5) {
+                        is_flat = true;
+                    } else {
+                        is_flat = false;
+                    }
+                    println!("is flat: {}", is_flat);
+
                     let new_terrain = proceduralgen::ProceduralGen::gen_terrain(
                         &random,
                         &last_seg,
                         CAM_W as i32,
                         CAM_H as i32,
                         false,
-                        false,
+                        is_flat,
                         false,
                     );
                     all_terrain.push(new_terrain);
