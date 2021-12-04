@@ -147,14 +147,6 @@ impl ProceduralGen {
         Ok(ProceduralGen {})
     }
 
-    /*
-    pub fn init_terrain<'a>(cam_w: i32, cam_h: i32, texture: &'a Texture<'a>) /* -> TerrainSegment */
-    {
-        // TerrainSegment::new(rect!(0, cam_h * 2 / 3, cam_w, cam_h / 3),
-        // &texture)
-    }
-    */
-
     /*  Initilization of terrain segments
      *
      *  - Takes in `random` which is the array of random tuples of (i32, i32)
@@ -185,14 +177,24 @@ impl ProceduralGen {
     ) -> TerrainSegment {
         let mut rng = rand::thread_rng();
 
+        // Generate TerrainSegment's type
+        let terrain_type = choose_terrain_type(10);
+
+        let _is_flat = match (terrain_type) {
+            TerrainType::Water => true,
+            _ => _is_flat,
+        };
+
         let flat_mod: f64 = 0.25;
         let cliff_min_mod: f64 = 2.0;
         let cliff_max_mod: f64 = 5.0;
 
         let freq = rng.gen_range(32.0..256.0);
         let amp: f64 = if _is_flat {
+            // Make terrain flatter
             rng.gen::<f64>() * flat_mod
         } else if _is_cliff {
+            // Make terrain more drastic
             rng.gen::<f64>() * cliff_max_mod.clamp(cliff_min_mod, cliff_max_mod)
         } else {
             rng.gen::<f64>()
@@ -257,6 +259,7 @@ impl ProceduralGen {
 
         let prev_points = prev_seg.get_ctrl_points();
 
+        // Set p0 or previous curve's end control point
         let q_n = if _is_pit || _is_cliff {
             (
                 prev_points[prev_points.len() - 1].0,
@@ -266,10 +269,18 @@ impl ProceduralGen {
             prev_points[prev_points.len() - 1]
         };
 
-        let q_n1 = prev_points[prev_points.len() - 2];
+        // Set q_n-1 or second to last control point of previous curve
+        let q_n1 = if _is_pit || _is_cliff {
+            (
+                prev_points[prev_points.len() - 2].0,
+                prev_points[prev_points.len() - 2].1 + 100,
+            )
+        } else {
+            prev_points[prev_points.len() - 2]
+        };
 
         // Extract x and y point from last terrain segment
-        let mut curve_points = gen_bezier_curve(
+        let curve_points = gen_bezier_curve(
             q_n,
             q_n1,
             cam_w,
@@ -290,11 +301,10 @@ impl ProceduralGen {
             10
         );
         let angle_from_last = 0.0; // ?
-        let terrain_type = choose_terrain_type(10);
         let color = match (terrain_type) {
             TerrainType::Asphalt => Color::RGB(19, 10, 6),
             TerrainType::Sand => Color::RGB(194, 178, 128),
-            TerrainType::Water => Color::RGB(212, 241, 249),
+            TerrainType::Water => Color::RGB(116, 204, 244),
             TerrainType::Grass => Color::RGB(86, 125, 70),
         };
 
@@ -374,16 +384,17 @@ fn gen_bezier_curve(
     //Bezier curve
 
     //Cubic
+    let p1_x = q_n.0 + (q_n.0 - q_n1.0);
 
     let p2: (f64, f64) = (
-        (point_mod_2.0 * (length / 2 - buffer) as f64 + q_n.0 as f64 + buffer as f64),
-        (point_mod_2.1 * q_n.1 as f64 / 2.0 + q_n.1 as f64),
-        // .clamp(q_n.1 as f64 + buffer as f64, height as f64),
+        (point_mod_2.0 * (length - buffer) as f64 + (p1_x + buffer) as f64)
+            .clamp((p1_x + buffer) as f64, (length + q_n.0 - buffer) as f64),
+        ((1.0 - point_mod_2.1) * (q_n.1 as f64 * 2.1)),
     );
 
     let p3: (f64, f64) = (
         length as f64 + q_n.0 as f64,
-        point_mod_3.1 * (height) as f64 + q_n.1 as f64,
+        ((1.0 - point_mod_3.1) * (q_n.1 as f64 * 2.25)),
     );
 
     let mut group_of_points: Vec<(i32, i32)> = Vec::new();
@@ -391,13 +402,13 @@ fn gen_bezier_curve(
 
     //if p1 value hasn't been given, generating the initial curve
     if (q_n1 == (-1, -1)) {
-        let mut temp_point: (f64, f64) = (
+        let temp_point: (f64, f64) = (
             (point_mod_1.0 * (length / 2 + buffer) as f64
                 + q_n.0 as f64
                 + buffer as f64
                 + (length / 2) as f64),
-            (point_mod_1.1 * q_n.1 as f64 * 2.0 - q_n.1 as f64),
-            // .clamp(q_n.1 as f64 + buffer as f64, height as f64),
+            (point_mod_1.1 * q_n.1 as f64 * 2.0 - q_n.1 as f64)
+                .clamp(q_n.1 as f64 + buffer as f64, height as f64),
         );
         p1 = (temp_point.0 as i32, temp_point.1 as i32);
 
@@ -877,12 +888,13 @@ fn choose_terrain_type(upper: i32) -> TerrainType {
  */
 pub fn choose_static_object() -> StaticObject {
     let mut rng = rand::thread_rng();
-    match rng.gen_range(0..=4) {
+    match rng.gen_range(0..=5) {
         0 => StaticObject::Statue,
         1 => StaticObject::Balloon,
         2 => StaticObject::Chest,
         3 => StaticObject::Coin,
-        _ => StaticObject::Power,
+        4 => StaticObject::Power,
+        _ => StaticObject::Bench,
     }
 }
 

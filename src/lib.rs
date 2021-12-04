@@ -36,6 +36,7 @@ pub enum StaticObject {
     Statue,  // Obstacle
     Balloon, // Obstacle
     Chest,   // Obstacle
+    Bench,   // Obstacle
 }
 
 // Contains all types of power ups
@@ -54,6 +55,7 @@ pub enum ObstacleType {
     Statue,
     Balloon,
     Chest,
+    Bench,
 }
 
 #[allow(dead_code)]
