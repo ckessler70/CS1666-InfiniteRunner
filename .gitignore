@@ -8,6 +8,7 @@ target
 */*keycodes.txt
 */*temp_asset_paths.md
 */*.xcf
+*/*/*.xcf
 build.bat
 build.sh
 *.dll
