@@ -130,10 +130,6 @@ impl Game for Title {
                             next_status = Some(GameStatus::Credits);
                             break 'gameloop;
                         }
-                        Keycode::B => {
-                            next_status = Some(GameStatus::BezierSim);
-                            break 'gameloop;
-                        }
                         Keycode::I => {
                             next_status = Some(GameStatus::Instruct);
                             break 'gameloop;
