@@ -898,7 +898,7 @@ impl Game for Runner {
                 )?;
 
                 // Background perlin noise curves
-                for i in 0..background_curves[IND_BACKGROUND_MID].len() - 1 {
+                for i in 0..background_curves[IND_BACKGROUND_MID].len() {
                     // Furthest back perlin noise curves
                     core.wincan.set_draw_color(Color::RGBA(81, 65, 67, 255));
                     core.wincan.fill_rect(rect!(
@@ -917,6 +917,23 @@ impl Game for Runner {
                         CAM_H as i16
                     ))?;
                 }
+
+                // Draw front edge of background hills so there is no gap
+                core.wincan.set_draw_color(Color::RGBA(81, 65, 67, 255));
+                core.wincan.fill_rect(rect!(
+                    0,
+                    CAM_H as i16 - background_curves[IND_BACKGROUND_BACK][0],
+                    CAM_W as usize / BG_CURVES_SIZE,
+                    CAM_H as i16
+                ))?;
+
+                core.wincan.set_draw_color(Color::RGBA(195, 133, 96, 255));
+                core.wincan.fill_rect(rect!(
+                    0,
+                    CAM_H as i16 - background_curves[IND_BACKGROUND_MID][0],
+                    CAM_W as usize / BG_CURVES_SIZE,
+                    CAM_H as i16
+                ))?;
 
                 // Active Power HUD Display
                 if player.power_up().is_some() {
