@@ -473,6 +473,14 @@ impl<'a> Player<'a> {
                         // Torque = r*F * sin(angle)
                         // alpha = Torque/body.rotational_inertia()
                         // For ease of calculation, just set omega = alpha
+                        /*
+                        //Not certain if this math is correct
+                        let force = self.mass() * ((self.velocity.0*self.velocity.0) + (self.velocity.1*self.velocity.1)).sqrt();
+                        let torque = ((self.hitbox().width() as f64) / 2.0)  *  angle.sin();
+                        let alpha = torque / self.rotational_inertia();             //rot inertia is 7500
+                        self.omega = alpha;
+                        println!("t:{} a:{} f:{} sin:{} rot:{}", torque, alpha,force,angle.sin(),self.rotational_inertia());
+                        */
 
                         /***************************************************/
                         // Move obstacle
