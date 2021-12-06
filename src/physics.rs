@@ -31,8 +31,12 @@ impl Physics {
     // Checks if player hasn't landed on their head
     // Params: player, ground position as SDL point, angle of ground
     // Returns: true if player is upright, false otherwise
-    pub fn check_player_upright<'a>(player: &Player, angle: f64, ground: Point) -> bool {
-        !player.hitbox().contains_point(ground)
+    pub fn check_player_upright<'a>(player: &mut Player, angle: f64, ground: Point) -> bool {
+        let on_ground = player.hitbox().contains_point(ground);
+        if on_ground {
+            player.was_flipping = false;
+        }
+        !on_ground
             || (player.theta() < OMEGA * 6.0 + angle
                 || player.theta() > 2.0 * PI - OMEGA * 6.0 + angle)
     }
@@ -91,6 +95,7 @@ impl Physics {
             */
 
             // If body is on ground, apply normal
+            let pre_forces_direction = (body.vel_x() + body.accel_x()).signum();
             let height = body.hitbox().height() as i32;
             if body.hitbox().y() + height > ground.y() {
                 // Land on ground
@@ -101,7 +106,7 @@ impl Physics {
                         body.x() as f64,
                         ground.y() as f64 - 0.95 * (height as f64),
                     ));
-                    body.hard_set_vel((body.vel_x(), 0.0));
+                    body.hard_set_vel((body.vel_x(), -0.01));
                     body.align_hitbox_to_pos();
                 }
 
@@ -111,7 +116,6 @@ impl Physics {
                 body.apply_force((body.mass() * g * angle.sin(), body.mass() * g * angle.cos()));
 
                 // If body is on ground AND moving, apply KINETIC FRICTION
-                let pre_friction_direction = (body.vel_x() + body.accel_x()).signum();
                 if body.vel_x().abs() + body.vel_y().abs() > 0.0 {
                     // Friction: µmg, on an incline, perpendicular to normal
                     // (-x, -y) on an uphill
@@ -123,9 +127,9 @@ impl Physics {
                         fric_coeff * body.mass() * g * angle.sin() * direction_adjust,
                     ));
                 }
-                let post_friction_direction = (body.vel_x() + body.accel_x()).signum();
+                let post_forces_direction = (body.vel_x() + body.accel_x()).signum();
 
-                if pre_friction_direction != post_friction_direction {
+                if pre_forces_direction != post_forces_direction {
                     body.hard_set_vel((0.0, 0.0));
                     body.reset_accel();
                 }
@@ -150,10 +154,6 @@ impl Physics {
     pub fn apply_skate_force(player: &mut Player, angle: f64, ground: Point) {
         // Skate force
         let mut skate_force = 1.0 / 7.0 * player.mass();
-        if let Some(PowerType::SpeedBoost) = player.power_up() {
-            // Speed up with powerup
-            skate_force *= 1.0;
-        }
 
         if player.hitbox().contains_point(ground) {
             // (+x, +y) on an uphill
@@ -203,6 +203,12 @@ impl Physics {
         if submerged_area > 0.0 {
             // Force is always upwards
             player.apply_force((0.0, p * g * submerged_area));
+
+            player.theta = player.theta()
+                - 0.05
+                    * player.theta()
+                    * (submerged_area
+                        / (player.hitbox().width() * player.hitbox().height()) as f64);
         }
     }
 }
@@ -600,15 +606,11 @@ impl<'a> Body<'a> for Player<'a> {
         self.mass
     }
 
-    fn update_pos(&mut self, ground: Point, angle: f64, game_over: bool) {
-        if self.hitbox.contains_point(ground) {
-            self.theta = angle;
-        }
-
+    fn update_pos(&mut self, ground: Point, angle: f64, on_water: bool) {
         self.pos.1 -= self.vel_y();
 
         // Match the angle of the ground if on ground
-        if self.hitbox.contains_point(ground) && !game_over {
+        if self.hitbox().contains_point(ground) && !on_water {
             self.theta = angle;
             if self.jumping {
                 self.jumping = false;

@@ -389,7 +389,13 @@ impl Game for Runner {
                 /* ~~~~~~ Handle Player Collisions ~~~~~~ */
 
                 // If the player doesn't land on ther feet, end game
-                if !Physics::check_player_upright(&player, angle, curr_ground_point) {
+                // except on water
+                let curr_terrain_type = get_ground_type(&all_terrain, PLAYER_X); //for physics
+                let mut on_water = false;
+                if let TerrainType::Water = curr_terrain_type {
+                    on_water = true;
+                }
+                if !Physics::check_player_upright(&mut player, angle, curr_ground_point) {
                     game_over = true;
                 }
 
@@ -461,7 +467,6 @@ impl Game for Runner {
 
                 // Apply forces on player
                 let current_power = player.power_up();
-                let curr_terrain_type = get_ground_type(&all_terrain, PLAYER_X); //for physics
 
                 Physics::apply_terrain_forces(
                     // Gravity, normal, and friction
@@ -471,7 +476,7 @@ impl Game for Runner {
                     curr_terrain_type,
                     current_power,
                 );
-                if let TerrainType::Water = curr_terrain_type {
+                if on_water {
                     Physics::apply_buoyancy(&mut player, curr_ground_point);
                 }
                 if !game_over {
@@ -480,7 +485,7 @@ impl Game for Runner {
                 }
                 //update player attributes
                 player.update_vel(game_over);
-                player.update_pos(curr_ground_point, angle, game_over);
+                player.update_pos(curr_ground_point, angle, on_water);
                 player.flip();
 
                 //DEBUG PLAYER (Plz dont delete, just comment out)
@@ -619,7 +624,7 @@ impl Game for Runner {
                                         TILE_SIZE,
                                         TILE_SIZE
                                     ),
-                                    50.0, // mass
+                                    75.0, // mass
                                     &tex_statue,
                                     ObstacleType::Statue,
                                 );
@@ -649,7 +654,7 @@ impl Game for Runner {
                                         TILE_SIZE,
                                         TILE_SIZE
                                     ),
-                                    50.0,
+                                    75.0,
                                     &tex_chest,
                                     ObstacleType::Chest,
                                 );
@@ -665,7 +670,7 @@ impl Game for Runner {
                                         TILE_SIZE,
                                         TILE_SIZE * 2 / 3
                                     ),
-                                    50.0,
+                                    75.0,
                                     &tex_bench,
                                     ObstacleType::Bench,
                                 );
