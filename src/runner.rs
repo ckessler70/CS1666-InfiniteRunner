@@ -486,7 +486,11 @@ impl Game for Runner {
                 //update player attributes
                 player.update_vel(game_over);
                 player.update_pos(curr_ground_point, angle, game_over);
-                player.flip();
+                if (player.flip(angle) && point_timer == 0){    //true if player "completed" a flip
+                    curr_step_score = 100.0;
+                    last_point_val = 100;
+                    point_timer = 60;
+                }
 
                 //DEBUG PLAYER (Plz dont delete, just comment out)
                 //println!("A-> vx:{} ax:{}, vy:{}
@@ -1133,10 +1137,21 @@ impl Game for Runner {
                     .copy(&tex_score, None, Some(rect!(10, 10, 100, 50)))?;
 
                 // Display added coin/obstacle value when coin/obstacle is collected
-                let point_surface = font
+                let point_surface;
+                if last_point_val > 999 { point_surface =
+                    font
                     .render(&format!("   +{:04}", last_point_val))
                     .blended(Color::RGBA(100, 0, 200, 100))
                     .map_err(|e| e.to_string())?;
+                }
+                else{
+                    point_surface =
+                    font
+                    .render(&format!("    +{:03}", last_point_val))
+                    .blended(Color::RGBA(100, 0, 200, 100))
+                    .map_err(|e| e.to_string())?; 
+                };
+
                 let tex_point_val = texture_creator
                     .create_texture_from_surface(&point_surface)
                     .map_err(|e| e.to_string())?;

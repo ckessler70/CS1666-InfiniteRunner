@@ -298,7 +298,6 @@ pub struct Player<'a> {
     jumping: bool,
     flipping: bool,
     was_flipping: bool,
-    second_jump: bool,
 }
 
 impl<'a> Player<'a> {
@@ -322,7 +321,6 @@ impl<'a> Player<'a> {
             jumping: true,
             flipping: false,
             was_flipping: false,
-            second_jump: false,
         }
     }
 
@@ -396,9 +394,17 @@ impl<'a> Player<'a> {
         }
     }
 
-    pub fn flip(&mut self) {
+    pub fn flip(&mut self, angle: f64) -> bool {
         if self.is_flipping() {
             self.rotate();
+            //Player rotated enough to die, so let's call it a flip?
+            if (self.theta() < OMEGA * 6.0 + angle
+            || self.theta() > 2.0 * PI - OMEGA * 6.0 + angle) {
+                true
+            }
+            else{
+                false
+            }
         } else if self.was_flipping() {
             //allows for momentum when player stops flipping
             //to adjust rate of angular velocity decrease,
@@ -409,6 +415,9 @@ impl<'a> Player<'a> {
                 self.omega = 0.0;
             }
             self.rotate();
+            false
+        }else{
+            false
         }
     }
 
