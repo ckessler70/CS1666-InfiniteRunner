@@ -413,8 +413,8 @@ impl<'a> Player<'a> {
             //allows for momentum when player stops flipping
             //to adjust rate of angular velocity decrease,
             //change the value being subtracted from omega
-            if (self.omega - 0.003) != 0.0 {
-                self.omega = self.omega - 0.003;
+            if (self.omega - (0.03 * self.omega)) != 0.0 {
+                self.omega = self.omega - (0.03 * self.omega);
             } else {
                 self.omega = 0.0;
             }
@@ -504,6 +504,7 @@ impl<'a> Player<'a> {
                         self.align_hitbox_to_pos();
                         self.velocity.1 = 0.0;
                         self.jumping = false;
+                        self.was_flipping = false;
                         self.lock_jump_time = false;
                         self.apply_force((0.0, self.mass()));
                         self.omega = 0.0;
