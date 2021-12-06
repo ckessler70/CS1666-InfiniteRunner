@@ -455,8 +455,8 @@ impl<'a> Player<'a> {
             match obstacle.obstacle_type {
                 // For statue and chest, elastic collision
                 ObstacleType::Statue | ObstacleType::Chest | ObstacleType::Bench => {
-                    if shielded || obstacle.collided() {
-                        // If shielded or collision already happened, pretend nothing happened
+                    if obstacle.collided() {
+                        // If collision already happened, pretend nothing happened
                         false
                     } else {
                         /********** ELASTIC COLLISION CALCULATION **********/
@@ -493,14 +493,19 @@ impl<'a> Player<'a> {
                         obstacle.collided = true;
                         obstacle.hard_set_vel((o_vx_f, o_vy_f));
 
-                        // Move player
-                        self.hard_set_vel((p_vx_f, p_vy_f));
-                        self.hard_set_pos((
+                        if shielded{    // Don't move player
+                            false       // Game not over
+                        }
+                        else{
+                                        // Move player
+                            self.hard_set_vel((p_vx_f, p_vy_f));
+                            self.hard_set_pos((
                             obstacle.x() as f64 - 1.05 * TILE_SIZE,
                             self.y() as f64,
-                        ));
-                        self.align_hitbox_to_pos();
-                        true
+                            ));
+                            self.align_hitbox_to_pos();
+                            true        // game over
+                        }
                     }
                 }
                 // For Balloon, do nothing upon SIDE collision
