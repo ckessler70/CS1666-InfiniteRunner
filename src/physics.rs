@@ -371,8 +371,6 @@ impl<'a> Player<'a> {
     // Brings player's rotational velocity to a stop
     pub fn stop_flipping(&mut self) {
         self.flipping = false;
-        self.was_flipping = false;
-        //self.omega = 0.0;
     }
 
     // Gives player rotational velocity
