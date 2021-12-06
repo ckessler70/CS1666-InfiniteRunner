@@ -50,7 +50,6 @@ impl Game for Instruction {
 
         let mut next_status = GameStatus::Main;
 
-        let mut timer = 0;
         let mut which = 0;
 
         'gameloop: loop {
@@ -68,15 +67,20 @@ impl Game for Instruction {
                             next_status = GameStatus::Main;
                             break 'gameloop;
                         }
+                        Keycode::Left => {
+                            which -= 1;
+                            if which < 0 {
+                                which = 3;
+                            }
+                        }
+                        Keycode::Right => {
+                            which += 1;
+                            which %= 4;
+                        }
                         _ => {}
                     },
                     _ => {}
                 }
-            }
-
-            if timer > 180 {
-                timer = 0;
-                which += 1;
             }
 
             match (which) {
@@ -129,8 +133,6 @@ impl Game for Instruction {
                     break 'gameloop;
                 }
             }
-
-            timer += 1;
 
             core.wincan.present();
 
