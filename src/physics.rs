@@ -464,6 +464,9 @@ impl<'a> Player<'a> {
                         // For ease of calculation, just set omega = alpha
 
                         /***************************************************/
+                        //TEMP: waiting on physics merge
+                        //THEN: will need to set collected true when side collision & shielded
+                        
                         // Move obstacle
                         obstacle.collided = true;
                         obstacle.hard_set_vel((o_vx_f, o_vy_f));
@@ -479,7 +482,7 @@ impl<'a> Player<'a> {
                     }
                 }
                 // For Balloon, do nothing upon SIDE collision
-                ObstacleType::Balloon => false,
+                ObstacleType::Balloon => false
             }
         }
         // if the collision box is wider than it is tall, the player hit the top of the object
@@ -497,6 +500,7 @@ impl<'a> Player<'a> {
                     self.apply_force((0.0, self.mass()));
                     self.omega = 0.0;
                     obstacle.collided = true;
+                    obstacle.collected = true;
 
                     if self.theta() < OMEGA * 6.0 || self.theta() > 360.0 - OMEGA * 6.0 {
                         self.theta = 0.0;
@@ -514,6 +518,7 @@ impl<'a> Player<'a> {
                 // For spring, bounce off with Hooke's law force
                 ObstacleType::Balloon => {
                     Physics::apply_bounce(self, obstacle);
+                    obstacle.collected = true;
                     false
                 }
             }
@@ -677,6 +682,7 @@ pub struct Obstacle<'a> {
     hitbox: Rect,
 
     mass: f64,
+    pub value: i32,
     texture: &'a Texture<'a>,
     obstacle_type: ObstacleType,
 
@@ -684,6 +690,7 @@ pub struct Obstacle<'a> {
     omega: f64,
 
     pub collided: bool,
+    pub collected: bool,
     pub spawned: bool,
     pub delete_me: bool,
 }
@@ -692,6 +699,7 @@ impl<'a> Obstacle<'a> {
     pub fn new(
         hitbox: Rect,
         mass: f64,
+        value: i32,
         texture: &'a Texture<'a>,
         obstacle_type: ObstacleType,
     ) -> Obstacle<'a> {
@@ -702,6 +710,7 @@ impl<'a> Obstacle<'a> {
             hitbox,
 
             mass,
+            value,
             texture,
             obstacle_type,
 
@@ -709,6 +718,7 @@ impl<'a> Obstacle<'a> {
             omega: 0.0,
 
             collided: false,
+            collected: false,
             spawned: false,
             delete_me: false,
         }
@@ -720,6 +730,14 @@ impl<'a> Obstacle<'a> {
 
     pub fn collided(&self) -> bool {
         self.collided
+    }
+
+    pub fn collected(&self) -> bool {
+        self.collected
+    }
+
+    pub fn value(&self) -> i32 {
+        self.value
     }
 
     // Shifts objects left with the terrain in runner.rs
