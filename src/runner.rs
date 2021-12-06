@@ -371,7 +371,9 @@ impl Game for Runner {
                 //Power handling
                 if power_timer == 0 {
                     power_timer -= 1;
-                    player.set_power_up(None, &tex_shield); // Texture doesn't matter as power-up is None
+                    player.set_power_up(None, &tex_shield); // Texture doesn't
+                                                            // matter as power-up
+                                                            // is None
                 } else if power_timer > 0 {
                     power_timer -= 1;
                 }
@@ -611,7 +613,7 @@ impl Game for Runner {
                                 let obstacle = Obstacle::new(
                                     rect!(
                                         // Adjust x coordinate so that center of object is on ground
-                                        spawn_coord.x - (TILE_SIZE as i32) / 2,
+                                        spawn_coord.x - TILE_SIZE as i32 / 2,
                                         // Adjust y coordinate so that bottom of object is on ground
                                         spawn_coord.y - TILE_SIZE as i32,
                                         TILE_SIZE,
@@ -627,7 +629,7 @@ impl Game for Runner {
                         Some(StaticObject::Balloon) => {
                             let obstacle = Obstacle::new(
                                 rect!(
-                                    spawn_coord.x - (TILE_SIZE as i32) / 2,
+                                    spawn_coord.x - TILE_SIZE as i32 / 2,
                                     spawn_coord.y - TILE_SIZE as i32,
                                     TILE_SIZE,
                                     TILE_SIZE
@@ -642,7 +644,7 @@ impl Game for Runner {
                             if !on_water {
                                 let obstacle = Obstacle::new(
                                     rect!(
-                                        spawn_coord.x - (TILE_SIZE as i32) / 2,
+                                        spawn_coord.x - TILE_SIZE as i32 / 2,
                                         spawn_coord.y - TILE_SIZE as i32,
                                         TILE_SIZE,
                                         TILE_SIZE
@@ -658,7 +660,7 @@ impl Game for Runner {
                             if !on_water {
                                 let obstacle = Obstacle::new(
                                     rect!(
-                                        spawn_coord.x - (TILE_SIZE as i32) / 2,
+                                        spawn_coord.x - TILE_SIZE as i32 / 2,
                                         spawn_coord.y - TILE_SIZE as i32 * 2 / 3,
                                         TILE_SIZE,
                                         TILE_SIZE * 2 / 3
@@ -673,7 +675,7 @@ impl Game for Runner {
                         Some(StaticObject::Coin) => {
                             let coin = Coin::new(
                                 rect!(
-                                    spawn_coord.x - (TILE_SIZE as i32) / 2,
+                                    spawn_coord.x - TILE_SIZE as i32 / 2,
                                     spawn_coord.y - TILE_SIZE as i32,
                                     TILE_SIZE,
                                     TILE_SIZE
@@ -686,7 +688,7 @@ impl Game for Runner {
                         Some(StaticObject::Power) => {
                             let pow = Power::new(
                                 rect!(
-                                    spawn_coord.x - (TILE_SIZE as i32) / 2,
+                                    spawn_coord.x - TILE_SIZE as i32 / 2,
                                     spawn_coord.y - TILE_SIZE as i32,
                                     TILE_SIZE,
                                     TILE_SIZE
@@ -741,9 +743,9 @@ impl Game for Runner {
                         &last_seg,
                         CAM_W as i32,
                         CAM_H as i32,
-                        false,
-                        false,
-                        false,
+                        false, //rng.gen_range(0..100) < 20, Pits have weird interaction with camera comp
+                        rng.gen_range(0..100) < 5,
+                        rng.gen_range(0..100) < 5,
                     );
                     all_terrain.push(new_terrain);
                 }
@@ -902,7 +904,7 @@ impl Game for Runner {
                 )?;
 
                 // Background perlin noise curves
-                for i in 0..background_curves[IND_BACKGROUND_MID].len() - 1 {
+                for i in 0..background_curves[IND_BACKGROUND_MID].len() {
                     // Furthest back perlin noise curves
                     core.wincan.set_draw_color(Color::RGBA(81, 65, 67, 255));
                     core.wincan.fill_rect(rect!(
@@ -921,6 +923,23 @@ impl Game for Runner {
                         CAM_H as i16
                     ))?;
                 }
+
+                // Draw front edge of background hills so there is no gap
+                core.wincan.set_draw_color(Color::RGBA(81, 65, 67, 255));
+                core.wincan.fill_rect(rect!(
+                    0,
+                    CAM_H as i16 - background_curves[IND_BACKGROUND_BACK][0],
+                    CAM_W as usize / BG_CURVES_SIZE,
+                    CAM_H as i16
+                ))?;
+
+                core.wincan.set_draw_color(Color::RGBA(195, 133, 96, 255));
+                core.wincan.fill_rect(rect!(
+                    0,
+                    CAM_H as i16 - background_curves[IND_BACKGROUND_MID][0],
+                    CAM_W as usize / BG_CURVES_SIZE,
+                    CAM_H as i16
+                ))?;
 
                 // Active Power HUD Display
                 if player.power_up().is_some() {
