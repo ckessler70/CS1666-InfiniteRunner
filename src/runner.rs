@@ -396,7 +396,9 @@ impl Game for Runner {
                     on_water = true;
                 }
                 if !Physics::check_player_upright(&mut player, angle, curr_ground_point) {
-                    game_over = true;
+                    if !on_water {
+                        game_over = true;
+                    }
                 }
 
                 // Check through all collisions with obstacles
