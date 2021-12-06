@@ -35,7 +35,7 @@ impl Game for Title {
 
         let surface = font
             .render("Urban Odyssey")
-            .blended(Color::RGBA(0, 255, 0, 255))
+            .blended(Color::RGBA(230, 150, 25, 255))
             .map_err(|e| e.to_string())?;
         let title_texture = texture_creator
             .create_texture_from_surface(&surface)
@@ -43,7 +43,7 @@ impl Game for Title {
 
         let surface = font
             .render("P/Space - Play")
-            .blended(Color::RGBA(119, 3, 252, 255))
+            .blended(Color::RGBA(230, 150, 25, 255))
             .map_err(|e| e.to_string())?;
         let play_texture = texture_creator
             .create_texture_from_surface(&surface)
@@ -51,7 +51,7 @@ impl Game for Title {
 
         let surface = font
             .render("I - Instructions")
-            .blended(Color::RGBA(119, 3, 252, 255))
+            .blended(Color::RGBA(230, 150, 25, 255))
             .map_err(|e| e.to_string())?;
         let instruction_texture = texture_creator
             .create_texture_from_surface(&surface)
@@ -59,7 +59,7 @@ impl Game for Title {
 
         let surface = font
             .render("C - Credits")
-            .blended(Color::RGBA(119, 3, 252, 255))
+            .blended(Color::RGBA(230, 150, 25, 255))
             .map_err(|e| e.to_string())?;
         let credits_texture = texture_creator
             .create_texture_from_surface(&surface)
@@ -67,7 +67,7 @@ impl Game for Title {
 
         let surface = font
             .render("Escape/Q - Quit game")
-            .blended(Color::RGBA(119, 3, 252, 255))
+            .blended(Color::RGBA(230, 150, 25, 255))
             .map_err(|e| e.to_string())?;
         let quit_texture = texture_creator
             .create_texture_from_surface(&surface)
@@ -78,7 +78,7 @@ impl Game for Title {
         let mut next_status = Some(GameStatus::Main);
 
         'gameloop: loop {
-            core.wincan.set_draw_color(Color::RGBA(3, 120, 206, 255));
+            core.wincan.set_draw_color(Color::RGBA(119, 120, 123, 255));
             core.wincan.clear();
 
             // Grey out screen
