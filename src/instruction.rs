@@ -69,13 +69,9 @@ impl Game for Instruction {
                         }
                         Keycode::Left => {
                             which -= 1;
-                            if which < 0 {
-                                which = 3;
-                            }
                         }
                         Keycode::Right => {
                             which += 1;
-                            which %= 4;
                         }
                         _ => {}
                     },
