@@ -371,7 +371,9 @@ impl Game for Runner {
                 //Power handling
                 if power_timer == 0 {
                     power_timer -= 1;
-                    player.set_power_up(None, &tex_shield); // Texture doesn't matter as power-up is None
+                    player.set_power_up(None, &tex_shield); // Texture doesn't
+                                                            // matter as power-up
+                                                            // is None
                 } else if power_timer > 0 {
                     power_timer -= 1;
                 }
@@ -737,9 +739,9 @@ impl Game for Runner {
                         &last_seg,
                         CAM_W as i32,
                         CAM_H as i32,
-                        false,
-                        false,
-                        false,
+                        false, //rng.gen_range(0..100) < 20, Pits have weird interaction with camera comp
+                        rng.gen_range(0..100) < 5,
+                        rng.gen_range(0..100) < 5,
                     );
                     all_terrain.push(new_terrain);
                 }
