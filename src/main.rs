@@ -12,7 +12,6 @@ mod instruction;
 mod physics;
 mod proceduralgen;
 mod runner;
-mod testbezier;
 mod title;
 mod utils;
 
@@ -31,7 +30,6 @@ pub struct UrbanOdyssey {
     runner: runner::Runner,
     credits: credits::Credits,
     instruct: instruction::Instruction,
-    testbezier: testbezier::TestBezier,
 }
 
 fn main() {
@@ -104,20 +102,6 @@ fn main() {
                             }
                         };
                     }
-                    Some(GameStatus::BezierSim) => {
-                        println!("\nTesting Bezier Simulation:");
-                        println!("\tRunning...");
-
-                        match contents.testbezier.run(&mut (contents.core)) {
-                            Err(e) => {
-                                println!("\n\t\tEncountered error while running: {}", e)
-                            }
-                            Ok(game_status) => {
-                                game_manager = game_status;
-                                println!("DONE\nExiting cleanly");
-                            }
-                        };
-                    }
                     None => {
                         break;
                     }
@@ -135,14 +119,11 @@ fn init() -> Result<UrbanOdyssey, String> {
     let credits = credits::Credits::init()?;
     let instruct = instruction::Instruction::init()?;
 
-    let testbezier = testbezier::TestBezier::init()?;
-
     Ok(UrbanOdyssey {
         core,
         title,
         runner,
         credits,
         instruct,
-        testbezier,
     })
 }
