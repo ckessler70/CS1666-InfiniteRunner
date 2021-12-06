@@ -177,7 +177,7 @@ impl ProceduralGen {
     ) -> TerrainSegment {
         let mut rng = rand::thread_rng();
 
-        println!("{:?} {:?} {:?}", _is_pit, _is_flat, _is_cliff);
+        //println!("{:?} {:?} {:?}", _is_pit, _is_flat, _is_cliff);
 
         // Generate TerrainSegment's type
         let terrain_type = choose_terrain_type(10);
