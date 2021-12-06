@@ -402,7 +402,8 @@ impl Game for Runner {
                             game_over = true;
                         }
 
-                        if o.collected(){ //check if points need to be collected for obstacle interaction
+                        if o.collected() {
+                            //check if points need to be collected for obstacle interaction
                             curr_step_score += o.value() as f64;
                             last_point_val = o.value();
                             point_timer = 60;
@@ -425,7 +426,7 @@ impl Game for Runner {
 
                             last_point_val = c.value();
                             point_timer = 60; // Time to show last_coin_val on
-                                             // screen
+                                              // screen
                         }
                         continue;
                     }
@@ -719,7 +720,7 @@ impl Game for Runner {
                     curr_step_score += (player.vel_x() / 1.5); // Increase score by factor of ammount moved that frame
                     if let Some(PowerType::ScoreMultiplier) = player.power_up() {
                         curr_step_score *= 2.0; // Hardcoded power bonus
-                        last_point_val = last_point_val * 2s;
+                        last_point_val = last_point_val * 2;
                     }
                     total_score += curr_step_score as i32;
                 }
