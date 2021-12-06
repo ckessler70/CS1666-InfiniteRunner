@@ -8,6 +8,7 @@
 #![allow(unused_imports)]
 
 mod credits;
+mod instruction;
 mod physics;
 mod proceduralgen;
 mod runner;
@@ -29,10 +30,8 @@ pub struct UrbanOdyssey {
     title: title::Title,
     runner: runner::Runner,
     credits: credits::Credits,
-    proceduralgen: proceduralgen::ProceduralGen,
+    instruct: instruction::Instruction,
     testbezier: testbezier::TestBezier,
-    /* physics?
-     * procedural generation? */
 }
 
 fn main() {
@@ -92,6 +91,19 @@ fn main() {
                             }
                         };
                     }
+                    Some(GameStatus::Instruct) => {
+                        println!("\nRunning Instruct Sequence:");
+                        print!("\tRunning...");
+
+                        // CREDITS RUN
+                        match contents.instruct.run(&mut (contents.core)) {
+                            Err(e) => println!("\n\t\tEncountered error while running: {}", e),
+                            Ok(instruct_status) => {
+                                game_manager = instruct_status;
+                                println!("DONE\nExiting cleanly");
+                            }
+                        };
+                    }
                     Some(GameStatus::BezierSim) => {
                         println!("\nTesting Bezier Simulation:");
                         println!("\tRunning...");
@@ -121,9 +133,8 @@ fn init() -> Result<UrbanOdyssey, String> {
     let title = title::Title::init()?;
     let runner = runner::Runner::init()?;
     let credits = credits::Credits::init()?;
-    // physics?
-    let proceduralgen = proceduralgen::ProceduralGen::init()?;
-    // procedural generation?
+    let instruct = instruction::Instruction::init()?;
+
     let testbezier = testbezier::TestBezier::init()?;
 
     Ok(UrbanOdyssey {
@@ -131,7 +142,7 @@ fn init() -> Result<UrbanOdyssey, String> {
         title,
         runner,
         credits,
-        proceduralgen,
+        instruct,
         testbezier,
     })
 }
