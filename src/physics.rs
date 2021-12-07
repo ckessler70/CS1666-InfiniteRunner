@@ -325,14 +325,18 @@ impl<'a> Player<'a> {
         }
     }
 
+    //boolean to track whether player is in the middle of a jump
     pub fn is_jumping(&self) -> bool {
         self.jumping
     }
 
+    //boolean to track whether player is in the middle of flipping
     pub fn is_flipping(&self) -> bool {
         self.flipping
     }
 
+    //boolean to track whether player initiated a flip but is not longer holding flip button
+    //helps in tracking of angular momentum
     pub fn was_flipping(&self) -> bool {
         self.was_flipping
     }
@@ -382,6 +386,9 @@ impl<'a> Player<'a> {
         }
     }
 
+    //flips player if directed by user, or if player has angular momentum
+    //returns true if player is rotating voluntarily, 
+    //returns false if rotating because of angular momentum or not rotating
     pub fn flip(&mut self) -> bool {
         if self.is_flipping() {
             self.rotate();
@@ -564,14 +571,17 @@ impl<'a> Player<'a> {
 }
 
 impl<'a> Entity<'a> for Player<'a> {
+    //getter for player texture
     fn texture(&self) -> &Texture<'a> {
         self.texture
     }
 
+    //getter for player hitbox
     fn hitbox(&self) -> Rect {
         self.hitbox
     }
 
+    //aligns player hitbox to their updated position
     fn align_hitbox_to_pos(&mut self) {
         self.hitbox.set_x(self.pos.0 as i32);
         self.hitbox.set_y(self.pos.1 as i32);
@@ -587,10 +597,12 @@ impl<'a> Entity<'a> for Player<'a> {
 }
 
 impl<'a> Body<'a> for Player<'a> {
+    //getter for player mass
     fn mass(&self) -> f64 {
         self.mass
     }
 
+    //update player position
     fn update_pos(&mut self, ground: Point, angle: f64, on_water: bool) {
         self.pos.1 -= self.vel_y();
 
