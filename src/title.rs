@@ -5,11 +5,17 @@ use inf_runner::GameState;
 use inf_runner::GameStatus;
 use inf_runner::SDLCore;
 
+use std::thread::sleep;
+use std::time::{Duration, Instant, SystemTime};
+
 use sdl2::event::Event;
 use sdl2::image::LoadTexture;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
+
+const FPS: f64 = 60.0;
+const FRAME_TIME: f64 = 1.0 / FPS as f64;
 
 const CAM_W: u32 = 1280;
 const CAM_H: u32 = 720;
@@ -77,7 +83,13 @@ impl Game for Title {
 
         let mut next_status = Some(GameStatus::Main);
 
+        // FPS tracking
+        let mut all_frames: i32 = 0;
+        let mut last_raw_time;
+        let mut last_measurement_time = Instant::now();
+
         'gameloop: loop {
+            last_raw_time = Instant::now(); // FPS tracking
             core.wincan.set_draw_color(Color::RGBA(119, 120, 123, 255));
             core.wincan.clear();
 
@@ -135,6 +147,31 @@ impl Game for Title {
                     _ => {}
                 }
             }
+
+            /* ~~~~~~ FPS Calculation ~~~~~~ */
+            // Time taken to display the last frame
+            let raw_frame_time = last_raw_time.elapsed().as_secs_f64();
+            let delay = FRAME_TIME - raw_frame_time;
+            // If the amount of time to display the last frame was less than expected, sleep
+            // until the expected amount of time has passed
+            if delay > 0.0 {
+                // Using sleep to delay will always cause slightly more delay than intended due
+                // to CPU scheduling; possibly find a better way to delay
+                sleep(Duration::from_secs_f64(delay));
+            }
+            all_frames += 1;
+            let time_since_last_measurement = last_measurement_time.elapsed();
+            // Measures the FPS once per second
+            if time_since_last_measurement > Duration::from_secs(1) {
+                //println!("{} FPS", all_frames);
+                // println!(
+                //     "Average FPS: {:.2}",
+                //     (all_frames as f64) / time_since_last_measurement.as_secs_f64()
+                // );
+                all_frames = 0;
+                last_measurement_time = Instant::now();
+            }
+            /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
         }
 
         // Out of game loop, return Ok
