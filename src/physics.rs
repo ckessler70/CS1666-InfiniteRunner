@@ -92,18 +92,17 @@ impl Physics {
             */
 
             // If body is on ground, apply normal
-            let pre_forces_direction = (body.vel_x() + body.accel_x()).signum();
             let height = body.hitbox().height() as i32;
             if body.hitbox().y() + height > ground.y() {
                 // Land on ground
-                if body.vel_y() < 0.0
+                if body.accel_y() < 0.0
                     || (body.y() as f64 + 0.95 * (height as f64)) > ground.y() as f64
                 {
                     body.hard_set_pos((
                         body.x() as f64,
                         ground.y() as f64 - 0.95 * (height as f64),
                     ));
-                    body.hard_set_vel((body.vel_x(), -0.01));
+                    body.hard_set_vel((body.vel_x(), 0.0));
                     body.align_hitbox_to_pos();
                 }
 
@@ -123,12 +122,6 @@ impl Physics {
                         -fric_coeff * body.mass() * g * angle.cos() * direction_adjust,
                         fric_coeff * body.mass() * g * angle.sin() * direction_adjust,
                     ));
-                }
-                let post_forces_direction = (body.vel_x() + body.accel_x()).signum();
-
-                if pre_forces_direction != post_forces_direction {
-                    body.hard_set_vel((0.0, 0.0));
-                    body.reset_accel();
                 }
             }
         }
@@ -387,7 +380,7 @@ impl<'a> Player<'a> {
     }
 
     //flips player if directed by user, or if player has angular momentum
-    //returns true if player is rotating voluntarily, 
+    //returns true if player is rotating voluntarily,
     //returns false if rotating because of angular momentum or not rotating
     pub fn flip(&mut self) -> bool {
         if self.is_flipping() {
@@ -534,8 +527,10 @@ impl<'a> Player<'a> {
                 }
                 // For spring, bounce off with Hooke's law force
                 ObstacleType::Balloon => {
-                    Physics::apply_bounce(self, obstacle);
-                    obstacle.collected = true;
+                    if !obstacle.collected {
+                        Physics::apply_bounce(self, obstacle);
+                        obstacle.collected = true;
+                    }
                     false
                 }
             }
@@ -784,8 +779,8 @@ impl<'a> Body<'a> for Obstacle<'a> {
         self.mass
     }
 
-    fn update_pos(&mut self, ground: Point, angle: f64, game_over: bool) {
-        if self.hitbox.contains_point(ground) && !game_over {
+    fn update_pos(&mut self, ground: Point, angle: f64, _game_over: bool) {
+        if self.hitbox.contains_point(ground) {
             self.theta = angle;
         }
 
@@ -808,8 +803,21 @@ impl<'a> Body<'a> for Obstacle<'a> {
     }
 
     fn update_vel(&mut self, _game_over: bool) {
+        let init_0 = self.velocity == (0.0, 0.0);
+        let pre_forces_direction = (self.velocity.0).signum();
+
         self.velocity.0 = (self.velocity.0 + self.accel.0).clamp(-20.0, 20.0);
         self.velocity.1 = (self.velocity.1 + self.accel.1).clamp(-20.0, 20.0);
+
+        let post_forces_direction = (self.velocity.0).signum();
+
+        // Sort of hardcoded version of static friction
+        if (init_0 || pre_forces_direction != post_forces_direction)
+            && (self.accel.0 * self.accel.0 + self.accel.1 * self.accel.1).sqrt() < 2.5
+        {
+            self.hard_set_vel((0.0, 0.0));
+            self.reset_accel();
+        }
     }
 
     fn hard_set_vel(&mut self, vel: (f64, f64)) {
