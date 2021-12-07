@@ -507,6 +507,7 @@ impl<'a> Player<'a> {
                         self.omega = 0.0;
                         obstacle.collided = true;
                         obstacle.collected = true;
+                        obstacle.hard_set_vel((0.0, self.mass() / 2.0));
 
                         if self.theta() < OMEGA * 6.0 || self.theta() > 360.0 - OMEGA * 6.0 {
                             self.theta = 0.0;
