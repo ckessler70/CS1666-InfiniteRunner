@@ -15,6 +15,8 @@ use sdl2::render::TextureQuery;
 const CAM_W: u32 = 1280;
 const CAM_H: u32 = 720;
 const MOVE_PER_FRAME: u32 = 2;
+const ORANGE: Color = Color::RGBA(230, 150, 25, 255);
+const SILVER: Color = Color::RGBA(119, 120, 123, 255);
 
 pub struct Credits;
 
@@ -62,7 +64,7 @@ impl Game for Credits {
 
         let surface = font
             .render("Caleb Kessler")
-            .blended(Color::RGBA(230, 150, 25, 255))
+            .blended(ORANGE)
             .map_err(|e| e.to_string())?;
         let texture_caleb = texture_creator
             .create_texture_from_surface(&surface)
@@ -75,7 +77,7 @@ impl Game for Credits {
 
         let surface = font
             .render("Dane Halle")
-            .blended(Color::RGBA(230,150,25,255))
+            .blended(ORANGE)
             .map_err(|e| e.to_string())?;
         let texture_dane = texture_creator
             .create_texture_from_surface(&surface)
@@ -88,7 +90,7 @@ impl Game for Credits {
 
         let surface = font
             .render("Andrew Wiesen")
-            .blended(Color::RGBA(230,150,25,255))
+            .blended(ORANGE)
             .map_err(|e| e.to_string())?;
         let texture_andrew = texture_creator
             .create_texture_from_surface(&surface)
@@ -101,7 +103,7 @@ impl Game for Credits {
 
         let surface = font
             .render("Benjamin Ungar")
-            .blended(Color::RGBA(230,150,25,255))
+            .blended(ORANGE)
             .map_err(|e| e.to_string())?;
         let texture_benjamin = texture_creator
             .create_texture_from_surface(&surface)
@@ -114,7 +116,7 @@ impl Game for Credits {
 
         let surface = font
             .render("Dominic Karras")
-            .blended(Color::RGBA(230,150,25,255))
+            .blended(ORANGE)
             .map_err(|e| e.to_string())?;
         let texture_dominic = texture_creator
             .create_texture_from_surface(&surface)
@@ -127,7 +129,7 @@ impl Game for Credits {
 
         let surface = font
             .render("Mateen Kasim")
-            .blended(Color::RGBA(230,150,25,255))
+            .blended(ORANGE)
             .map_err(|e| e.to_string())?;
         let texture_mateen = texture_creator
             .create_texture_from_surface(&surface)
@@ -140,7 +142,7 @@ impl Game for Credits {
 
         let surface = font
             .render("Elliot Snitzer")
-            .blended(Color::RGBA(230,150,25,255))
+            .blended(ORANGE)
             .map_err(|e| e.to_string())?;
         let texture_elliot = texture_creator
             .create_texture_from_surface(&surface)
@@ -153,7 +155,7 @@ impl Game for Credits {
 
         let surface = font
             .render("Michael Daley")
-            .blended(Color::RGBA(230,150,25,255))
+            .blended(ORANGE)
             .map_err(|e| e.to_string())?;
         let texture_michael = texture_creator
             .create_texture_from_surface(&surface)
@@ -253,7 +255,7 @@ impl Credits {
         let m_padding = padding;
 
         // Background wipe
-        core.wincan.set_draw_color(Color::RGBA(119,120,123,255));
+        core.wincan.set_draw_color(SILVER);
         core.wincan.clear();
 
         let TextureQuery { width, height, .. } = texture.query();
