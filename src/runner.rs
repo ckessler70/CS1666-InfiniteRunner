@@ -500,16 +500,15 @@ impl Game for Runner {
                 }
                 //update player attributes
                 player.update_vel(game_over);
-              
+
                 player.update_pos(curr_ground_point, angle, on_water);
 
-                if (player.flip(angle) && point_timer == 0){    //true if player "completed" a flip
+                if (player.flip(angle) && point_timer == 0) {
+                    //true if player "completed" a flip
                     curr_step_score = 100.0;
                     last_point_val = 100;
                     point_timer = 60;
                 }
-
-
 
                 //DEBUG PLAYER (Plz dont delete, just comment out)
                 //println!("A-> vx:{} ax:{}, vy:{}
@@ -637,7 +636,6 @@ impl Game for Runner {
                     // Spawn new object
                     match new_object {
                         Some(StaticObject::Statue) => {
-
                             let spawn_coord: Point = get_ground_coord(
                                 &all_terrain,
                                 (CAM_W as i32 + TILE_SIZE as i32 * 2),
@@ -655,7 +653,7 @@ impl Game for Runner {
                                 ObstacleType::Statue,
                             );
                             all_obstacles.push(obstacle);
- 
+
                             if !on_water {
                                 let obstacle = Obstacle::new(
                                     rect!(
@@ -673,7 +671,6 @@ impl Game for Runner {
                                 );
                                 all_obstacles.push(obstacle);
                             }
-
                         }
                         Some(StaticObject::Balloon) => {
                             let obstacle = Obstacle::new(
@@ -700,7 +697,7 @@ impl Game for Runner {
                                         TILE_SIZE
                                     ),
                                     75.0,
-                                    200,  // value
+                                    200, // value
                                     &tex_chest,
                                     ObstacleType::Chest,
                                 );
@@ -717,7 +714,7 @@ impl Game for Runner {
                                         TILE_SIZE * 2 / 3
                                     ),
                                     75.0,
-                                    200,  // value
+                                    200, // value
                                     &tex_bench,
                                     ObstacleType::Bench,
                                 );
@@ -761,8 +758,8 @@ impl Game for Runner {
                 // Poorly placed rn, should be after postion / hitbox / collision update
                 // but before drawing
                 if !game_over {
-                    curr_step_score += (player.vel_x() / 1.5); // Increase score by factor of ammount moved that frame
-                    if let Some(PowerType::ScoreMultiplier) = player.power_up(){
+                    curr_step_score += (player.vel_x() / 5.0); // Increase score by factor of ammount moved that frame
+                    if let Some(PowerType::ScoreMultiplier) = player.power_up() {
                         if point_timer == 60 {
                             curr_step_score *= 2.0; // Hardcoded power bonus
                             last_point_val = last_point_val * 2;
@@ -1187,18 +1184,16 @@ impl Game for Runner {
 
                 // Display added coin/obstacle value when coin/obstacle is collected
                 let point_surface;
-                if last_point_val > 999 { point_surface =
-                    font
-                    .render(&format!("   +{:04}", last_point_val))
-                    .blended(Color::RGBA(100, 0, 200, 100))
-                    .map_err(|e| e.to_string())?;
-                }
-                else{
-                    point_surface =
-                    font
-                    .render(&format!("    +{:03}", last_point_val))
-                    .blended(Color::RGBA(100, 0, 200, 100))
-                    .map_err(|e| e.to_string())?; 
+                if last_point_val > 999 {
+                    point_surface = font
+                        .render(&format!("   +{:04}", last_point_val))
+                        .blended(Color::RGBA(100, 0, 200, 100))
+                        .map_err(|e| e.to_string())?;
+                } else {
+                    point_surface = font
+                        .render(&format!("    +{:03}", last_point_val))
+                        .blended(Color::RGBA(100, 0, 200, 100))
+                        .map_err(|e| e.to_string())?;
                 };
 
                 let tex_point_val = texture_creator
@@ -1295,4 +1290,3 @@ impl Game for Runner {
         })
     } // End run fn
 } // End impl
-
