@@ -398,8 +398,8 @@ impl<'a> Player<'a> {
         if self.is_flipping() {
             self.rotate();
             //Player rotated enough to die, so let's call it a flip?
-            if (self.theta() < OMEGA * 6.0 + angle
-            || self.theta() > 2.0 * PI - OMEGA * 6.0 + angle) {
+            if (self.theta() > OMEGA * 6.0 + angle
+            || self.theta() < 2.0 * PI - OMEGA * 6.0 + angle) {
                 true
             }
             else{
