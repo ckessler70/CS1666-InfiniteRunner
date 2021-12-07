@@ -6,7 +6,7 @@ use inf_runner::GameStatus;
 use inf_runner::SDLCore;
 
 use std::thread::sleep;
-use std::time::{Duration, Instant, SystemTime};
+use std::time::{Duration, Instant};
 
 use sdl2::event::Event;
 use sdl2::image::LoadTexture;
@@ -16,9 +16,6 @@ use sdl2::rect::Rect;
 
 const FPS: f64 = 60.0;
 const FRAME_TIME: f64 = 1.0 / FPS as f64;
-
-const CAM_W: u32 = 1280;
-const CAM_H: u32 = 720;
 
 pub struct Title;
 
@@ -81,10 +78,10 @@ impl Game for Title {
 
         let tex_player = texture_creator.load_texture("assets/player/player.png")?;
 
-        let mut next_status = Some(GameStatus::Main);
+        let next_status;
 
         // FPS tracking
-        let mut all_frames: i32 = 0;
+        let mut _all_frames: i32 = 0;
         let mut last_raw_time;
         let mut last_measurement_time = Instant::now();
 
@@ -159,16 +156,16 @@ impl Game for Title {
                 // to CPU scheduling; possibly find a better way to delay
                 sleep(Duration::from_secs_f64(delay));
             }
-            all_frames += 1;
+            _all_frames += 1;
             let time_since_last_measurement = last_measurement_time.elapsed();
             // Measures the FPS once per second
             if time_since_last_measurement > Duration::from_secs(1) {
-                //println!("{} FPS", all_frames);
+                //println!("{} FPS", _all_frames);
                 // println!(
                 //     "Average FPS: {:.2}",
-                //     (all_frames as f64) / time_since_last_measurement.as_secs_f64()
+                //     (_all_frames as f64) / time_since_last_measurement.as_secs_f64()
                 // );
-                all_frames = 0;
+                _all_frames = 0;
                 last_measurement_time = Instant::now();
             }
             /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */

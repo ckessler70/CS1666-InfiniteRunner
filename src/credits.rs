@@ -6,7 +6,7 @@ use inf_runner::GameStatus;
 use inf_runner::SDLCore;
 
 use std::thread::sleep;
-use std::time::{Duration, Instant, SystemTime};
+use std::time::{Duration, Instant};
 
 use sdl2::event::Event;
 use sdl2::image::LoadTexture;
@@ -201,7 +201,7 @@ impl Game for Credits {
         let mut next_status = GameStatus::Main;
 
         // FPS tracking
-        let mut all_frames: i32 = 0;
+        let mut _all_frames: i32 = 0;
         let mut last_raw_time;
         let mut last_measurement_time = Instant::now();
 
@@ -256,16 +256,16 @@ impl Game for Credits {
                 // to CPU scheduling; possibly find a better way to delay
                 sleep(Duration::from_secs_f64(delay));
             }
-            all_frames += 1;
+            _all_frames += 1;
             let time_since_last_measurement = last_measurement_time.elapsed();
             // Measures the FPS once per second
             if time_since_last_measurement > Duration::from_secs(1) {
-                //println!("{} FPS", all_frames);
+                //println!("{} FPS", _all_frames);
                 // println!(
                 //     "Average FPS: {:.2}",
-                //     (all_frames as f64) / time_since_last_measurement.as_secs_f64()
+                //     (_all_frames as f64) / time_since_last_measurement.as_secs_f64()
                 // );
-                all_frames = 0;
+                _all_frames = 0;
                 last_measurement_time = Instant::now();
             }
             /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */

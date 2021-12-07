@@ -2,14 +2,10 @@ use inf_runner::PowerType;
 use inf_runner::StaticObject;
 use inf_runner::TerrainType;
 
-use crate::physics::Power;
 use crate::rect;
 
-use rand::distributions::Distribution;
-use rand::distributions::Standard;
 use rand::Rng;
 
-use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::Texture;
 
@@ -181,7 +177,7 @@ impl ProceduralGen {
         // Generate TerrainSegment's type
         let terrain_type = choose_terrain_type(10);
 
-        let _is_flat = match (terrain_type) {
+        let _is_flat = match terrain_type {
             TerrainType::Water => true,
             _ => _is_flat,
         };
@@ -284,7 +280,7 @@ impl ProceduralGen {
             10
         );
         let angle_from_last = 0.0; // ?
-        let tex = match (terrain_type) {
+        let tex = match terrain_type {
             TerrainType::Asphalt => tex_all[0],
             TerrainType::Sand => tex_all[1],
             TerrainType::Water => tex_all[2],
@@ -404,7 +400,7 @@ fn gen_bezier_curve(
     let mut p1 = (-1, -1);
 
     //if p1 value hasn't been given, generating the initial curve
-    if (q_n1 == (-1, -1)) {
+    if q_n1 == (-1, -1) {
         let temp_point: (f64, f64) = (
             (point_mod_1.0 * (length / 2 + buffer) as f64
                 + q_n.0 as f64
@@ -750,7 +746,7 @@ fn noise_1d(p: f32) -> f32 {
     let g0 = grad_1d(p0);
     let g1 = grad_1d(p1);
 
-    return ((1.0 - ft) * g0 * (p - p0) + ft * g1 * (p - p1));
+    return (1.0 - ft) * g0 * (p - p0) + ft * g1 * (p - p1);
 }
 
 /* ~~~~~~ Random Distributions ~~~~~~ */

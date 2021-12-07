@@ -5,8 +5,6 @@ use sdl2::rect::Point;
 use sdl2::rect::Rect;
 use sdl2::render::Texture;
 
-use std::time::{Duration, SystemTime};
-
 use crate::runner::TILE_SIZE as InitTILE_SIZE;
 use std::f64::consts::PI;
 
@@ -52,7 +50,7 @@ impl Physics {
         power_up: Option<PowerType>,
     ) {
         // Set Gravity & Friction Strength From TerrainType
-        let mut fric_coeff: f64;
+        let fric_coeff: f64;
         let mut g: f64 = 1.25;
         //As of now, all conds lead to +accel on flat ground (we could change this)
         match terrain_type {
@@ -153,7 +151,7 @@ impl Physics {
     // Returns: None
     pub fn apply_skate_force(player: &mut Player, angle: f64, ground: Point) {
         // Skate force
-        let mut skate_force = 1.0 / 7.0 * player.mass();
+        let skate_force = 1.0 / 7.0 * player.mass();
 
         if player.hitbox().contains_point(ground) {
             // (+x, +y) on an uphill
@@ -309,8 +307,6 @@ pub struct Player<'a> {
     texture: &'a Texture<'a>,
     power_up_stuct: PlayerPower<'a>,
 
-    jump_time: SystemTime,
-    lock_jump_time: bool,
     jumping: bool,
     flipping: bool,
     was_flipping: bool,
@@ -332,8 +328,6 @@ impl<'a> Player<'a> {
             mass,
             power_up_stuct: empty_player,
 
-            jump_time: SystemTime::now(),
-            lock_jump_time: false,
             jumping: true,
             flipping: false,
             was_flipping: false,
@@ -342,10 +336,6 @@ impl<'a> Player<'a> {
 
     pub fn is_jumping(&self) -> bool {
         self.jumping
-    }
-
-    pub fn jumpmoment_lock(&self) -> bool {
-        self.lock_jump_time
     }
 
     pub fn is_flipping(&self) -> bool {
@@ -358,12 +348,12 @@ impl<'a> Player<'a> {
 
     // Returns specific power-up player has, or None if player hasn't collected a power-up
     pub fn power_up(&self) -> Option<PowerType> {
-        self.power_up_stuct.power_up
+        self.power_up_stuct.power_up()
     }
 
     // Returns specific power-up texture. Should only be called after a check if player has a power-up
     pub fn power_up_tex(&self) -> &Texture<'a> {
-        self.power_up_stuct.texture
+        self.power_up_stuct.texture()
     }
 
     // Setter for power-up
@@ -384,15 +374,6 @@ impl<'a> Player<'a> {
         self.omega = OMEGA;
     }
 
-    pub fn set_jumpmoment(&mut self, time: SystemTime) {
-        self.jump_time = time;
-        self.lock_jump_time = true;
-    }
-
-    pub fn jump_moment(&mut self) -> SystemTime {
-        self.jump_time
-    }
-
     // Returns true if a jump was initiated
     pub fn jump(&mut self, ground: Point) -> bool {
         let height = self.hitbox.height() as f64;
@@ -410,16 +391,15 @@ impl<'a> Player<'a> {
         }
     }
 
-    pub fn flip(&mut self, angle: f64) -> bool {
+    pub fn flip(&mut self) -> bool {
         if self.is_flipping() {
             self.rotate();
             //Player rotated halfway, so let's call it a flip
-            if(self.theta() < PI){
+            if self.theta() < PI {
                 true
+            } else {
+                false
             }
-            else{
-                 false
-            } 
         } else if self.was_flipping() {
             //allows for momentum when player stops flipping
             //to adjust rate of angular velocity decrease,
@@ -431,7 +411,7 @@ impl<'a> Player<'a> {
             }
             self.rotate();
             false
-        }else{
+        } else {
             false
         }
     }
@@ -497,28 +477,28 @@ impl<'a> Player<'a> {
                         */
 
                         /***************************************************/
-                        
+
                         // Move obstacle
                         obstacle.collided = true;
                         obstacle.hard_set_vel((o_vx_f, o_vy_f));
 
-                        if shielded{    // Don't move player
-                            false       // Game not over
-                        }
-                        else{
+                        if shielded {
+                            // Don't move player
+                            false // Game not over
+                        } else {
                             // Move player
                             self.hard_set_vel((p_vx_f, p_vy_f));
                             self.hard_set_pos((
-                            obstacle.x() as f64 - 1.05 * TILE_SIZE,
-                            self.y() as f64,
+                                obstacle.x() as f64 - 1.05 * TILE_SIZE,
+                                self.y() as f64,
                             ));
                             self.align_hitbox_to_pos();
-                            true        // game over
+                            true // game over
                         }
                     }
                 }
                 // For Balloon, do nothing upon SIDE collision
-                ObstacleType::Balloon => false
+                ObstacleType::Balloon => false,
             }
         }
         // if the collision box is wider than it is tall, the player hit the top of the object
@@ -527,17 +507,15 @@ impl<'a> Player<'a> {
             match obstacle.obstacle_type {
                 // On top collision with chest, treat the chest as if it's normal ground
                 ObstacleType::Chest | ObstacleType::Bench => {
-
                     if !obstacle.collided() {
-                      self.pos.1 = (obstacle.y() as f64 - 0.95 * (TILE_SIZE as f64));
-                      self.align_hitbox_to_pos();
-                      self.velocity.1 = 0.0;
-                      self.jumping = false;
-                      self.lock_jump_time = false;
-                      self.apply_force((0.0, self.mass()));
-                      self.omega = 0.0;
-                      obstacle.collided = true;
-                      obstacle.collected = true;
+                        self.pos.1 = obstacle.y() as f64 - 0.95 * (TILE_SIZE as f64);
+                        self.align_hitbox_to_pos();
+                        self.velocity.1 = 0.0;
+                        self.jumping = false;
+                        self.apply_force((0.0, self.mass()));
+                        self.omega = 0.0;
+                        obstacle.collided = true;
+                        obstacle.collected = true;
 
                         if self.theta() < OMEGA * 6.0 || self.theta() > 360.0 - OMEGA * 6.0 {
                             self.theta = 0.0;
@@ -610,8 +588,8 @@ impl<'a> Entity<'a> for Player<'a> {
 
     // Adjusts terrain postion in runner.rs based on camera_adj_x & camera_adj_y
     fn camera_adj(&mut self, x_adj: i32, y_adj: i32) {
-        self.pos.0 += (x_adj as f64);
-        self.pos.1 += (y_adj as f64);
+        self.pos.0 += x_adj as f64;
+        self.pos.1 += y_adj as f64;
 
         self.align_hitbox_to_pos();
     }
@@ -630,7 +608,6 @@ impl<'a> Body<'a> for Player<'a> {
             self.theta = angle;
             if self.jumping {
                 self.jumping = false;
-                self.lock_jump_time = false;
                 self.was_flipping = false;
             }
         }
@@ -772,7 +749,7 @@ impl<'a> Obstacle<'a> {
 
     // Shifts objects left with the terrain in runner.rs
     pub fn travel_update(&mut self, travel_adj: i32) {
-        self.pos.0 -= (travel_adj as f64);
+        self.pos.0 -= travel_adj as f64;
     }
 }
 
@@ -792,8 +769,8 @@ impl<'a> Entity<'a> for Obstacle<'a> {
 
     // Adjusts terrain postion in runner.rs based on camera_adj_x & camera_adj_y
     fn camera_adj(&mut self, x_adj: i32, y_adj: i32) {
-        self.pos.0 += (x_adj as f64);
-        self.pos.1 += (y_adj as f64);
+        self.pos.0 += x_adj as f64;
+        self.pos.1 += y_adj as f64;
 
         self.align_hitbox_to_pos();
     }
@@ -827,7 +804,7 @@ impl<'a> Body<'a> for Obstacle<'a> {
         self.velocity.1
     }
 
-    fn update_vel(&mut self, game_over: bool) {
+    fn update_vel(&mut self, _game_over: bool) {
         self.velocity.0 = (self.velocity.0 + self.accel.0).clamp(-20.0, 20.0);
         self.velocity.1 = (self.velocity.1 + self.accel.1).clamp(-20.0, 20.0);
     }

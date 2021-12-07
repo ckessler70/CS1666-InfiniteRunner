@@ -1,6 +1,5 @@
 use crate::physics::Body;
 use crate::physics::Coin;
-use crate::physics::Collectible;
 use crate::physics::Entity;
 use crate::physics::Obstacle;
 use crate::physics::Physics;
@@ -8,7 +7,6 @@ use crate::physics::Player;
 use crate::physics::Power;
 
 use crate::proceduralgen;
-use crate::proceduralgen::ProceduralGen;
 use crate::proceduralgen::TerrainSegment;
 
 use crate::rect;
@@ -23,7 +21,7 @@ use inf_runner::StaticObject;
 use inf_runner::TerrainType;
 
 use std::thread::sleep;
-use std::time::{Duration, Instant, SystemTime};
+use std::time::{Duration, Instant};
 
 use sdl2::event::Event;
 use sdl2::image::LoadTexture;
@@ -32,8 +30,6 @@ use sdl2::pixels::Color;
 use sdl2::rect::Point;
 use sdl2::rect::Rect;
 
-use rand::distributions::Distribution;
-use rand::distributions::Standard;
 use rand::Rng;
 
 const FPS: f64 = 60.0;
@@ -108,7 +104,7 @@ impl Game for Runner {
             .create_texture_from_surface(
                 &font
                     .render("Escape/Space - Resume Play")
-                    .blended(Color::RGBA(230,150,25,255))
+                    .blended(Color::RGBA(230, 150, 25, 255))
                     .map_err(|e| e.to_string())?,
             )
             .map_err(|e| e.to_string())?;
@@ -117,7 +113,7 @@ impl Game for Runner {
             .create_texture_from_surface(
                 &font
                     .render("R - Restart game")
-                    .blended(Color::RGBA(230,150,25,255))
+                    .blended(Color::RGBA(230, 150, 25, 255))
                     .map_err(|e| e.to_string())?,
             )
             .map_err(|e| e.to_string())?;
@@ -126,7 +122,7 @@ impl Game for Runner {
             .create_texture_from_surface(
                 &font
                     .render("M - Main menu")
-                    .blended(Color::RGBA(230,150,25,255))
+                    .blended(Color::RGBA(230, 150, 25, 255))
                     .map_err(|e| e.to_string())?,
             )
             .map_err(|e| e.to_string())?;
@@ -135,7 +131,7 @@ impl Game for Runner {
             .create_texture_from_surface(
                 &font
                     .render("Q - Quit game")
-                    .blended(Color::RGBA(230,150,25,255))
+                    .blended(Color::RGBA(230, 150, 25, 255))
                     .map_err(|e| e.to_string())?,
             )
             .map_err(|e| e.to_string())?;
@@ -188,7 +184,7 @@ impl Game for Runner {
         let mut game_over_timer = 120;
 
         // FPS tracking
-        let mut all_frames: i32 = 0;
+        let mut _all_frames: i32 = 0;
         let mut last_raw_time;
         let mut last_measurement_time = Instant::now();
 
@@ -221,9 +217,9 @@ impl Game for Runner {
         // Pre-Generate perlin curves for background hills
         for i in 0..BG_CURVES_SIZE {
             background_curves[IND_BACKGROUND_MID][i] =
-                proceduralgen::gen_perlin_hill_point((i + buff_1), freq, amp_1, 0.5, 600.0);
+                proceduralgen::gen_perlin_hill_point(i + buff_1, freq, amp_1, 0.5, 600.0);
             background_curves[IND_BACKGROUND_BACK][i] =
-                proceduralgen::gen_perlin_hill_point((i + buff_2), freq, amp_2, 1.0, 820.0);
+                proceduralgen::gen_perlin_hill_point(i + buff_2, freq, amp_2, 1.0, 820.0);
         }
         /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
@@ -337,7 +333,6 @@ impl Game for Runner {
                     .atan(); // slope between left and right of player
 
                 /* ~~~~~~ Handle Input ~~~~~~ */
-                let keypress_moment: SystemTime = SystemTime::now();
                 for event in core.event_pump.poll_iter() {
                     match event {
                         Event::Quit { .. } => break 'gameloop,
@@ -456,7 +451,7 @@ impl Game for Runner {
                 for p in all_powers.iter_mut() {
                     if Physics::check_collision(&mut player, p) {
                         // Get associated powerup for given p.power_type()
-                        let p_tex = match (Some(p.power_type())) {
+                        let p_tex = match Some(p.power_type()) {
                             Some(PowerType::SpeedBoost) => &tex_speed,
                             Some(PowerType::ScoreMultiplier) => &tex_multiplier,
                             Some(PowerType::BouncyShoes) => &tex_bouncy,
@@ -503,7 +498,7 @@ impl Game for Runner {
 
                 player.update_pos(curr_ground_point, angle, on_water);
 
-                if (player.flip(angle) && point_timer == 0) {
+                if player.flip() && point_timer == 0 {
                     //true if player "completed" a flip
                     curr_step_score = 100.0;
                     last_point_val = 100;
@@ -553,7 +548,7 @@ impl Game for Runner {
                         }
                         buff_1 += 1;
                         let chunk_1 = proceduralgen::gen_perlin_hill_point(
-                            ((BG_CURVES_SIZE - 1) as usize + buff_1),
+                            (BG_CURVES_SIZE - 1) as usize + buff_1,
                             freq,
                             amp_1,
                             0.5,
@@ -571,7 +566,7 @@ impl Game for Runner {
                         }
                         buff_2 += 1;
                         let chunk_2 = proceduralgen::gen_perlin_hill_point(
-                            ((BG_CURVES_SIZE - 1) as usize + buff_2),
+                            (BG_CURVES_SIZE - 1) as usize + buff_2,
                             freq,
                             amp_2,
                             1.0,
@@ -647,7 +642,7 @@ impl Game for Runner {
                                         TILE_SIZE
                                     ),
                                     75.0, // mass
-                                    0,  // value
+                                    0,    // value
                                     &tex_statue,
                                     ObstacleType::Statue,
                                 );
@@ -740,7 +735,7 @@ impl Game for Runner {
                 // Poorly placed rn, should be after postion / hitbox / collision update
                 // but before drawing
                 if !game_over {
-                    curr_step_score += (player.vel_x() / 5.0); // Increase score by factor of ammount moved that frame
+                    curr_step_score += player.vel_x() / 5.0; // Increase score by factor of ammount moved that frame
                     if let Some(PowerType::ScoreMultiplier) = player.power_up() {
                         if point_timer == 60 {
                             curr_step_score *= 2.0; // Hardcoded power bonus
@@ -794,7 +789,7 @@ impl Game for Runner {
                 // Adjust camera vertically based on y/height of the ground
                 let camera_adj_y = if curr_ground_point.y() < TERRAIN_UPPER_BOUND {
                     TERRAIN_UPPER_BOUND - curr_ground_point.y()
-                } else if (curr_ground_point.y() + TILE_SIZE as i32) > TERRAIN_LOWER_BOUND {
+                } else if curr_ground_point.y() + TILE_SIZE as i32 > TERRAIN_LOWER_BOUND {
                     TERRAIN_LOWER_BOUND - curr_ground_point.y()
                 } else {
                     0
@@ -1170,16 +1165,16 @@ impl Game for Runner {
                     // to CPU scheduling; possibly find a better way to delay
                     sleep(Duration::from_secs_f64(delay));
                 }
-                all_frames += 1;
+                _all_frames += 1;
                 let time_since_last_measurement = last_measurement_time.elapsed();
                 // Measures the FPS once per second
                 if time_since_last_measurement > Duration::from_secs(1) {
-                    //println!("{} FPS", all_frames);
+                    //println!("{} FPS", _all_frames);
                     // println!(
                     //     "Average FPS: {:.2}",
-                    //     (all_frames as f64) / time_since_last_measurement.as_secs_f64()
+                    //     (_all_frames as f64) / time_since_last_measurement.as_secs_f64()
                     // );
-                    all_frames = 0;
+                    _all_frames = 0;
                     last_measurement_time = Instant::now();
                 }
                 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -1217,7 +1212,6 @@ impl Game for Runner {
                     // The first segment starting at or behind
                     // the given x, which it must be above
                     if ground.x() <= screen_x {
-                        let point_ind: usize = (screen_x - ground.x()) as usize;
                         return ground.get_type();
                     }
                 }
