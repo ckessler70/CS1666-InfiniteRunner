@@ -108,7 +108,7 @@ impl Game for Runner {
             .create_texture_from_surface(
                 &font
                     .render("Escape/Space - Resume Play")
-                    .blended(Color::RGBA(119, 3, 252, 255))
+                    .blended(Color::RGBA(230,150,25,255))
                     .map_err(|e| e.to_string())?,
             )
             .map_err(|e| e.to_string())?;
@@ -117,7 +117,7 @@ impl Game for Runner {
             .create_texture_from_surface(
                 &font
                     .render("R - Restart game")
-                    .blended(Color::RGBA(119, 3, 252, 255))
+                    .blended(Color::RGBA(230,150,25,255))
                     .map_err(|e| e.to_string())?,
             )
             .map_err(|e| e.to_string())?;
@@ -126,7 +126,7 @@ impl Game for Runner {
             .create_texture_from_surface(
                 &font
                     .render("M - Main menu")
-                    .blended(Color::RGBA(119, 3, 252, 255))
+                    .blended(Color::RGBA(230,150,25,255))
                     .map_err(|e| e.to_string())?,
             )
             .map_err(|e| e.to_string())?;
@@ -135,7 +135,7 @@ impl Game for Runner {
             .create_texture_from_surface(
                 &font
                     .render("Q - Quit game")
-                    .blended(Color::RGBA(119, 3, 252, 255))
+                    .blended(Color::RGBA(230,150,25,255))
                     .map_err(|e| e.to_string())?,
             )
             .map_err(|e| e.to_string())?;
