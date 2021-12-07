@@ -413,14 +413,13 @@ impl<'a> Player<'a> {
     pub fn flip(&mut self, angle: f64) -> bool {
         if self.is_flipping() {
             self.rotate();
-            //Player rotated enough to die, so let's call it a flip?
-            if (self.theta() > OMEGA * 6.0 + angle
-            || self.theta() < 2.0 * PI - OMEGA * 6.0 + angle) {
+            //Player rotated halfway, so let's call it a flip
+            if(self.theta() < PI){
                 true
             }
             else{
-                false
-            }
+                 false
+            } 
         } else if self.was_flipping() {
             //allows for momentum when player stops flipping
             //to adjust rate of angular velocity decrease,
