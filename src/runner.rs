@@ -647,7 +647,7 @@ impl Game for Runner {
                                         TILE_SIZE
                                     ),
                                     75.0, // mass
-                                    600,  // value
+                                    0,  // value
                                     &tex_statue,
                                     ObstacleType::Statue,
                                 );

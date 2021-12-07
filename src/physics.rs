@@ -494,12 +494,10 @@ impl<'a> Player<'a> {
                         let torque = ((self.hitbox().width() as f64) / 2.0)  *  angle.sin();
                         let alpha = torque / self.rotational_inertia();             //rot inertia is 7500
                         self.omega = alpha;
-                        println!("t:{} a:{} f:{} sin:{} rot:{}", torque, alpha,force,angle.sin(),self.rotational_inertia());
+                        //println!("t:{} a:{} f:{} sin:{} rot:{}", torque, alpha,force,angle.sin(),self.rotational_inertia());
                         */
 
                         /***************************************************/
-                        //TEMP: waiting on physics merge
-                        //THEN: will need to set collected true when side collision & shielded
                         
                         // Move obstacle
                         obstacle.collided = true;
@@ -509,7 +507,7 @@ impl<'a> Player<'a> {
                             false       // Game not over
                         }
                         else{
-                                        // Move player
+                            // Move player
                             self.hard_set_vel((p_vx_f, p_vy_f));
                             self.hard_set_pos((
                             obstacle.x() as f64 - 1.05 * TILE_SIZE,
