@@ -1031,46 +1031,6 @@ impl Game for Runner {
                 for obs in all_obstacles.iter() {
                     // Collapse this match to just one ... all this code is repeated
                     match obs.obstacle_type() {
-                        ObstacleType::Statue => {
-                            core.wincan.copy_ex(
-                                obs.texture(),
-                                None,
-                                rect!(obs.x(), obs.y(), TILE_SIZE, TILE_SIZE),
-                                obs.theta(),
-                                None,
-                                false,
-                                false,
-                            )?;
-                            core.wincan.set_draw_color(Color::RED);
-                            core.wincan.draw_rect(obs.hitbox())?;
-                            break;
-                        }
-                        ObstacleType::Balloon => {
-                            core.wincan.copy_ex(
-                                obs.texture(),
-                                None,
-                                rect!(obs.x(), obs.y(), TILE_SIZE, TILE_SIZE),
-                                obs.theta(),
-                                None,
-                                false,
-                                false,
-                            )?;
-                            core.wincan.set_draw_color(Color::BLUE);
-                            core.wincan.draw_rect(obs.hitbox())?;
-                        }
-                        ObstacleType::Chest => {
-                            core.wincan.copy_ex(
-                                obs.texture(),
-                                None,
-                                rect!(obs.x(), obs.y(), TILE_SIZE, TILE_SIZE),
-                                obs.theta(),
-                                None,
-                                false,
-                                false,
-                            )?;
-                            core.wincan.set_draw_color(Color::BLUE);
-                            core.wincan.draw_rect(obs.hitbox())?;
-                        }
                         ObstacleType::Bench => {
                             core.wincan.copy_ex(
                                 obs.texture(),
@@ -1086,8 +1046,17 @@ impl Game for Runner {
                                 false,
                                 false,
                             )?;
-                            core.wincan.set_draw_color(Color::BLUE);
-                            core.wincan.draw_rect(obs.hitbox())?;
+                        }
+                        _ => {
+                            core.wincan.copy_ex(
+                                obs.texture(),
+                                None,
+                                rect!(obs.x(), obs.y(), TILE_SIZE, TILE_SIZE),
+                                obs.theta(),
+                                None,
+                                false,
+                                false,
+                            )?;
                         }
                     }
                 }
@@ -1103,8 +1072,6 @@ impl Game for Runner {
                         false,
                         false,
                     )?;
-                    core.wincan.set_draw_color(Color::GREEN);
-                    core.wincan.draw_rect(coin.hitbox())?;
                 }
 
                 // Powerups (on the ground, not active or collected)
@@ -1118,8 +1085,6 @@ impl Game for Runner {
                         false,
                         false,
                     )?;
-                    core.wincan.set_draw_color(Color::YELLOW);
-                    core.wincan.draw_rect(power.hitbox())?;
                 }
 
                 // Set player texture
@@ -1145,11 +1110,6 @@ impl Game for Runner {
                     false,
                     false,
                 )?;
-
-                core.wincan.set_draw_color(Color::BLACK);
-
-                // Player's hitbox
-                core.wincan.draw_rect(player.hitbox())?;
 
                 // Setup for the text of the total_score to be displayed
                 let tex_score = font
