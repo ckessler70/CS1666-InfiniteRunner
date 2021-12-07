@@ -52,7 +52,6 @@ impl Physics {
         // Set Gravity & Friction Strength From TerrainType
         let fric_coeff: f64;
         let mut g: f64 = 1.25;
-        //As of now, all conds lead to +accel on flat ground (we could change this)
         match terrain_type {
             TerrainType::Asphalt => {
                 //quick accel to max on flat
@@ -68,7 +67,7 @@ impl Physics {
                 g = 1.5;
             }
             TerrainType::Water => {
-                //NOT YET CONFIGURED
+                //friction not applicable
                 fric_coeff = 0.0;
             }
         }
@@ -131,16 +130,6 @@ impl Physics {
                     body.hard_set_vel((0.0, 0.0));
                     body.reset_accel();
                 }
-                // Else if body is on ground and STILL, apply STATIC FRICTION
-                // NOTE: This might be unnecessary
-                // else {
-                //     // (+x, +y) on an uphill
-                //     // (-x, +y) on a downhill
-                //     body.apply_force((
-                //         -angle.signum() * body.mass() * g * angle.cos(),
-                //         angle.signum() * body.mass() * g * angle.sin(),
-                //     ));
-                // }
             }
         }
     }
@@ -202,6 +191,8 @@ impl Physics {
             // Force is always upwards
             player.apply_force((0.0, p * g * submerged_area));
 
+            // Return player's angle back to vertical
+            // Stronger effect when deeper underwater
             player.theta = player.theta()
                 - 0.05
                     * player.theta()
