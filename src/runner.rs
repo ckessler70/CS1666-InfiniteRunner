@@ -162,8 +162,8 @@ impl Game for Runner {
         );
 
         let mut power_timer: i32 = 0; // Current powerup expires when it reaches 0
-        let mut coin_timer: i32 = 0; // Timer to show +coin_value
-        let mut last_coin_val: i32 = 0; // Last collected coin's value
+        let mut point_timer: i32 = 0; // Timer to show +point_value
+        let mut last_point_val: i32 = 0; // Last collected obstacle/coin's value
 
         // Initialize ground / object vectors
         let mut all_terrain: Vec<TerrainSegment> = Vec::new();
@@ -408,10 +408,18 @@ impl Game for Runner {
 
                 // Check through all collisions with obstacles
                 // End game if crash occurs
+                // collect points if ideal collision occurs
                 for o in all_obstacles.iter_mut() {
                     if Physics::check_collision(&mut player, o) {
                         if player.collide_obstacle(o) {
                             game_over = true;
+                        }
+
+                        if o.collected() && point_timer == 0 {
+                            //check if points need to be collected for obstacle interaction
+                            curr_step_score += o.value() as f64;
+                            last_point_val = o.value();
+                            point_timer = 60;
                         }
                     }
                 }
@@ -429,9 +437,9 @@ impl Game for Runner {
                                                                  // score based on the
                                                                  // coins value
 
-                            last_coin_val = c.value();
-                            coin_timer = 60; // Time to show last_coin_val on
-                                             // screen
+                            last_point_val = c.value();
+                            point_timer = 60; // Time to show last_coin_val on
+                                              // screen
                         }
                         continue;
                     }
@@ -492,8 +500,16 @@ impl Game for Runner {
                 }
                 //update player attributes
                 player.update_vel(game_over);
+              
                 player.update_pos(curr_ground_point, angle, on_water);
-                player.flip();
+
+                if (player.flip(angle) && point_timer == 0){    //true if player "completed" a flip
+                    curr_step_score = 100.0;
+                    last_point_val = 100;
+                    point_timer = 60;
+                }
+
+
 
                 //DEBUG PLAYER (Plz dont delete, just comment out)
                 //println!("A-> vx:{} ax:{}, vy:{}
@@ -621,6 +637,25 @@ impl Game for Runner {
                     // Spawn new object
                     match new_object {
                         Some(StaticObject::Statue) => {
+
+                            let spawn_coord: Point = get_ground_coord(
+                                &all_terrain,
+                                (CAM_W as i32 + TILE_SIZE as i32 * 2),
+                            );
+                            let obstacle = Obstacle::new(
+                                rect!(
+                                    spawn_coord.x - TILE_SIZE as i32 / 2,
+                                    spawn_coord.y - TILE_SIZE as i32,
+                                    TILE_SIZE,
+                                    TILE_SIZE
+                                ),
+                                50.0, // mass
+                                600,  // value
+                                &tex_statue,
+                                ObstacleType::Statue,
+                            );
+                            all_obstacles.push(obstacle);
+ 
                             if !on_water {
                                 let obstacle = Obstacle::new(
                                     rect!(
@@ -632,11 +667,13 @@ impl Game for Runner {
                                         TILE_SIZE
                                     ),
                                     75.0, // mass
+                                    600,  // value
                                     &tex_statue,
                                     ObstacleType::Statue,
                                 );
                                 all_obstacles.push(obstacle);
                             }
+
                         }
                         Some(StaticObject::Balloon) => {
                             let obstacle = Obstacle::new(
@@ -647,12 +684,13 @@ impl Game for Runner {
                                     TILE_SIZE
                                 ),
                                 1.0,
+                                100, //value
                                 &tex_balloon,
                                 ObstacleType::Balloon,
                             );
                             all_obstacles.push(obstacle);
                         }
-                        Some(StaticObject::Chest) => {
+                        Some(StaticObject::Chest) => 
                             if !on_water {
                                 let obstacle = Obstacle::new(
                                     rect!(
@@ -662,6 +700,7 @@ impl Game for Runner {
                                         TILE_SIZE
                                     ),
                                     75.0,
+                                    200,  // value
                                     &tex_chest,
                                     ObstacleType::Chest,
                                 );
@@ -678,6 +717,7 @@ impl Game for Runner {
                                         TILE_SIZE * 2 / 3
                                     ),
                                     75.0,
+                                    200,  // value
                                     &tex_bench,
                                     ObstacleType::Bench,
                                 );
@@ -721,11 +761,12 @@ impl Game for Runner {
                 // Poorly placed rn, should be after postion / hitbox / collision update
                 // but before drawing
                 if !game_over {
-                    curr_step_score += (player.vel_x() / 5.0); // Increase score by factor of ammount moved that frame
-                    if let Some(PowerType::ScoreMultiplier) = player.power_up() {
-                        curr_step_score *= 2.0; // Hardcoded power bonus
-                        last_coin_val = 2000;
-                    }
+                    curr_step_score += (player.vel_x() / 1.5); // Increase score by factor of ammount moved that frame
+                    if let Some(PowerType::ScoreMultiplier) = player.power_up(){
+                        if point_timer == 60 {
+                            curr_step_score *= 2.0; // Hardcoded power bonus
+                            last_point_val = last_point_val * 2;
+                        }
                     total_score += curr_step_score as i32;
                 }
 
@@ -1143,20 +1184,31 @@ impl Game for Runner {
                 core.wincan
                     .copy(&tex_score, None, Some(rect!(10, 10, 100, 50)))?;
 
-                // Display added coin value when coin is collected
-                let coin_surface = font
-                    .render(&format!("   +{:04}", last_coin_val))
+                // Display added coin/obstacle value when coin/obstacle is collected
+                let point_surface;
+                if last_point_val > 999 { point_surface =
+                    font
+                    .render(&format!("   +{:04}", last_point_val))
                     .blended(Color::RGBA(100, 0, 200, 100))
                     .map_err(|e| e.to_string())?;
-                let tex_coin_val = texture_creator
-                    .create_texture_from_surface(&coin_surface)
+                }
+                else{
+                    point_surface =
+                    font
+                    .render(&format!("    +{:03}", last_point_val))
+                    .blended(Color::RGBA(100, 0, 200, 100))
+                    .map_err(|e| e.to_string())?; 
+                };
+
+                let tex_point_val = texture_creator
+                    .create_texture_from_surface(&point_surface)
                     .map_err(|e| e.to_string())?;
 
                 // Only show right after collecting a coin
-                if coin_timer > 0 {
+                if point_timer > 0 {
                     core.wincan
-                        .copy(&tex_coin_val, None, Some(rect!(10, 50, 100, 50)))?;
-                    coin_timer -= 1;
+                        .copy(&tex_point_val, None, Some(rect!(10, 50, 100, 50)))?;
+                    point_timer -= 1;
                 }
 
                 if game_over {

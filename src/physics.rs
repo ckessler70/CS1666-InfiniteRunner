@@ -314,7 +314,6 @@ pub struct Player<'a> {
     jumping: bool,
     flipping: bool,
     was_flipping: bool,
-    second_jump: bool,
 }
 
 impl<'a> Player<'a> {
@@ -338,7 +337,6 @@ impl<'a> Player<'a> {
             jumping: true,
             flipping: false,
             was_flipping: false,
-            second_jump: false,
         }
     }
 
@@ -412,9 +410,17 @@ impl<'a> Player<'a> {
         }
     }
 
-    pub fn flip(&mut self) {
+    pub fn flip(&mut self, angle: f64) -> bool {
         if self.is_flipping() {
             self.rotate();
+            //Player rotated enough to die, so let's call it a flip?
+            if (self.theta() > OMEGA * 6.0 + angle
+            || self.theta() < 2.0 * PI - OMEGA * 6.0 + angle) {
+                true
+            }
+            else{
+                false
+            }
         } else if self.was_flipping() {
             //allows for momentum when player stops flipping
             //to adjust rate of angular velocity decrease,
@@ -425,6 +431,9 @@ impl<'a> Player<'a> {
                 self.omega = 0.0;
             }
             self.rotate();
+            false
+        }else{
+            false
         }
     }
 
@@ -489,6 +498,9 @@ impl<'a> Player<'a> {
                         */
 
                         /***************************************************/
+                        //TEMP: waiting on physics merge
+                        //THEN: will need to set collected true when side collision & shielded
+                        
                         // Move obstacle
                         obstacle.collided = true;
                         obstacle.hard_set_vel((o_vx_f, o_vy_f));
@@ -509,7 +521,7 @@ impl<'a> Player<'a> {
                     }
                 }
                 // For Balloon, do nothing upon SIDE collision
-                ObstacleType::Balloon => false,
+                ObstacleType::Balloon => false
             }
         }
         // if the collision box is wider than it is tall, the player hit the top of the object
@@ -518,16 +530,17 @@ impl<'a> Player<'a> {
             match obstacle.obstacle_type {
                 // On top collision with chest, treat the chest as if it's normal ground
                 ObstacleType::Chest | ObstacleType::Bench => {
+
                     if !obstacle.collided() {
-                        self.pos.1 = (obstacle.y() as f64 - 0.95 * (TILE_SIZE as f64));
-                        self.align_hitbox_to_pos();
-                        self.velocity.1 = 0.0;
-                        self.jumping = false;
-                        self.was_flipping = false;
-                        self.lock_jump_time = false;
-                        self.apply_force((0.0, self.mass()));
-                        self.omega = 0.0;
-                        obstacle.collided = true;
+                      self.pos.1 = (obstacle.y() as f64 - 0.95 * (TILE_SIZE as f64));
+                      self.align_hitbox_to_pos();
+                      self.velocity.1 = 0.0;
+                      self.jumping = false;
+                      self.lock_jump_time = false;
+                      self.apply_force((0.0, self.mass()));
+                      self.omega = 0.0;
+                      obstacle.collided = true;
+                      obstacle.collected = true;
 
                         if self.theta() < OMEGA * 6.0 || self.theta() > 360.0 - OMEGA * 6.0 {
                             self.theta = 0.0;
@@ -549,6 +562,7 @@ impl<'a> Player<'a> {
                 // For spring, bounce off with Hooke's law force
                 ObstacleType::Balloon => {
                     Physics::apply_bounce(self, obstacle);
+                    obstacle.collected = true;
                     false
                 }
             }
@@ -701,6 +715,7 @@ pub struct Obstacle<'a> {
     hitbox: Rect,
 
     mass: f64,
+    pub value: i32,
     texture: &'a Texture<'a>,
     obstacle_type: ObstacleType,
 
@@ -708,6 +723,7 @@ pub struct Obstacle<'a> {
     omega: f64,
 
     pub collided: bool,
+    pub collected: bool,
     pub spawned: bool,
     pub delete_me: bool,
 }
@@ -716,6 +732,7 @@ impl<'a> Obstacle<'a> {
     pub fn new(
         hitbox: Rect,
         mass: f64,
+        value: i32,
         texture: &'a Texture<'a>,
         obstacle_type: ObstacleType,
     ) -> Obstacle<'a> {
@@ -726,6 +743,7 @@ impl<'a> Obstacle<'a> {
             hitbox,
 
             mass,
+            value,
             texture,
             obstacle_type,
 
@@ -733,6 +751,7 @@ impl<'a> Obstacle<'a> {
             omega: 0.0,
 
             collided: false,
+            collected: false,
             spawned: false,
             delete_me: false,
         }
@@ -744,6 +763,14 @@ impl<'a> Obstacle<'a> {
 
     pub fn collided(&self) -> bool {
         self.collided
+    }
+
+    pub fn collected(&self) -> bool {
+        self.collected
+    }
+
+    pub fn value(&self) -> i32 {
+        self.value
     }
 
     // Shifts objects left with the terrain in runner.rs
