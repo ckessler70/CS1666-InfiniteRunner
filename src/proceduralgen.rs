@@ -18,9 +18,6 @@ pub struct ProceduralGen;
 pub struct TerrainSegment<'a> {
     pos: Rect,              // Bounding box
     curve: Vec<(i32, i32)>, // Dynamic array of points defining the bezier curve
-    angle_from_last: f64,   /* Angle between previous segment and this segment,
-                             * should trend
-                             * downward on average */
     terrain_type: TerrainType,
     control_points: [(i32, i32); 4],
     texture: &'a Texture<'a>,
@@ -32,7 +29,6 @@ impl<'a> TerrainSegment<'a> {
     pub fn new(
         pos: Rect,
         curve: Vec<(i32, i32)>,
-        angle_from_last: f64,
         terrain_type: TerrainType,
         control_points: [(i32, i32); 4],
         texture: &'a Texture<'a>,
@@ -41,7 +37,6 @@ impl<'a> TerrainSegment<'a> {
         TerrainSegment {
             pos: pos,
             curve: curve,
-            angle_from_last: angle_from_last,
             terrain_type: terrain_type,
             control_points: control_points,
             texture: texture,
@@ -93,10 +88,6 @@ impl<'a> TerrainSegment<'a> {
 
     pub fn pos(&self) -> Rect {
         self.pos
-    }
-
-    pub fn angle_from_last(&self) -> f64 {
-        self.angle_from_last
     }
 
     pub fn get_type(&self) -> &TerrainType {
@@ -265,7 +256,6 @@ impl ProceduralGen {
             curve_points.0.len(),
             10
         );
-        let angle_from_last = 0.0; // ?
         let tex = match terrain_type {
             TerrainType::Asphalt => tex_all[0],
             TerrainType::Sand => tex_all[1],
@@ -273,14 +263,7 @@ impl ProceduralGen {
             TerrainType::Grass => tex_all[3],
         };
 
-        let terrain = TerrainSegment::new(
-            rect,
-            curve_points.0,
-            angle_from_last,
-            terrain_type,
-            curve_points.1,
-            tex,
-        );
+        let terrain = TerrainSegment::new(rect, curve_points.0, terrain_type, curve_points.1, tex);
 
         return terrain;
     }

@@ -246,7 +246,6 @@ impl Game for Runner {
         let init_terrain_1 = TerrainSegment::new(
             rect!(0, TERRAIN_LOWER_BOUND + TILE_SIZE as i32, CAM_W, CAM_H),
             init_curve_1,
-            0.0,
             TerrainType::Grass,
             cp_1,
             &tex_grass,
