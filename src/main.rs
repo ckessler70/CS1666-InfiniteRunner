@@ -8,10 +8,10 @@
 #![allow(unused_imports)]
 
 mod credits;
+mod instruction;
 mod physics;
 mod proceduralgen;
 mod runner;
-mod testbezier;
 mod title;
 mod utils;
 
@@ -29,10 +29,7 @@ pub struct UrbanOdyssey {
     title: title::Title,
     runner: runner::Runner,
     credits: credits::Credits,
-    proceduralgen: proceduralgen::ProceduralGen,
-    testbezier: testbezier::TestBezier,
-    /* physics?
-     * procedural generation? */
+    instruct: instruction::Instruction,
 }
 
 fn main() {
@@ -92,16 +89,15 @@ fn main() {
                             }
                         };
                     }
-                    Some(GameStatus::BezierSim) => {
-                        println!("\nTesting Bezier Simulation:");
-                        println!("\tRunning...");
+                    Some(GameStatus::Instruct) => {
+                        println!("\nRunning Instruct Sequence:");
+                        print!("\tRunning...");
 
-                        match contents.testbezier.run(&mut (contents.core)) {
-                            Err(e) => {
-                                println!("\n\t\tEncountered error while running: {}", e)
-                            }
-                            Ok(game_status) => {
-                                game_manager = game_status;
+                        // CREDITS RUN
+                        match contents.instruct.run(&mut (contents.core)) {
+                            Err(e) => println!("\n\t\tEncountered error while running: {}", e),
+                            Ok(instruct_status) => {
+                                game_manager = instruct_status;
                                 println!("DONE\nExiting cleanly");
                             }
                         };
@@ -121,17 +117,13 @@ fn init() -> Result<UrbanOdyssey, String> {
     let title = title::Title::init()?;
     let runner = runner::Runner::init()?;
     let credits = credits::Credits::init()?;
-    // physics?
-    let proceduralgen = proceduralgen::ProceduralGen::init()?;
-    // procedural generation?
-    let testbezier = testbezier::TestBezier::init()?;
+    let instruct = instruction::Instruction::init()?;
 
     Ok(UrbanOdyssey {
         core,
         title,
         runner,
         credits,
-        proceduralgen,
-        testbezier,
+        instruct,
     })
 }
