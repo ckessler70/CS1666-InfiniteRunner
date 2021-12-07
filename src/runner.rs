@@ -690,7 +690,7 @@ impl Game for Runner {
                             );
                             all_obstacles.push(obstacle);
                         }
-                        Some(StaticObject::Chest) => 
+                        Some(StaticObject::Chest) => {
                             if !on_water {
                                 let obstacle = Obstacle::new(
                                     rect!(
@@ -768,6 +768,7 @@ impl Game for Runner {
                             last_point_val = last_point_val * 2;
                         }
                     total_score += curr_step_score as i32;
+                    }
                 }
 
                 /* Update ground / object positions to move player forward
@@ -1294,3 +1295,4 @@ impl Game for Runner {
         })
     } // End run fn
 } // End impl
+
