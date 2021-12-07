@@ -637,25 +637,6 @@ impl Game for Runner {
                     // Spawn new object
                     match new_object {
                         Some(StaticObject::Statue) => {
-
-                            let spawn_coord: Point = get_ground_coord(
-                                &all_terrain,
-                                (CAM_W as i32 + TILE_SIZE as i32 * 2),
-                            );
-                            let obstacle = Obstacle::new(
-                                rect!(
-                                    spawn_coord.x - TILE_SIZE as i32 / 2,
-                                    spawn_coord.y - TILE_SIZE as i32,
-                                    TILE_SIZE,
-                                    TILE_SIZE
-                                ),
-                                50.0, // mass
-                                600,  // value
-                                &tex_statue,
-                                ObstacleType::Statue,
-                            );
-                            all_obstacles.push(obstacle);
- 
                             if !on_water {
                                 let obstacle = Obstacle::new(
                                     rect!(
