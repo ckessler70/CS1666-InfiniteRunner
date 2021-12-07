@@ -756,8 +756,6 @@ impl Game for Runner {
                         &last_seg,
                         CAM_W as i32,
                         CAM_H as i32,
-                        false, //rng.gen_range(0..100) < 20, Pits have weird interaction with camera comp
-                        rng.gen_range(0..100) < 5,
                         rng.gen_range(0..100) < 5,
                         tex_all,
                     );

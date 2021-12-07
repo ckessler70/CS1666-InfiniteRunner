@@ -171,9 +171,7 @@ impl ProceduralGen {
         prev_seg: &TerrainSegment,
         cam_w: i32,
         cam_h: i32,
-        _is_pit: bool,
         _is_flat: bool,
-        _is_cliff: bool,
         tex_all: [&'a Texture<'a>; 4],
     ) -> TerrainSegment<'a> {
         let mut rng = rand::thread_rng();
@@ -189,16 +187,11 @@ impl ProceduralGen {
         };
 
         let flat_mod: f64 = 0.25;
-        let cliff_min_mod: f64 = 2.0;
-        let cliff_max_mod: f64 = 5.0;
 
         let freq = rng.gen_range(32.0..256.0);
         let amp: f64 = if _is_flat {
             // Make terrain flatter
             rng.gen::<f64>() * flat_mod
-        } else if _is_cliff {
-            // Make terrain more drastic
-            rng.gen::<f64>() * cliff_max_mod.clamp(cliff_min_mod, cliff_max_mod)
         } else {
             rng.gen::<f64>()
         };
@@ -263,34 +256,10 @@ impl ProceduralGen {
         let prev_points = prev_seg.get_ctrl_points();
 
         // Set p0 or previous curve's end control point
-        let q_n = if _is_cliff {
-            (
-                prev_points[prev_points.len() - 1].0,
-                prev_points[prev_points.len() - 1].1 + 100,
-            )
-        } else if _is_pit {
-            (
-                prev_points[prev_points.len() - 1].0 + 10,
-                prev_points[prev_points.len() - 1].1,
-            )
-        } else {
-            prev_points[prev_points.len() - 1]
-        };
+        let q_n = prev_points[prev_points.len() - 1];
 
         // Set q_n-1 or second to last control point of previous curve
-        let q_n1 = if _is_cliff {
-            (
-                prev_points[prev_points.len() - 2].0,
-                prev_points[prev_points.len() - 2].1 + 100,
-            )
-        } else if _is_pit {
-            (
-                prev_points[prev_points.len() - 1].0 + 10,
-                prev_points[prev_points.len() - 1].1,
-            )
-        } else {
-            prev_points[prev_points.len() - 2]
-        };
+        let q_n1 = prev_points[prev_points.len() - 2];
 
         //instantiation
         let mut curve_points = gen_bezier_curve(
@@ -304,20 +273,6 @@ impl ProceduralGen {
             100,
             _is_flat,
         );
-
-        if _is_pit {
-            let rel_x = curve_points.0[0].0;
-            curve_points.0.insert(0, (rel_x - 10, 720));
-            curve_points.0.insert(1, (rel_x - 9, 720));
-            curve_points.0.insert(2, (rel_x - 8, 720));
-            curve_points.0.insert(3, (rel_x - 7, 720));
-            curve_points.0.insert(4, (rel_x - 6, 720));
-            curve_points.0.insert(5, (rel_x - 5, 720));
-            curve_points.0.insert(6, (rel_x - 4, 720));
-            curve_points.0.insert(7, (rel_x - 3, 720));
-            curve_points.0.insert(8, (rel_x - 2, 720));
-            curve_points.0.insert(9, (rel_x - 1, 720));
-        }
 
         // Due to weird rust semantics, need to make a var to hold curve length
         let curve_len = curve_points.0.len();
