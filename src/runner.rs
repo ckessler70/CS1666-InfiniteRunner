@@ -767,8 +767,8 @@ impl Game for Runner {
                             curr_step_score *= 2.0; // Hardcoded power bonus
                             last_point_val = last_point_val * 2;
                         }
-                    total_score += curr_step_score as i32;
                     }
+                    total_score += curr_step_score as i32;
                 }
 
                 /* Update ground / object positions to move player forward
