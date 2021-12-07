@@ -11,7 +11,7 @@ use crate::runner::TILE_SIZE as InitTILE_SIZE;
 use std::f64::consts::PI;
 
 const LOWER_SPEED: f64 = -5.0;
-const UPPER_SPEED: f64 = 10.0;
+const UPPER_SPEED: f64 = 12.5;
 const OMEGA: f64 = PI / 18.0;
 const TILE_SIZE: f64 = InitTILE_SIZE as f64;
 
@@ -31,8 +31,12 @@ impl Physics {
     // Checks if player hasn't landed on their head
     // Params: player, ground position as SDL point, angle of ground
     // Returns: true if player is upright, false otherwise
-    pub fn check_player_upright<'a>(player: &Player, angle: f64, ground: Point) -> bool {
-        !player.hitbox().contains_point(ground)
+    pub fn check_player_upright<'a>(player: &mut Player, angle: f64, ground: Point) -> bool {
+        let on_ground = player.hitbox().contains_point(ground);
+        if on_ground {
+            player.was_flipping = false;
+        }
+        !on_ground
             || (player.theta() < OMEGA * 6.0 + angle
                 || player.theta() > 2.0 * PI - OMEGA * 6.0 + angle)
     }
@@ -49,25 +53,25 @@ impl Physics {
     ) {
         // Set Gravity & Friction Strength From TerrainType
         let mut fric_coeff: f64;
-        let mut g: f64 = 1.5;
+        let mut g: f64 = 1.25;
         //As of now, all conds lead to +accel on flat ground (we could change this)
         match terrain_type {
             TerrainType::Asphalt => {
                 //quick accel to max on flat
-                fric_coeff = 0.075;
+                fric_coeff = 0.035;
             }
             TerrainType::Grass => {
                 //moderate accel to max on flat
-                fric_coeff = 0.1;
+                fric_coeff = 0.065;
             }
             TerrainType::Sand => {
                 //v slow accel to max on flat & short jumps
-                fric_coeff = 0.085; //less friction is more bc higher gravity
-                g = 2.0;
+                fric_coeff = 0.1; //less friction is more bc higher gravity
+                g = 1.5;
             }
             TerrainType::Water => {
                 //NOT YET CONFIGURED
-                fric_coeff = 0.2;
+                fric_coeff = 0.0;
             }
         }
 
@@ -79,57 +83,67 @@ impl Physics {
         // Gravity: mg
         body.apply_force((0.0, -body.mass() * g));
 
-        /*
-            Note on angles:
-            - Negative angle == uphill
-            - Positive angle == downhill
-            - sin(-x) is negative
-            - cos(-x) is positive
-        */
+        if let TerrainType::Water = terrain_type {
+            return;
+        } else {
+            /*
+                Note on angles:
+                - Negative angle == uphill
+                - Positive angle == downhill
+                - sin(-x) is negative
+                - cos(-x) is positive
+            */
 
-        // If body is on ground, apply normal
-        if body.hitbox().contains_point(ground) {
-            // Land on ground
-            if body.vel_y() < 0.0 || (body.x() as f64 + 0.9 * TILE_SIZE) > ground.y() as f64 {
-                body.hard_set_pos((body.x() as f64, ground.y() as f64 - 0.95 * TILE_SIZE));
-                body.hard_set_vel((body.vel_x(), 0.0));
-                body.align_hitbox_to_pos();
+            // If body is on ground, apply normal
+            let pre_forces_direction = (body.vel_x() + body.accel_x()).signum();
+            let height = body.hitbox().height() as i32;
+            if body.hitbox().y() + height > ground.y() {
+                // Land on ground
+                if body.vel_y() < 0.0
+                    || (body.y() as f64 + 0.95 * (height as f64)) > ground.y() as f64
+                {
+                    body.hard_set_pos((
+                        body.x() as f64,
+                        ground.y() as f64 - 0.95 * (height as f64),
+                    ));
+                    body.hard_set_vel((body.vel_x(), -0.01));
+                    body.align_hitbox_to_pos();
+                }
+
+                // Normal: mg, but on an incline
+                // (-x, +y) on an uphill
+                // (+x, +y) on a downhill
+                body.apply_force((body.mass() * g * angle.sin(), body.mass() * g * angle.cos()));
+
+                // If body is on ground AND moving, apply KINETIC FRICTION
+                if body.vel_x().abs() + body.vel_y().abs() > 0.0 {
+                    // Friction: µmg, on an incline, perpendicular to normal
+                    // (-x, -y) on an uphill
+                    // (-x, +y) on an downhill
+                    // make negative if object is moving backwards
+                    let direction_adjust = body.vel_x().signum();
+                    body.apply_force((
+                        -fric_coeff * body.mass() * g * angle.cos() * direction_adjust,
+                        fric_coeff * body.mass() * g * angle.sin() * direction_adjust,
+                    ));
+                }
+                let post_forces_direction = (body.vel_x() + body.accel_x()).signum();
+
+                if pre_forces_direction != post_forces_direction {
+                    body.hard_set_vel((0.0, 0.0));
+                    body.reset_accel();
+                }
+                // Else if body is on ground and STILL, apply STATIC FRICTION
+                // NOTE: This might be unnecessary
+                // else {
+                //     // (+x, +y) on an uphill
+                //     // (-x, +y) on a downhill
+                //     body.apply_force((
+                //         -angle.signum() * body.mass() * g * angle.cos(),
+                //         angle.signum() * body.mass() * g * angle.sin(),
+                //     ));
+                // }
             }
-
-            // Normal: mg, but on an incline
-            // (-x, +y) on an uphill
-            // (+x, +y) on a downhill
-            body.apply_force((body.mass() * g * angle.sin(), body.mass() * g * angle.cos()));
-
-            // If body is on ground AND moving, apply KINETIC FRICTION
-            let pre_friction_direction = (body.vel_x() + body.accel_x()).signum();
-            if body.vel_x().abs() + body.vel_y().abs() > 0.0 {
-                // Friction: µmg, on an incline, perpendicular to normal
-                // (-x, -y) on an uphill
-                // (-x, +y) on an downhill
-                // make negative if object is moving backwards
-                let direction_adjust = body.vel_x().signum();
-                body.apply_force((
-                    -fric_coeff * body.mass() * g * angle.cos() * direction_adjust,
-                    fric_coeff * body.mass() * g * angle.sin() * direction_adjust,
-                ));
-            }
-            let post_friction_direction = (body.vel_x() + body.accel_x()).signum();
-
-            if pre_friction_direction != post_friction_direction {
-                body.hard_set_vel((0.0, 0.0));
-                body.reset_accel();
-            }
-            // Else if body is on ground and STILL, apply STATIC FRICTION
-            // NOTE: This might be unnecessary
-            // else {
-            //     // (+x, +y) on an uphill
-            //     // (-x, +y) on a downhill
-            //     body.apply_force((
-            //         -angle.signum() * body.mass() * g * angle.cos(),
-            //         angle.signum() * body.mass() * g * angle.sin(),
-            //     ));
-            // }
         }
     }
 
@@ -139,11 +153,7 @@ impl Physics {
     // Returns: None
     pub fn apply_skate_force(player: &mut Player, angle: f64, ground: Point) {
         // Skate force
-        let mut skate_force = 1.0 / 6.0 * player.mass();
-        if let Some(PowerType::SpeedBoost) = player.power_up() {
-            // Speed up with powerup
-            skate_force *= 2.0;
-        }
+        let mut skate_force = 1.0 / 7.0 * player.mass();
 
         if player.hitbox().contains_point(ground) {
             // (+x, +y) on an uphill
@@ -176,7 +186,7 @@ impl Physics {
     // Params: player, surface position as SDL Point
     pub fn apply_buoyancy(player: &mut Player, surface: Point) {
         // Density
-        let p = player.mass() / 4.0;
+        let p = player.mass() / 5000.0;
 
         // Acceleration of gravity
         let mut g: f64 = 1.0;
@@ -193,6 +203,12 @@ impl Physics {
         if submerged_area > 0.0 {
             // Force is always upwards
             player.apply_force((0.0, p * g * submerged_area));
+
+            player.theta = player.theta()
+                - 0.05
+                    * player.theta()
+                    * (submerged_area
+                        / (player.hitbox().width() * player.hitbox().height()) as f64);
         }
     }
 }
@@ -361,8 +377,6 @@ impl<'a> Player<'a> {
     // Brings player's rotational velocity to a stop
     pub fn stop_flipping(&mut self) {
         self.flipping = false;
-        self.was_flipping = false;
-        //self.omega = 0.0;
     }
 
     // Gives player rotational velocity
@@ -383,12 +397,14 @@ impl<'a> Player<'a> {
 
     // Returns true if a jump was initiated
     pub fn jump(&mut self, ground: Point) -> bool {
-        if self.hitbox().contains_point(ground) {
+        let height = self.hitbox.height() as f64;
+        // Jump if on ground (with some give as to what "on ground" means)
+        if self.hitbox().y() + (1.05 * height) as i32 > ground.y() {
             // Starting from the position of the ground
-            self.hard_set_pos((self.pos.0, ground.y() as f64 - TILE_SIZE));
+            self.hard_set_pos((self.pos.0, ground.y() as f64 - height));
             self.align_hitbox_to_pos();
             // Apply upward force
-            self.apply_force((0.0, 100.0));
+            self.apply_force((0.0, 80.0));
             self.jumping = true;
             true
         } else {
@@ -403,8 +419,8 @@ impl<'a> Player<'a> {
             //allows for momentum when player stops flipping
             //to adjust rate of angular velocity decrease,
             //change the value being subtracted from omega
-            if (self.omega - 0.003) != 0.0 {
-                self.omega = self.omega - 0.003;
+            if (self.omega - (0.03 * self.omega)) != 0.0 {
+                self.omega = self.omega - (0.03 * self.omega);
             } else {
                 self.omega = 0.0;
             }
@@ -433,13 +449,14 @@ impl<'a> Player<'a> {
                 .intersection(obstacle.hitbox())
                 .unwrap()
                 .width())
+            && self.hitbox.x() < obstacle.hitbox.x()
         {
             // Response to collision dependent on type of obstacle
             match obstacle.obstacle_type {
                 // For statue and chest, elastic collision
                 ObstacleType::Statue | ObstacleType::Chest | ObstacleType::Bench => {
-                    if shielded || obstacle.collided() {
-                        // If shielded or collision already happened, pretend nothing happened
+                    if obstacle.collided() {
+                        // If collision already happened, pretend nothing happened
                         false
                     } else {
                         /********** ELASTIC COLLISION CALCULATION **********/
@@ -462,20 +479,33 @@ impl<'a> Player<'a> {
                         // Torque = r*F * sin(angle)
                         // alpha = Torque/body.rotational_inertia()
                         // For ease of calculation, just set omega = alpha
+                        /*
+                        //Not certain if this math is correct
+                        let force = self.mass() * ((self.velocity.0*self.velocity.0) + (self.velocity.1*self.velocity.1)).sqrt();
+                        let torque = ((self.hitbox().width() as f64) / 2.0)  *  angle.sin();
+                        let alpha = torque / self.rotational_inertia();             //rot inertia is 7500
+                        self.omega = alpha;
+                        println!("t:{} a:{} f:{} sin:{} rot:{}", torque, alpha,force,angle.sin(),self.rotational_inertia());
+                        */
 
                         /***************************************************/
                         // Move obstacle
                         obstacle.collided = true;
                         obstacle.hard_set_vel((o_vx_f, o_vy_f));
 
-                        // Move player
-                        self.hard_set_vel((p_vx_f, p_vy_f));
-                        self.hard_set_pos((
+                        if shielded{    // Don't move player
+                            false       // Game not over
+                        }
+                        else{
+                                        // Move player
+                            self.hard_set_vel((p_vx_f, p_vy_f));
+                            self.hard_set_pos((
                             obstacle.x() as f64 - 1.05 * TILE_SIZE,
                             self.y() as f64,
-                        ));
-                        self.align_hitbox_to_pos();
-                        true
+                            ));
+                            self.align_hitbox_to_pos();
+                            true        // game over
+                        }
                     }
                 }
                 // For Balloon, do nothing upon SIDE collision
@@ -484,32 +514,37 @@ impl<'a> Player<'a> {
         }
         // if the collision box is wider than it is tall, the player hit the top of the object
         // don't apply the collision to the top of an object if the player is moving upward, otherwise they will "stick" to the top on the way up
-        else if self.vel_y() < 0.0 {
+        else if self.is_jumping() && self.vel_y() < 0.0 {
             match obstacle.obstacle_type {
                 // On top collision with chest, treat the chest as if it's normal ground
                 ObstacleType::Chest | ObstacleType::Bench => {
-                    // obstacle.collided = true;
-                    self.pos.1 = (obstacle.y() as f64 - 0.95 * (TILE_SIZE as f64));
-                    self.align_hitbox_to_pos();
-                    self.velocity.1 = 0.0;
-                    self.jumping = false;
-                    self.lock_jump_time = false;
-                    self.apply_force((0.0, self.mass()));
-                    self.omega = 0.0;
-                    obstacle.collided = true;
+                    if !obstacle.collided() {
+                        self.pos.1 = (obstacle.y() as f64 - 0.95 * (TILE_SIZE as f64));
+                        self.align_hitbox_to_pos();
+                        self.velocity.1 = 0.0;
+                        self.jumping = false;
+                        self.was_flipping = false;
+                        self.lock_jump_time = false;
+                        self.apply_force((0.0, self.mass()));
+                        self.omega = 0.0;
+                        obstacle.collided = true;
 
-                    if self.theta() < OMEGA * 6.0 || self.theta() > 360.0 - OMEGA * 6.0 {
-                        self.theta = 0.0;
-                        false
+                        if self.theta() < OMEGA * 6.0 || self.theta() > 360.0 - OMEGA * 6.0 {
+                            self.theta = 0.0;
+                            false
+                        } else {
+                            true
+                        }
                     } else {
-                        true
+                        false
                     }
                 }
                 // For irregularly shaped statue, player gets hurt and game over
                 ObstacleType::Statue => {
                     // bounce for fun
+                    obstacle.collided = true;
                     Physics::apply_bounce(self, obstacle);
-                    true
+                    !shielded
                 }
                 // For spring, bounce off with Hooke's law force
                 ObstacleType::Balloon => {
@@ -576,22 +611,11 @@ impl<'a> Body<'a> for Player<'a> {
         self.mass
     }
 
-    fn update_pos(&mut self, ground: Point, angle: f64, game_over: bool) {
-        if self.hitbox.contains_point(ground) {
-            self.theta = angle;
-        }
-
-        /*
-        // TEMPORARY: Player's x position is fixed until camera freezes on game ending
-        // Will change when camera follows player
-        if game_over {
-            self.pos.0 += self.vel_x();
-        }
-        */
+    fn update_pos(&mut self, ground: Point, angle: f64, on_water: bool) {
         self.pos.1 -= self.vel_y();
 
         // Match the angle of the ground if on ground
-        if self.hitbox.contains_point(ground) && !game_over {
+        if self.hitbox().contains_point(ground) && !on_water {
             self.theta = angle;
             if self.jumping {
                 self.jumping = false;
@@ -624,7 +648,7 @@ impl<'a> Body<'a> for Player<'a> {
         if game_over {
             self.velocity.0 = (self.velocity.0 + self.accel.0).clamp(-upper_x_speed, upper_x_speed);
         } else {
-            self.velocity.0 = (self.velocity.0 + self.accel.0).clamp(2.0, upper_x_speed);
+            self.velocity.0 = (self.velocity.0 + self.accel.0).clamp(6.5, upper_x_speed);
         }
 
         self.velocity.1 =

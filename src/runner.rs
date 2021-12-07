@@ -394,8 +394,16 @@ impl Game for Runner {
                 /* ~~~~~~ Handle Player Collisions ~~~~~~ */
 
                 // If the player doesn't land on ther feet, end game
-                if !Physics::check_player_upright(&player, angle, curr_ground_point) {
-                    game_over = true;
+                // except on water
+                let curr_terrain_type = get_ground_type(&all_terrain, PLAYER_X); //for physics
+                let mut on_water = false;
+                if let TerrainType::Water = curr_terrain_type {
+                    on_water = true;
+                }
+                if !Physics::check_player_upright(&mut player, angle, curr_ground_point) {
+                    if !on_water {
+                        game_over = true;
+                    }
                 }
 
                 // Check through all collisions with obstacles
@@ -466,7 +474,6 @@ impl Game for Runner {
 
                 // Apply forces on player
                 let current_power = player.power_up();
-                let curr_terrain_type = get_ground_type(&all_terrain, PLAYER_X); //for physics
 
                 Physics::apply_terrain_forces(
                     // Gravity, normal, and friction
@@ -476,13 +483,16 @@ impl Game for Runner {
                     curr_terrain_type,
                     current_power,
                 );
+                if on_water {
+                    Physics::apply_buoyancy(&mut player, curr_ground_point);
+                }
                 if !game_over {
                     // Propel forward
                     Physics::apply_skate_force(&mut player, angle, curr_ground_point);
                 }
                 //update player attributes
                 player.update_vel(game_over);
-                player.update_pos(curr_ground_point, angle, game_over);
+                player.update_pos(curr_ground_point, angle, on_water);
                 player.flip();
 
                 //DEBUG PLAYER (Plz dont delete, just comment out)
@@ -520,8 +530,6 @@ impl Game for Runner {
 
                 // Generate new terrain / objects if player hasn't died
                 if !game_over {
-                    /* ~~~~~~ Object Generation ~~~~~~ */
-
                     // Every 3 ticks, build a new front mountain segment
                     if bg_tick % 3 == 0 {
                         for i in 0..(BG_CURVES_SIZE as usize - 1) {
@@ -557,6 +565,8 @@ impl Game for Runner {
                         background_curves[IND_BACKGROUND_BACK][(BG_CURVES_SIZE - 1) as usize] =
                             chunk_2;
                     }
+
+                    /* ~~~~~~ Object Generation ~~~~~~ */
 
                     // Value spawn_timer is reset to upon spawning an object.
                     // Decreases to increase spawn rates based on total_score.
@@ -601,29 +611,34 @@ impl Game for Runner {
                         spawn_timer = rng.gen_range(0.0..min_spawn_gap as f64);
                     }
 
+                    // Don't spawn certain objects on water
+                    let spawn_coord: Point = get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
+                    let mut on_water = false;
+                    if let TerrainType::Water = get_ground_type(&all_terrain, spawn_coord.x()) {
+                        on_water = true;
+                    }
+
                     // Spawn new object
                     match new_object {
                         Some(StaticObject::Statue) => {
-                            let spawn_coord: Point = get_ground_coord(
-                                &all_terrain,
-                                (CAM_W as i32 + TILE_SIZE as i32 * 2),
-                            );
-                            let obstacle = Obstacle::new(
-                                rect!(
-                                    spawn_coord.x - TILE_SIZE as i32 / 2,
-                                    spawn_coord.y - TILE_SIZE as i32,
-                                    TILE_SIZE,
-                                    TILE_SIZE
-                                ),
-                                50.0, // mass
-                                &tex_statue,
-                                ObstacleType::Statue,
-                            );
-                            all_obstacles.push(obstacle);
+                            if !on_water {
+                                let obstacle = Obstacle::new(
+                                    rect!(
+                                        // Adjust x coordinate so that center of object is on ground
+                                        spawn_coord.x - TILE_SIZE as i32 / 2,
+                                        // Adjust y coordinate so that bottom of object is on ground
+                                        spawn_coord.y - TILE_SIZE as i32,
+                                        TILE_SIZE,
+                                        TILE_SIZE
+                                    ),
+                                    75.0, // mass
+                                    &tex_statue,
+                                    ObstacleType::Statue,
+                                );
+                                all_obstacles.push(obstacle);
+                            }
                         }
                         Some(StaticObject::Balloon) => {
-                            let spawn_coord: Point =
-                                get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
                             let obstacle = Obstacle::new(
                                 rect!(
                                     spawn_coord.x - TILE_SIZE as i32 / 2,
@@ -638,40 +653,38 @@ impl Game for Runner {
                             all_obstacles.push(obstacle);
                         }
                         Some(StaticObject::Chest) => {
-                            let spawn_coord: Point =
-                                get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
-                            let obstacle = Obstacle::new(
-                                rect!(
-                                    spawn_coord.x - TILE_SIZE as i32 / 2,
-                                    spawn_coord.y - TILE_SIZE as i32,
-                                    TILE_SIZE,
-                                    TILE_SIZE
-                                ),
-                                50.0,
-                                &tex_chest,
-                                ObstacleType::Chest,
-                            );
-                            all_obstacles.push(obstacle);
+                            if !on_water {
+                                let obstacle = Obstacle::new(
+                                    rect!(
+                                        spawn_coord.x - TILE_SIZE as i32 / 2,
+                                        spawn_coord.y - TILE_SIZE as i32,
+                                        TILE_SIZE,
+                                        TILE_SIZE
+                                    ),
+                                    75.0,
+                                    &tex_chest,
+                                    ObstacleType::Chest,
+                                );
+                                all_obstacles.push(obstacle);
+                            }
                         }
                         Some(StaticObject::Bench) => {
-                            let spawn_coord: Point =
-                                get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
-                            let obstacle = Obstacle::new(
-                                rect!(
-                                    spawn_coord.x - TILE_SIZE as i32 / 2,
-                                    spawn_coord.y - TILE_SIZE as i32 * 2 / 3,
-                                    TILE_SIZE,
-                                    TILE_SIZE * 2 / 3
-                                ),
-                                50.0,
-                                &tex_bench,
-                                ObstacleType::Bench,
-                            );
-                            all_obstacles.push(obstacle);
+                            if !on_water {
+                                let obstacle = Obstacle::new(
+                                    rect!(
+                                        spawn_coord.x - TILE_SIZE as i32 / 2,
+                                        spawn_coord.y - TILE_SIZE as i32 * 2 / 3,
+                                        TILE_SIZE,
+                                        TILE_SIZE * 2 / 3
+                                    ),
+                                    75.0,
+                                    &tex_bench,
+                                    ObstacleType::Bench,
+                                );
+                                all_obstacles.push(obstacle);
+                            }
                         }
                         Some(StaticObject::Coin) => {
-                            let spawn_coord: Point =
-                                get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
                             let coin = Coin::new(
                                 rect!(
                                     spawn_coord.x - TILE_SIZE as i32 / 2,
@@ -685,8 +698,6 @@ impl Game for Runner {
                             all_coins.push(coin);
                         }
                         Some(StaticObject::Power) => {
-                            let spawn_coord: Point =
-                                get_ground_coord(&all_terrain, (CAM_W as i32) - 1);
                             let pow = Power::new(
                                 rect!(
                                     spawn_coord.x - TILE_SIZE as i32 / 2,
@@ -710,7 +721,7 @@ impl Game for Runner {
                 // Poorly placed rn, should be after postion / hitbox / collision update
                 // but before drawing
                 if !game_over {
-                    curr_step_score += (player.vel_x() / 1.5); // Increase score by factor of ammount moved that frame
+                    curr_step_score += (player.vel_x() / 5.0); // Increase score by factor of ammount moved that frame
                     if let Some(PowerType::ScoreMultiplier) = player.power_up() {
                         curr_step_score *= 2.0; // Hardcoded power bonus
                         last_coin_val = 2000;
