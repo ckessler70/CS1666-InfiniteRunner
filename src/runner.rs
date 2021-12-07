@@ -99,6 +99,11 @@ impl Game for Runner {
         let tex_fast = texture_creator.load_texture("assets/player/speed_player.png")?;
         let tex_rich = texture_creator.load_texture("assets/player/multiplier_player.png")?;
 
+        let tex_grass = texture_creator.load_texture("assets/terrain/grass_noise.png")?;
+        let tex_sand = texture_creator.load_texture("assets/terrain/sand_noise.png")?;
+        let tex_asphalt = texture_creator.load_texture("assets/terrain/asphalt_noise.png")?;
+        let tex_water = texture_creator.load_texture("assets/terrain/water_noise.png")?;
+
         let tex_resume = texture_creator
             .create_texture_from_surface(
                 &font
@@ -247,8 +252,8 @@ impl Game for Runner {
             init_curve_1,
             0.0,
             TerrainType::Grass,
-            Color::RGB(86, 125, 70),
             cp_1,
+            &tex_grass,
         );
         all_terrain.push(init_terrain_1);
 
@@ -734,6 +739,7 @@ impl Game for Runner {
                 // Generate new ground when the last segment becomes visible
                 let last_seg = all_terrain.get(all_terrain.len() - 1).unwrap();
                 if last_seg.x() < CAM_W as i32 {
+                    let tex_all = [&tex_asphalt, &tex_sand, &tex_water, &tex_grass];
                     let new_terrain = proceduralgen::ProceduralGen::gen_terrain(
                         &random,
                         &last_seg,
@@ -742,6 +748,7 @@ impl Game for Runner {
                         false, //rng.gen_range(0..100) < 20, Pits have weird interaction with camera comp
                         rng.gen_range(0..100) < 5,
                         rng.gen_range(0..100) < 5,
+                        tex_all,
                     );
                     all_terrain.push(new_terrain);
                 }
@@ -972,13 +979,20 @@ impl Game for Runner {
                         }
                         // Normal drawing
                         else {
-                            core.wincan.set_draw_color(ground_seg.color());
-                            core.wincan.fill_rect(rect!(
-                                slice_x,
-                                slice_y,
-                                1,
-                                CAM_H as i32 - slice_y
-                            ))?;
+                            core.wincan.copy_ex(
+                                ground_seg.texture(),
+                                rect!(
+                                    (curve[curve.len() - 1].0 - slice_x) % 720,
+                                    0,
+                                    1,
+                                    CAM_H as i32 - slice_y
+                                ),
+                                rect!(slice_x, slice_y, 1, CAM_H as i32 - slice_y),
+                                0.0,
+                                None,
+                                false,
+                                false,
+                            )?;
                         }
                     }
                 }
@@ -1195,7 +1209,10 @@ impl Game for Runner {
             }
             // Given the current terrain and an x coordinate of the screen,
             // returns the (x, y) of the ground at that x
-            fn get_ground_type(all_terrain: &Vec<TerrainSegment>, screen_x: i32) -> &TerrainType {
+            fn get_ground_type<'a>(
+                all_terrain: &'a Vec<TerrainSegment>,
+                screen_x: i32,
+            ) -> &'a TerrainType {
                 // Loop backwards
                 for ground in all_terrain.iter().rev() {
                     // The first segment starting at or behind

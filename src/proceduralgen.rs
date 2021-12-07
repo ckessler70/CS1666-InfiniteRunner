@@ -31,35 +31,35 @@ const BG_CURVES_SIZE: usize = CAM_W as usize / 10; // 1/10 of screen for good pe
 pub struct ProceduralGen;
 
 // Representation of a single bezier curve
-pub struct TerrainSegment {
+pub struct TerrainSegment<'a> {
     pos: Rect,              // Bounding box
     curve: Vec<(i32, i32)>, // Dynamic array of points defining the bezier curve
     angle_from_last: f64,   /* Angle between previous segment and this segment,
                              * should trend
                              * downward on average */
     terrain_type: TerrainType,
-    color: Color,
     control_points: [(i32, i32); 4],
+    texture: &'a Texture<'a>,
 }
 
 // Terrain Segment Definitions
-impl TerrainSegment {
+impl<'a> TerrainSegment<'a> {
     pub fn new(
         pos: Rect,
         curve: Vec<(i32, i32)>,
         angle_from_last: f64,
         terrain_type: TerrainType,
-        color: Color,
         control_points: [(i32, i32); 4],
-    ) -> TerrainSegment {
+        texture: &'a Texture<'a>,
+    ) -> TerrainSegment<'a> {
         // Set defaults, should probably be different than this
         TerrainSegment {
             pos: pos,
             curve: curve,
             angle_from_last: angle_from_last,
             terrain_type: terrain_type,
-            color: color,
             control_points: control_points,
+            texture: texture,
         }
     }
 
@@ -118,10 +118,6 @@ impl TerrainSegment {
         &self.terrain_type
     }
 
-    pub fn color(&self) -> Color {
-        self.color
-    }
-
     pub fn curve(&self) -> &Vec<(i32, i32)> {
         &(self.curve)
     }
@@ -129,9 +125,13 @@ impl TerrainSegment {
     pub fn get_ctrl_points(&self) -> [(i32, i32); 4] {
         self.control_points
     }
+
+    pub fn texture(&self) -> &Texture<'a> {
+        self.texture
+    }
 }
 
-impl PartialEq for TerrainSegment {
+impl<'a> PartialEq for TerrainSegment<'a> {
     fn eq(&self, other: &Self) -> bool {
         self.pos == other.pos
     }
@@ -166,7 +166,7 @@ impl ProceduralGen {
      *
      *  - Returns array of tuples associated with the output curve.
      */
-    pub fn gen_terrain(
+    pub fn gen_terrain<'a>(
         random: &[[(i32, i32); 256]; 256],
         prev_seg: &TerrainSegment,
         cam_w: i32,
@@ -174,7 +174,8 @@ impl ProceduralGen {
         _is_pit: bool,
         _is_flat: bool,
         _is_cliff: bool,
-    ) -> TerrainSegment {
+        tex_all: [&'a Texture<'a>; 4],
+    ) -> TerrainSegment<'a> {
         let mut rng = rand::thread_rng();
 
         //println!("{:?} {:?} {:?}", _is_pit, _is_flat, _is_cliff);
@@ -328,11 +329,11 @@ impl ProceduralGen {
             10
         );
         let angle_from_last = 0.0; // ?
-        let color = match (terrain_type) {
-            TerrainType::Asphalt => Color::RGB(19, 10, 6),
-            TerrainType::Sand => Color::RGB(194, 178, 128),
-            TerrainType::Water => Color::RGB(116, 204, 244),
-            TerrainType::Grass => Color::RGB(86, 125, 70),
+        let tex = match (terrain_type) {
+            TerrainType::Asphalt => tex_all[0],
+            TerrainType::Sand => tex_all[1],
+            TerrainType::Water => tex_all[2],
+            TerrainType::Grass => tex_all[3],
         };
 
         let terrain = TerrainSegment::new(
@@ -340,8 +341,8 @@ impl ProceduralGen {
             curve_points.0,
             angle_from_last,
             terrain_type,
-            color,
             curve_points.1,
+            tex,
         );
 
         return terrain;
