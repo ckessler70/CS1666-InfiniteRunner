@@ -81,10 +81,6 @@ impl Game for Title {
             core.wincan.set_draw_color(Color::RGBA(119, 120, 123, 255));
             core.wincan.clear();
 
-            // Grey out screen
-            core.wincan.set_draw_color(Color::RGBA(0, 0, 0, 128));
-            core.wincan.fill_rect(rect!(0, 0, CAM_W, CAM_H))?;
-
             // Draw text
             core.wincan
                 .copy(&title_texture, None, Some(rect!(30, 40, 850, 200)))?;
