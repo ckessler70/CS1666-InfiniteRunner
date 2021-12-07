@@ -841,6 +841,7 @@ impl Game for Runner {
                     ind += 1;
                     if obs.x() + TILE_SIZE as i32 <= -1 * TILE_SIZE as i32
                         || obs.x() >= (CAM_W as f64 * 1.5) as i32
+                        || obs.y() >= CAM_H as i32
                     {
                         remove_inds.push(ind);
                     }
@@ -854,7 +855,9 @@ impl Game for Runner {
                 ind = -1;
                 for coin in all_coins.iter() {
                     ind += 1;
-                    if coin.x() + TILE_SIZE as i32 <= -1 * TILE_SIZE as i32 {
+                    if coin.x() + TILE_SIZE as i32 <= -1 * TILE_SIZE as i32
+                        || coin.y() >= CAM_H as i32
+                    {
                         remove_inds.push(ind);
                     }
                 }
@@ -867,7 +870,9 @@ impl Game for Runner {
                 ind = -1;
                 for power in all_powers.iter_mut() {
                     ind += 1;
-                    if power.x() + TILE_SIZE as i32 <= -1 * TILE_SIZE as i32 {
+                    if power.x() + TILE_SIZE as i32 <= -1 * TILE_SIZE as i32
+                        || power.y() >= CAM_H as i32
+                    {
                         remove_inds.push(ind);
                     }
                 }
