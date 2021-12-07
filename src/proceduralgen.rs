@@ -11,18 +11,6 @@ use sdl2::render::Texture;
 
 const CAM_W: u32 = 1280;
 
-// BG_CURVES_SIZE relates to the length of the background hills array.
-// Used to convert width of drawn rectangles to fill up the screen.
-// Reason for it being 1/10th width is that it was the highest resolution we
-// could get with previous iterations of that array and still have good
-// performance
-const BG_CURVES_SIZE: usize = CAM_W as usize / 10; // 1/10 of screen for good performance
-
-// Similar to BG_CURVES_SIZE, the length of the ground_buffer array.
-// Reason for it being 1/4th width is arbitrary. As long as it is consistent,
-// can be any length const CAM_W: usize = CAM_W as usize / 4; // Why 1/4 of
-// screen width specifically?
-
 // Where all the math is done?
 pub struct ProceduralGen;
 
@@ -39,6 +27,7 @@ pub struct TerrainSegment<'a> {
 }
 
 // Terrain Segment Definitions
+#[allow(dead_code)]
 impl<'a> TerrainSegment<'a> {
     pub fn new(
         pos: Rect,
@@ -258,7 +247,7 @@ impl ProceduralGen {
         let q_n1 = prev_points[prev_points.len() - 2];
 
         //instantiation
-        let mut curve_points = gen_bezier_curve(
+        let curve_points = gen_bezier_curve(
             q_n,
             q_n1,
             cam_w,
@@ -269,9 +258,6 @@ impl ProceduralGen {
             100,
             _is_flat,
         );
-
-        // Due to weird rust semantics, need to make a var to hold curve length
-        let curve_len = curve_points.0.len();
 
         let rect = rect!(
             prev_seg.curve().get(prev_seg.curve().len() - 1).unwrap().0 + 1,
@@ -354,6 +340,7 @@ pub fn extend_cubic_bezier_curve(
  *
  *  - Returns Bezier Curve representation
  */
+#[allow(unused_assignments)]
 fn gen_bezier_curve(
     q_n: (i32, i32),
     q_n1: (i32, i32),
@@ -452,7 +439,6 @@ pub fn gen_cubic_bezier_curve_points(
 
     for t in 0..CAM_W as usize {
         let point = t as f64;
-        //points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / 32.0);
         points.push(cubic_bezier_curve_point(
             p0,
             p1,
@@ -471,6 +457,7 @@ pub fn gen_cubic_bezier_curve_points(
  *
  */
 // Returns an array of the points' (x,y) values
+#[allow(dead_code)]
 pub fn gen_quadratic_bezier_curve_points(
     p0: (f64, f64), // Start point
     p1: (f64, f64), // Mid point
@@ -479,7 +466,6 @@ pub fn gen_quadratic_bezier_curve_points(
     let mut points: Vec<(i32, i32)> = vec![(-1, -1)];
     for t in 0..CAM_W as usize {
         let point = t as f64;
-        //points[t] = quadratic_bezier_curve_point(p0, p1, p2, point / 32.0);
         points.insert(
             t,
             quadratic_bezier_curve_point(p0, p1, p2, point / CAM_W as f64),
@@ -490,12 +476,6 @@ pub fn gen_quadratic_bezier_curve_points(
 
 /******      Bezier helper functions      ***** */
 
-/*
- *
- *
- *
- *
- */
 fn cubic_bezier_curve_point(
     p0: (f64, f64), // Start point
     p1: (f64, f64), // Mid_0 point
@@ -512,12 +492,7 @@ fn cubic_bezier_curve_point(
     return (x_value as i32, y_value as i32);
 }
 
-/*
- *
- *
- *
- *
- */
+#[allow(dead_code)]
 fn quadratic_bezier_curve_point(
     // Point args obtained from perlin
     p0: (f64, f64), // Start point
@@ -561,44 +536,6 @@ pub fn gen_perlin_hill_point(i: usize, freq: f32, amp: f32, modifier: f32, mul: 
         }
     }
     return 720 as i16;
-}
-
-/*  Not currently utilized...Can probably be removed
- *  Generates entire perlin map of 128x128
- *
- *  - Takes in `random` which is the array of random tuples of (i32, i32)
- *    Needs to be the same values on each run for porper noise output
- *    Represents the gradient value for points. Passed into noise_2d each
- *    time it is called
- *  - Takes in `freq` which is a control value on the cord
- *  - Takes in `amp` which is a control value on the noise_2d outputs
- *
- *  - Returns the entire 128x128 perlin noise map values
- */
-fn gen_perlin_noise(random: &[[(i32, i32); 256]; 256], freq: f64, amp: f64) -> [[f64; 128]; 128] {
-    let mut out = [[0.0; 128]; 128];
-
-    for i in 0..(out.len() - 1) {
-        for j in 0..(out.len() - 1) {
-            let cord = (i, j);
-
-            let n = noise_2d(&random, (cord.0 as f64 / 64.0, cord.1 as f64 / (freq))) * (amp)
-                + noise_2d(
-                    &random,
-                    (cord.0 as f64 / 32.0, cord.1 as f64 / (freq / 2.0)),
-                ) * (amp / 2.0)
-                + noise_2d(
-                    &random,
-                    (cord.0 as f64 / 16.0, cord.1 as f64 / (freq / 4.0)),
-                ) * (amp / 4.0)
-                + noise_2d(&random, (cord.0 as f64 / 8.0, cord.1 as f64 / (freq / 8.0)))
-                    * (amp / 8.0);
-            let modifier = n * 0.5 + 0.5;
-
-            out[i][j] = modifier;
-        }
-    }
-    return out;
 }
 
 /*  Generates the advanced perlin noise value for a single point.
@@ -724,7 +661,7 @@ pub fn noise_2d(random: &[[(i32, i32); 256]; 256], p: (f64, f64)) -> f64 {
  *
  *  - Returns binary output (-1 or 1)
  */
-fn grad_1d(p: f32) -> f32 {
+fn grad_1d(_p: f32) -> f32 {
     let v: f32 = 0.0;
 
     return if v > 0.5 { 1.0 } else { -1.0 };
