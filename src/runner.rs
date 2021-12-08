@@ -395,11 +395,13 @@ impl Game for Runner {
                 if let TerrainType::Water = curr_terrain_type {
                     on_water = true;
                 }
+               
                 if !Physics::check_player_upright(&mut player, angle, curr_ground_point) {
                     if !on_water {
                         game_over = true;
                     }
                 }
+                
 
                 // Check through all collisions with obstacles
                 // End game if crash occurs
@@ -496,7 +498,7 @@ impl Game for Runner {
                 //update player attributes
                 player.update_vel(game_over);
 
-                player.update_pos(curr_ground_point, angle, on_water);
+                player.update_pos(curr_ground_point, angle, on_water, game_over);
 
                 if player.flip() && point_timer == 0 {
                     //true if player "completed" a flip
@@ -540,7 +542,7 @@ impl Game for Runner {
                             None,
                         );
                         o.update_vel(false);
-                        o.update_pos(object_middle, object_angle, game_over);
+                        o.update_pos(object_middle, object_angle, on_water, game_over);
                     }
                 }
 

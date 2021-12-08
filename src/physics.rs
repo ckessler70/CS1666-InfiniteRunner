@@ -224,7 +224,7 @@ pub trait Body<'a>: Entity<'a> {
         let radius = (self.hitbox().width() as f64) / 2.0;
         self.mass() * radius * radius
     }
-    fn update_pos(&mut self, ground: Point, angle: f64, game_over: bool);
+    fn update_pos(&mut self, ground: Point, angle: f64, on_water: bool, game_over: bool);
     fn hard_set_pos(&mut self, pos: (f64, f64)); // Official method to hardcode position
 
     fn vel_x(&self) -> f64;
@@ -458,14 +458,14 @@ impl<'a> Player<'a> {
                         // Torque = r*F * sin(angle)
                         // alpha = Torque/body.rotational_inertia()
                         // For ease of calculation, just set omega = alpha
-                        /*
+                        
                         //Not certain if this math is correct
                         let force = self.mass() * ((self.velocity.0*self.velocity.0) + (self.velocity.1*self.velocity.1)).sqrt();
                         let torque = ((self.hitbox().width() as f64) / 2.0)  *  angle.sin();
                         let alpha = torque / self.rotational_inertia();             //rot inertia is 7500
-                        self.omega = alpha;
+                        //self.omega = alpha;
                         //println!("t:{} a:{} f:{} sin:{} rot:{}", torque, alpha,force,angle.sin(),self.rotational_inertia());
-                        */
+                        
 
                         /***************************************************/
 
@@ -483,6 +483,10 @@ impl<'a> Player<'a> {
                                 obstacle.x() as f64 - 1.05 * TILE_SIZE,
                                 self.y() as f64,
                             ));
+                            self.omega = alpha * 7500.0;
+                            self.rotate();
+                            println!("t:{} a:{} f:{} omega:{} sin:{} rot:{}", torque, alpha,force, self.omega(), angle.sin(),self.rotational_inertia());
+
                             self.align_hitbox_to_pos();
                             true // game over
                         }
@@ -599,11 +603,12 @@ impl<'a> Body<'a> for Player<'a> {
     }
 
     //update player position
-    fn update_pos(&mut self, ground: Point, angle: f64, on_water: bool) {
+    fn update_pos(&mut self, ground: Point, angle: f64, on_water: bool, game_over: bool) {
         self.pos.1 -= self.vel_y();
 
         // Match the angle of the ground if on ground
-        if self.hitbox().contains_point(ground) && !on_water {
+
+        if self.hitbox().contains_point(ground) && !on_water && !game_over{
             self.theta = angle;
             if self.jumping {
                 self.jumping = false;
@@ -780,7 +785,7 @@ impl<'a> Body<'a> for Obstacle<'a> {
         self.mass
     }
 
-    fn update_pos(&mut self, ground: Point, angle: f64, _game_over: bool) {
+    fn update_pos(&mut self, ground: Point, angle: f64, _on_water: bool, _game_over: bool) {
         if self.hitbox.contains_point(ground) {
             self.theta = angle;
         }
