@@ -92,18 +92,17 @@ impl Physics {
             */
 
             // If body is on ground, apply normal
-            let pre_forces_direction = (body.vel_x() + body.accel_x()).signum();
             let height = body.hitbox().height() as i32;
             if body.hitbox().y() + height > ground.y() {
                 // Land on ground
-                if body.vel_y() < 0.0
+                if body.accel_y() < 0.0
                     || (body.y() as f64 + 0.95 * (height as f64)) > ground.y() as f64
                 {
                     body.hard_set_pos((
                         body.x() as f64,
                         ground.y() as f64 - 0.95 * (height as f64),
                     ));
-                    body.hard_set_vel((body.vel_x(), -0.01));
+                    body.hard_set_vel((body.vel_x(), 0.0));
                     body.align_hitbox_to_pos();
                 }
 
@@ -123,12 +122,6 @@ impl Physics {
                         -fric_coeff * body.mass() * g * angle.cos() * direction_adjust,
                         fric_coeff * body.mass() * g * angle.sin() * direction_adjust,
                     ));
-                }
-                let post_forces_direction = (body.vel_x() + body.accel_x()).signum();
-
-                if pre_forces_direction != post_forces_direction {
-                    body.hard_set_vel((0.0, 0.0));
-                    body.reset_accel();
                 }
             }
         }
@@ -231,7 +224,7 @@ pub trait Body<'a>: Entity<'a> {
         let radius = (self.hitbox().width() as f64) / 2.0;
         self.mass() * radius * radius
     }
-    fn update_pos(&mut self, ground: Point, angle: f64, game_over: bool);
+    fn update_pos(&mut self, ground: Point, angle: f64, on_water: bool, game_over: bool);
     fn hard_set_pos(&mut self, pos: (f64, f64)); // Official method to hardcode position
 
     fn vel_x(&self) -> f64;
@@ -325,14 +318,18 @@ impl<'a> Player<'a> {
         }
     }
 
+    //boolean to track whether player is in the middle of a jump
     pub fn is_jumping(&self) -> bool {
         self.jumping
     }
 
+    //boolean to track whether player is in the middle of flipping
     pub fn is_flipping(&self) -> bool {
         self.flipping
     }
 
+    //boolean to track whether player initiated a flip but is not longer holding flip button
+    //helps in tracking of angular momentum
     pub fn was_flipping(&self) -> bool {
         self.was_flipping
     }
@@ -382,7 +379,10 @@ impl<'a> Player<'a> {
         }
     }
 
-    pub fn flip(&mut self) -> bool {
+    //flips player if directed by user, or if player has angular momentum
+    //returns true if player is rotating voluntarily,
+    //returns false if rotating because of angular momentum or not rotating
+    pub fn flip(&mut self, game_over: bool) -> bool {
         if self.is_flipping() {
             self.rotate();
             //Player rotated halfway, so let's call it a flip
@@ -391,7 +391,7 @@ impl<'a> Player<'a> {
             } else {
                 false
             }
-        } else if self.was_flipping() {
+        } else if self.was_flipping() || game_over {
             //allows for momentum when player stops flipping
             //to adjust rate of angular velocity decrease,
             //change the value being subtracted from omega
@@ -454,18 +454,14 @@ impl<'a> Player<'a> {
                         let o_vx_f = 2.0 * (2.0 * p_mass) * (p_vx) / (p_mass + o_mass);
                         let o_vy_f = 2.0 * (2.0 * p_mass) * (p_vy) / (p_mass + o_mass);
 
-                        // CALCULATE PLAYER AND OBJECT NEW OMEGAS HERE
-                        // Torque = r*F * sin(angle)
-                        // alpha = Torque/body.rotational_inertia()
-                        // For ease of calculation, just set omega = alpha
-                        /*
-                        //Not certain if this math is correct
+                        // CALCULATE PLAYER & OBSTACLE ANGULAR VELOCITY DUE TO COLLSION
+                        // **Only applied when collision is game ending 
                         let force = self.mass() * ((self.velocity.0*self.velocity.0) + (self.velocity.1*self.velocity.1)).sqrt();
-                        let torque = ((self.hitbox().width() as f64) / 2.0)  *  angle.sin();
+                        let torque = ((self.hitbox().width() as f64) / 2.0) * force  *  angle.sin();
                         let alpha = torque / self.rotational_inertia();             //rot inertia is 7500
-                        self.omega = alpha;
-                        //println!("t:{} a:{} f:{} sin:{} rot:{}", torque, alpha,force,angle.sin(),self.rotational_inertia());
-                        */
+                        
+                        let o_torque = ((obstacle.hitbox().width() as f64) / 2.0) * force  *  angle.sin();
+                        let alpha_o = o_torque / obstacle.rotational_inertia();             //rot inertia is 7500 
 
                         /***************************************************/
 
@@ -483,6 +479,13 @@ impl<'a> Player<'a> {
                                 obstacle.x() as f64 - 1.05 * TILE_SIZE,
                                 self.y() as f64,
                             ));
+                            // Apply rotational velocity due to game ending collision
+                            self.omega = alpha;    // to player
+                            self.rotate();
+
+                            obstacle.omega = -alpha_o;  // to obstacle
+                            obstacle.rotate();
+
                             self.align_hitbox_to_pos();
                             true // game over
                         }
@@ -507,6 +510,7 @@ impl<'a> Player<'a> {
                         self.omega = 0.0;
                         obstacle.collided = true;
                         obstacle.collected = true;
+                        obstacle.hard_set_vel((0.0, self.mass() / 2.0));
 
                         if self.theta() < OMEGA * 6.0 || self.theta() > 360.0 - OMEGA * 6.0 {
                             self.theta = 0.0;
@@ -527,8 +531,10 @@ impl<'a> Player<'a> {
                 }
                 // For spring, bounce off with Hooke's law force
                 ObstacleType::Balloon => {
-                    Physics::apply_bounce(self, obstacle);
-                    obstacle.collected = true;
+                    if !obstacle.collected {
+                        Physics::apply_bounce(self, obstacle);
+                        obstacle.collected = true;
+                    }
                     false
                 }
             }
@@ -564,14 +570,17 @@ impl<'a> Player<'a> {
 }
 
 impl<'a> Entity<'a> for Player<'a> {
+    //getter for player texture
     fn texture(&self) -> &Texture<'a> {
         self.texture
     }
 
+    //getter for player hitbox
     fn hitbox(&self) -> Rect {
         self.hitbox
     }
 
+    //aligns player hitbox to their updated position
     fn align_hitbox_to_pos(&mut self) {
         self.hitbox.set_x(self.pos.0 as i32);
         self.hitbox.set_y(self.pos.1 as i32);
@@ -587,15 +596,18 @@ impl<'a> Entity<'a> for Player<'a> {
 }
 
 impl<'a> Body<'a> for Player<'a> {
+    //getter for player mass
     fn mass(&self) -> f64 {
         self.mass
     }
 
-    fn update_pos(&mut self, ground: Point, angle: f64, on_water: bool) {
+    //update player position
+    fn update_pos(&mut self, ground: Point, angle: f64, on_water: bool, game_over: bool) {
         self.pos.1 -= self.vel_y();
 
         // Match the angle of the ground if on ground
-        if self.hitbox().contains_point(ground) && !on_water {
+
+        if self.hitbox().contains_point(ground) && !on_water && !game_over{
             self.theta = angle;
             if self.jumping {
                 self.jumping = false;
@@ -772,9 +784,12 @@ impl<'a> Body<'a> for Obstacle<'a> {
         self.mass
     }
 
-    fn update_pos(&mut self, ground: Point, angle: f64, game_over: bool) {
+    fn update_pos(&mut self, ground: Point, angle: f64, _on_water: bool, game_over: bool) {
         if self.hitbox.contains_point(ground) && !game_over {
             self.theta = angle;
+        }
+        else{
+            self.rotate();
         }
 
         self.pos.0 += self.vel_x();
@@ -796,8 +811,21 @@ impl<'a> Body<'a> for Obstacle<'a> {
     }
 
     fn update_vel(&mut self, _game_over: bool) {
+        let init_0 = self.velocity == (0.0, 0.0);
+        let pre_forces_direction = (self.velocity.0).signum();
+
         self.velocity.0 = (self.velocity.0 + self.accel.0).clamp(-20.0, 20.0);
         self.velocity.1 = (self.velocity.1 + self.accel.1).clamp(-20.0, 20.0);
+
+        let post_forces_direction = (self.velocity.0).signum();
+
+        // Sort of hardcoded version of static friction
+        if (init_0 || pre_forces_direction != post_forces_direction)
+            && (self.accel.0 * self.accel.0 + self.accel.1 * self.accel.1).sqrt() < 2.5
+        {
+            self.hard_set_vel((0.0, 0.0));
+            self.reset_accel();
+        }
     }
 
     fn hard_set_vel(&mut self, vel: (f64, f64)) {

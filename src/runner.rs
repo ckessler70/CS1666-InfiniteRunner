@@ -394,11 +394,13 @@ impl Game for Runner {
                 if let TerrainType::Water = curr_terrain_type {
                     on_water = true;
                 }
+               
                 if !Physics::check_player_upright(&mut player, angle, curr_ground_point) {
                     if !on_water {
                         game_over = true;
                     }
                 }
+                
 
                 // Check through all collisions with obstacles
                 // End game if crash occurs
@@ -495,9 +497,9 @@ impl Game for Runner {
                 //update player attributes
                 player.update_vel(game_over);
 
-                player.update_pos(curr_ground_point, angle, on_water);
+                player.update_pos(curr_ground_point, angle, on_water, game_over);
 
-                if player.flip() && point_timer == 0 {
+                if player.flip(game_over) && point_timer == 0 {
                     //true if player "completed" a flip
                     curr_step_score = 100.0;
                     last_point_val = 100;
@@ -518,20 +520,28 @@ impl Game for Runner {
                 for o in all_obstacles.iter_mut() {
                     // Only actually apply forces after a collision occurs
                     if o.collided() {
-                        let object_ground =
-                            get_ground_coord(&all_terrain, o.x() + (TILE_SIZE as i32) / 2);
+                        //  Get ground point at object and TILE_SIZE ahead of object
+                        let object_left: Point = get_ground_coord(&all_terrain, o.x()); // left of object
+                        let object_middle: Point =
+                            get_ground_coord(&all_terrain, o.x() + (TILE_SIZE as i32) / 2); // middle of object
+                        let object_right: Point =
+                            get_ground_coord(&all_terrain, o.x() + TILE_SIZE as i32); // right of object
+                        let object_angle = ((object_right.y() as f64 - object_left.y() as f64)
+                            / (TILE_SIZE as f64))
+                            .atan(); // slope between left and right of object
+
                         let object_terrain_type = get_ground_type(&all_terrain, o.x());
                         // Very small friction coefficient because there's no
                         // "skate force" to counteract friction
                         Physics::apply_terrain_forces(
                             o,
-                            angle,
-                            object_ground,
+                            object_angle,
+                            object_middle,
                             object_terrain_type,
                             None,
                         );
                         o.update_vel(false);
-                        o.update_pos(object_ground, angle, game_over);
+                        o.update_pos(object_middle, object_angle, on_water, game_over);
                     }
                 }
 
@@ -640,7 +650,7 @@ impl Game for Runner {
                                         TILE_SIZE,
                                         TILE_SIZE
                                     ),
-                                    75.0, // mass
+                                    35.0, // mass
                                     0,    // value
                                     &tex_statue,
                                     ObstacleType::Statue,
@@ -672,7 +682,7 @@ impl Game for Runner {
                                         TILE_SIZE,
                                         TILE_SIZE
                                     ),
-                                    75.0,
+                                    35.0,
                                     200, // value
                                     &tex_chest,
                                     ObstacleType::Chest,
@@ -689,7 +699,7 @@ impl Game for Runner {
                                         TILE_SIZE,
                                         TILE_SIZE * 2 / 3
                                     ),
-                                    75.0,
+                                    35.0,
                                     200, // value
                                     &tex_bench,
                                     ObstacleType::Bench,
