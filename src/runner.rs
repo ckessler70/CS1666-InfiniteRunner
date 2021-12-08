@@ -506,15 +506,7 @@ impl Game for Runner {
                     point_timer = 60;
                 }
 
-                //DEBUG PLAYER (Plz dont delete, just comment out)
-                //println!("A-> vx:{} ax:{}, vy:{}
-                // ay:{}",player.vel_x(),player.accel_x(),player.vel_y(),player.accel_y());
-
                 player.reset_accel();
-
-                //DEBUG PLAYER (Plz dont delete, just comment out)
-                //println!("B-> vx:{} ax:{}, vy:{}
-                // ay:{}",player.vel_x(),player.vel_y(),player.accel_x(),player.accel_y());
 
                 // apply forces to obstacles
                 for o in all_obstacles.iter_mut() {
@@ -741,8 +733,6 @@ impl Game for Runner {
                 }
 
                 // Update total_score
-                // Poorly placed rn, should be after postion / hitbox / collision update
-                // but before drawing
                 if !game_over {
                     curr_step_score += player.vel_x() / 5.0; // Increase score by factor of ammount moved that frame
                     if let Some(PowerType::ScoreMultiplier) = player.power_up() {
