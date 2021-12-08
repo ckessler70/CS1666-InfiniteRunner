@@ -455,13 +455,17 @@ impl<'a> Player<'a> {
                         let o_vy_f = 2.0 * (2.0 * p_mass) * (p_vy) / (p_mass + o_mass);
 
                         // CALCULATE PLAYER & OBSTACLE ANGULAR VELOCITY DUE TO COLLSION
-                        // **Only applied when collision is game ending 
-                        let force = self.mass() * ((self.velocity.0*self.velocity.0) + (self.velocity.1*self.velocity.1)).sqrt();
-                        let torque = ((self.hitbox().width() as f64) / 2.0) * force  *  angle.sin();
-                        let alpha = torque / self.rotational_inertia();             //rot inertia is 7500
-                        
-                        let o_torque = ((obstacle.hitbox().width() as f64) / 2.0) * force  *  angle.sin();
-                        let alpha_o = o_torque / obstacle.rotational_inertia();             //rot inertia is 7500 
+                        // **Only applied when collision is game ending
+                        let force = self.mass()
+                            * ((self.velocity.0 * self.velocity.0)
+                                + (self.velocity.1 * self.velocity.1))
+                                .sqrt();
+                        let torque = ((self.hitbox().width() as f64) / 2.0) * force * angle.sin();
+                        let alpha = torque / self.rotational_inertia(); //rot inertia is 7500
+
+                        let o_torque =
+                            ((obstacle.hitbox().width() as f64) / 2.0) * force * angle.sin();
+                        let alpha_o = o_torque / obstacle.rotational_inertia(); //rot inertia is 7500
 
                         /***************************************************/
 
@@ -480,10 +484,10 @@ impl<'a> Player<'a> {
                                 self.y() as f64,
                             ));
                             // Apply rotational velocity due to game ending collision
-                            self.omega = alpha;    // to player
+                            self.omega = -alpha; // to player
                             self.rotate();
 
-                            obstacle.omega = -alpha_o;  // to obstacle
+                            obstacle.omega = alpha_o; // to obstacle
                             obstacle.rotate();
 
                             self.align_hitbox_to_pos();
@@ -607,7 +611,7 @@ impl<'a> Body<'a> for Player<'a> {
 
         // Match the angle of the ground if on ground
 
-        if self.hitbox().contains_point(ground) && !on_water && !game_over{
+        if self.hitbox().contains_point(ground) && !on_water && !game_over {
             self.theta = angle;
             if self.jumping {
                 self.jumping = false;
@@ -787,8 +791,7 @@ impl<'a> Body<'a> for Obstacle<'a> {
     fn update_pos(&mut self, ground: Point, angle: f64, _on_water: bool, game_over: bool) {
         if self.hitbox.contains_point(ground) && !game_over {
             self.theta = angle;
-        }
-        else{
+        } else {
             self.rotate();
         }
 
