@@ -382,7 +382,7 @@ impl<'a> Player<'a> {
     //flips player if directed by user, or if player has angular momentum
     //returns true if player is rotating voluntarily,
     //returns false if rotating because of angular momentum or not rotating
-    pub fn flip(&mut self) -> bool {
+    pub fn flip(&mut self, game_over: bool) -> bool {
         if self.is_flipping() {
             self.rotate();
             //Player rotated halfway, so let's call it a flip
@@ -391,7 +391,7 @@ impl<'a> Player<'a> {
             } else {
                 false
             }
-        } else if self.was_flipping() {
+        } else if self.was_flipping() || game_over {
             //allows for momentum when player stops flipping
             //to adjust rate of angular velocity decrease,
             //change the value being subtracted from omega
@@ -477,7 +477,7 @@ impl<'a> Player<'a> {
                                 self.y() as f64,
                             ));
                             // Apply rotational velocity due to collision
-                            self.omega = alpha * 7500.0;    //7500.0 can be reduced to give player more rot inertia
+                            self.omega = alpha;    //7500.0 can be reduced to give player more rot inertia
                             self.rotate();
 
                             self.align_hitbox_to_pos();

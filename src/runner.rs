@@ -500,7 +500,7 @@ impl Game for Runner {
 
                 player.update_pos(curr_ground_point, angle, on_water, game_over);
 
-                if player.flip() && point_timer == 0 {
+                if player.flip(game_over) && point_timer == 0 {
                     //true if player "completed" a flip
                     curr_step_score = 100.0;
                     last_point_val = 100;
