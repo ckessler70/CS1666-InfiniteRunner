@@ -457,8 +457,11 @@ impl<'a> Player<'a> {
                         // CALCULATE PLAYER ANGULAR VELOCITY DUE TO COLLSIONS
                         //  Only applied to player when collision is game ending 
                         let force = self.mass() * ((self.velocity.0*self.velocity.0) + (self.velocity.1*self.velocity.1)).sqrt();
-                        let torque = ((self.hitbox().width() as f64) / 2.0)*force  *  angle.sin();
-                        let alpha = torque / self.rotational_inertia();             //rot inertia is 7500                     
+                        let torque = ((self.hitbox().width() as f64) / 2.0) * force  *  angle.sin();
+                        let alpha = torque / self.rotational_inertia();             //rot inertia is 7500
+                        
+                        let torque_o = ((obstacle.hitbox().width() as f64) / 2.0) * force  *  angle.sin();
+                        let alpha_o = torque / obstacle.rotational_inertia();             //rot inertia is 7500 
 
                         /***************************************************/
 
@@ -479,6 +482,9 @@ impl<'a> Player<'a> {
                             // Apply rotational velocity due to collision
                             self.omega = alpha;    //7500.0 can be reduced to give player more rot inertia
                             self.rotate();
+
+                            obstacle.omega = -alpha;
+                            obstacle.rotate();
 
                             self.align_hitbox_to_pos();
                             true // game over
@@ -778,9 +784,12 @@ impl<'a> Body<'a> for Obstacle<'a> {
         self.mass
     }
 
-    fn update_pos(&mut self, ground: Point, angle: f64, _on_water: bool, _game_over: bool) {
-        if self.hitbox.contains_point(ground) {
+    fn update_pos(&mut self, ground: Point, angle: f64, on_water: bool, game_over: bool) {
+        if self.hitbox.contains_point(ground) && !game_over {
             self.theta = angle;
+        }
+        else{
+            self.rotate();
         }
 
         self.pos.0 += self.vel_x();
