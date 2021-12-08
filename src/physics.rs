@@ -454,18 +454,11 @@ impl<'a> Player<'a> {
                         let o_vx_f = 2.0 * (2.0 * p_mass) * (p_vx) / (p_mass + o_mass);
                         let o_vy_f = 2.0 * (2.0 * p_mass) * (p_vy) / (p_mass + o_mass);
 
-                        // CALCULATE PLAYER AND OBJECT NEW OMEGAS HERE
-                        // Torque = r*F * sin(angle)
-                        // alpha = Torque/body.rotational_inertia()
-                        // For ease of calculation, just set omega = alpha
-                        
-                        //Not certain if this math is correct
+                        // CALCULATE PLAYER ANGULAR VELOCITY DUE TO COLLSIONS
+                        //  Only applied to player when collision is game ending 
                         let force = self.mass() * ((self.velocity.0*self.velocity.0) + (self.velocity.1*self.velocity.1)).sqrt();
-                        let torque = ((self.hitbox().width() as f64) / 2.0)  *  angle.sin();
-                        let alpha = torque / self.rotational_inertia();             //rot inertia is 7500
-                        //self.omega = alpha;
-                        //println!("t:{} a:{} f:{} sin:{} rot:{}", torque, alpha,force,angle.sin(),self.rotational_inertia());
-                        
+                        let torque = ((self.hitbox().width() as f64) / 2.0)*force  *  angle.sin();
+                        let alpha = torque / self.rotational_inertia();             //rot inertia is 7500                     
 
                         /***************************************************/
 
@@ -483,9 +476,9 @@ impl<'a> Player<'a> {
                                 obstacle.x() as f64 - 1.05 * TILE_SIZE,
                                 self.y() as f64,
                             ));
-                            self.omega = alpha * 7500.0;
+                            // Apply rotational velocity due to collision
+                            self.omega = alpha * 7500.0;    //7500.0 can be reduced to give player more rot inertia
                             self.rotate();
-                            println!("t:{} a:{} f:{} omega:{} sin:{} rot:{}", torque, alpha,force, self.omega(), angle.sin(),self.rotational_inertia());
 
                             self.align_hitbox_to_pos();
                             true // game over
