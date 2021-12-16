@@ -1,0 +1,7 @@
+Package: urban-odyssey
+Version: 1.0.0
+Architecture: amd64
+Installed-Size: 13369479
+Maintainer: Caleb Kessler <cdk46@pitt.edu>, Dane Halle <dmh148@pitt.edu>, Andrew Wiesen <amw267@pitt.edu>, Benjamin Ungar <bhu5@pitt.edu>, Dominic Karras <dak198@pitt.edu>, Mateen Kasim <mak420@pitt.edu>, Elliot Snitzer <efs24@pitt.edu>, Michael Daley <mdd63@pitt.edu>
+Description: Lorem Ipsum
+ (none)

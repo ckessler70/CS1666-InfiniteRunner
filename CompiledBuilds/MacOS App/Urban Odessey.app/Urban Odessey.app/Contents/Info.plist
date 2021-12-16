@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>English</string>
+  <key>CFBundleDisplayName</key>
+  <string>Urban Odessey</string>
+  <key>CFBundleExecutable</key>
+  <string>inf_runner</string>
+  <key>CFBundleIconFile</key>
+  <string>Urban Odessey.icns</string>
+  <key>CFBundleIdentifier</key>
+  <string>com.doe.exampleapplication</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>CFBundleName</key>
+  <string>Urban Odessey</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>1.0.0</string>
+  <key>CFBundleVersion</key>
+  <string>20211215.185745</string>
+  <key>CSResourcesFileMapped</key>
+  <true/>
+  <key>LSRequiresCarbon</key>
+  <true/>
+  <key>NSHighResolutionCapable</key>
+  <true/>
+  <key>NSHumanReadableCopyright</key>
+  <string>Copyright (c) 2021. All rights reserved.</string>
+</dict>
+</plist>

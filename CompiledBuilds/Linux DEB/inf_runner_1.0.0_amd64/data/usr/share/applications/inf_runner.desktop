@@ -1,0 +1,10 @@
+[Desktop Entry]
+Encoding=UTF-8
+Comment=Lorem Ipsum
+Exec=inf_runner
+Icon=inf_runner
+Name=Urban Odyssey
+Terminal=false
+Type=Application
+MimeType=
+Version=1.0.0

@@ -3,6 +3,7 @@ name = "inf_runner"
 version = "0.1.0"
 edition = "2018"
 authors = ["Caleb Kessler <cdk46@pitt.edu>", "Dane Halle <dmh148@pitt.edu>", "Andrew Wiesen <amw267@pitt.edu>", "Benjamin Ungar <bhu5@pitt.edu>", "Dominic Karras <dak198@pitt.edu>", "Mateen Kasim <mak420@pitt.edu>", "Elliot Snitzer <efs24@pitt.edu>", "Michael Daley <mdd63@pitt.edu>"]
+description = "Lorem Ipsum"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -17,3 +18,10 @@ rand = "0.8.0"
 
 [dev-dependencies]
 
+[package.metadata.bundle]
+name = "Urban Odyssey"
+identifier = "com.doe.exampleapplication"
+icon = ["assets/player/player.png"]
+version = "1.0.0"
+resources = ["assets/**/*"]
+copyright = "Copyright (c) Jane Doe 2016. All rights reserved."
